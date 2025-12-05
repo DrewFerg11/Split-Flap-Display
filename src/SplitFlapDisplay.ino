@@ -11,6 +11,7 @@
 
 #include <Arduino.h>
 #include <WiFiClient.h>
+#include <Wire.h>
 
 // clang-format off
 JsonSettings settings = JsonSettings("config", {
@@ -50,12 +51,59 @@ SplitFlapDisplay display(settings);
 SplitFlapWebServer webServer(settings);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
 
+// I2C Bus Scanner - logs all devices found on specified bus
+void scanI2CBus(TwoWire &wire, const char* busName, uint8_t sdaPin, uint8_t sclPin) {
+    Serial.printf("\n=== Scanning I2C Bus: %s (SDA=%d, SCL=%d) ===\n", busName, sdaPin, sclPin);
+    
+    int devicesFound = 0;
+    for (uint8_t address = 1; address < 127; address++) {
+        wire.beginTransmission(address);
+        byte error = wire.endTransmission();
+        
+        if (error == 0) {
+            Serial.printf("  Device found at address 0x%02X\n", address);
+            devicesFound++;
+        } else if (error == 4) {
+            Serial.printf("  Unknown error at address 0x%02X\n", address);
+        }
+    }
+    
+    if (devicesFound == 0) {
+        Serial.printf("  No I2C devices found on %s\n", busName);
+    } else {
+        Serial.printf("  Total devices found on %s: %d\n", busName, devicesFound);
+    }
+    Serial.println("==========================================\n");
+}
+
 void setup() {
     // put your setup code here, to run once:
     Serial.begin(SERIAL_SPEED);
 
 #ifdef STARTUP_DELAY
     delay(STARTUP_DELAY);
+#endif
+
+    Serial.println("\\n=== Split-Flap Display Startup ===");
+    
+    // Initialize I2C Bus 0 (Wire) - Display 1
+    Wire.begin(SDA_PIN, SCL_PIN);
+    Wire.setClock(400000);
+    Serial.printf("Initialized I2C Bus 0 (Wire): SDA=%d, SCL=%d\\n", SDA_PIN, SCL_PIN);
+    
+    // Initialize I2C Bus 1 (Wire1) - Display 2
+#if defined(SDA2_PIN) && defined(SCL2_PIN)
+    Wire1.begin(SDA2_PIN, SCL2_PIN);
+    Wire1.setClock(400000);
+    Serial.printf("Initialized I2C Bus 1 (Wire1): SDA=%d, SCL=%d\\n", SDA2_PIN, SCL2_PIN);
+#else
+    Serial.println("WARNING: SDA2_PIN/SCL2_PIN not defined - Display 2 disabled");
+#endif
+
+    // Scan both I2C buses for connected devices
+    scanI2CBus(Wire, "Wire (Display 1)", SDA_PIN, SCL_PIN);
+#if defined(SDA2_PIN) && defined(SCL2_PIN)
+    scanI2CBus(Wire1, "Wire1 (Display 2)", SDA2_PIN, SCL2_PIN);
 #endif
 
     Serial.println("Init Web Server");
