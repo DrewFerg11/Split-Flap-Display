@@ -12,6 +12,7 @@
 #include <Arduino.h>
 #include <WiFiClient.h>
 #include <Wire.h>
+#include <esp_log.h>
 
 // clang-format off
 JsonSettings settings = JsonSettings("config", {
@@ -30,35 +31,45 @@ JsonSettings settings = JsonSettings("config", {
     {"mqtt_port", JsonSetting(1883)},
     {"mqtt_user", JsonSetting("")},
     {"mqtt_pass", JsonSetting("")},
-    // Hardware Settings
-    {"moduleCount", JsonSetting(8)},
-    {"moduleAddresses", JsonSetting({0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27})},
+    // Hardware Settings - Shared between displays
     {"magnetPosition", JsonSetting(730)},
-    {"moduleOffsets", JsonSetting({0, 0, 0, 0, 0, 0, 0, 0})},
-    {"displayOffset", JsonSetting(0)},
-    {"sdaPin", JsonSetting(8)},
-    {"sclPin", JsonSetting(9)},
     {"stepsPerRot", JsonSetting(2048)},
     {"maxVel", JsonSetting(15.0f)},
     {"charset", JsonSetting(37)},
-    // Operational States
+    // Display 1 (Wire/Bus 0) Hardware Settings - only address 0x20
+    {"d1_modCnt", JsonSetting(5)},
+    {"d1_modAddrs", JsonSetting(std::vector<int>{0x20, 0x21, 0x22, 0x23, 0x24})},
+    {"d1_modOffs", JsonSetting(std::vector<int>{0, 0, 0, 0, 0})},
+    {"d1_dispOffs", JsonSetting(0)},
+    // Display 2 (Wire1/Bus 1) Hardware Settings - only address 0x20
+    {"d2_modCnt", JsonSetting(5)},
+    {"d2_modAddrs", JsonSetting(std::vector<int>{0x20, 0x21, 0x22, 0x23, 0x24})},
+    {"d2_modOffs", JsonSetting(std::vector<int>{0, 0, 0, 0, 0})},
+    {"d2_dispOffs", JsonSetting(0)},
+    // Operational States (keeping original for now, will need duplication later)
     {"mode", JsonSetting(0)}
 });
 // clang-format on
 
 WiFiClient wifiClient;
-SplitFlapDisplay display(settings);
+SplitFlapDisplay display1(settings, Wire, 0);
+SplitFlapDisplay display2(settings, Wire1, 1);
 SplitFlapWebServer webServer(settings);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
 
 // I2C Bus Scanner - logs all devices found on specified bus
 void scanI2CBus(TwoWire &wire, const char* busName, uint8_t sdaPin, uint8_t sclPin) {
     Serial.printf("\n=== Scanning I2C Bus: %s (SDA=%d, SCL=%d) ===\n", busName, sdaPin, sclPin);
+    Serial.flush();
     
     int devicesFound = 0;
-    for (uint8_t address = 1; address < 127; address++) {
+    // Scan only the range where PCF8575 modules are expected (0x20-0x27)
+    for (uint8_t address = 0x20; address <= 0x27; address++) {
+        Serial.printf("  Scanning 0x%02X...\n", address);
+        Serial.flush();
+        
         wire.beginTransmission(address);
-        byte error = wire.endTransmission();
+        byte error = wire.endTransmission(true);  // Send stop bit
         
         if (error == 0) {
             Serial.printf("  Device found at address 0x%02X\n", address);
@@ -66,6 +77,8 @@ void scanI2CBus(TwoWire &wire, const char* busName, uint8_t sdaPin, uint8_t sclP
         } else if (error == 4) {
             Serial.printf("  Unknown error at address 0x%02X\n", address);
         }
+        Serial.flush();
+        delay(5);  // Delay between scans to prevent bus lockup
     }
     
     if (devicesFound == 0) {
@@ -74,6 +87,7 @@ void scanI2CBus(TwoWire &wire, const char* busName, uint8_t sdaPin, uint8_t sclP
         Serial.printf("  Total devices found on %s: %d\n", busName, devicesFound);
     }
     Serial.println("==========================================\n");
+    Serial.flush();
 }
 
 void setup() {
@@ -84,18 +98,23 @@ void setup() {
     delay(STARTUP_DELAY);
 #endif
 
-    Serial.println("\\n=== Split-Flap Display Startup ===");
+    // Suppress NVS error messages (they're expected when settings schema changes)
+    esp_log_level_set("Preferences", ESP_LOG_NONE);
+    esp_log_level_set("nvs", ESP_LOG_NONE);
+    esp_log_level_set("*", ESP_LOG_WARN);  // Set all components to WARNING level or higher
+
+    Serial.println("\n=== Split-Flap Display Startup ===");
     
     // Initialize I2C Bus 0 (Wire) - Display 1
     Wire.begin(SDA_PIN, SCL_PIN);
-    Wire.setClock(400000);
-    Serial.printf("Initialized I2C Bus 0 (Wire): SDA=%d, SCL=%d\\n", SDA_PIN, SCL_PIN);
+    Wire.setClock(100000);  // Reduced from 400kHz to 100kHz for stability
+    Serial.printf("Initialized I2C Bus 0 (Wire): SDA=%d, SCL=%d\n", SDA_PIN, SCL_PIN);
     
     // Initialize I2C Bus 1 (Wire1) - Display 2
 #if defined(SDA2_PIN) && defined(SCL2_PIN)
     Wire1.begin(SDA2_PIN, SCL2_PIN);
-    Wire1.setClock(400000);
-    Serial.printf("Initialized I2C Bus 1 (Wire1): SDA=%d, SCL=%d\\n", SDA2_PIN, SCL2_PIN);
+    Wire1.setClock(100000);  // Reduced from 400kHz to 100kHz for stability
+    Serial.printf("Initialized I2C Bus 1 (Wire1): SDA=%d, SCL=%d\n", SDA2_PIN, SCL2_PIN);
 #else
     Serial.println("WARNING: SDA2_PIN/SCL2_PIN not defined - Display 2 disabled");
 #endif
@@ -115,27 +134,51 @@ void setup() {
         webServer.startMDNS();
         webServer.startWebServer();
 
-        display.init();
-        display.homeToString("");
+        // Initialize both displays
+        display1.init();
+#if defined(SDA2_PIN) && defined(SCL2_PIN)
+        display2.init();
+#endif
 
-        if (display.getNumModules() == 8) {
-            display.writeString("Wifi Err");
+        display1.homeToString("");
+
+        if (display1.getNumModules() == 8) {
+            display1.writeString("Wifi Err");
         } else {
-            display.writeChar('X');
+            display1.writeChar('X');
         }
     } else {
         webServer.enableOta();
         webServer.startMDNS();
         webServer.startWebServer();
 
-        display.init();
-        splitflapMqtt.setup();
-        splitflapMqtt.setDisplay(&display);
-        display.setMqtt(&splitflapMqtt);
+        // Initialize both displays
+        display1.init();
+#if defined(SDA2_PIN) && defined(SCL2_PIN)
+        display2.init();
+#endif
 
-        display.homeToString("OK");
+        splitflapMqtt.setup();
+        splitflapMqtt.setDisplay(&display1);
+        display1.setMqtt(&splitflapMqtt);
+
+        display1.homeToString("OK");
         delay(250);
-        display.writeString("");
+
+        //// // TEST CODE: Verify both displays work independently
+        //// Serial.println("\n=== Testing Display Independence ===");
+        
+        //// // IMPORTANT: moveTo() is BLOCKING - each display must complete its movement before starting the next
+        //// // Home and write to Display 1 first
+        display1.writeString("");
+        
+#if defined(SDA2_PIN) && defined(SCL2_PIN)
+        // Now home and write to Display 2 (after Display 1 completes)
+        display2.homeToString("OK");  // Home Display 2
+        delay(250);
+        display2.writeString("");
+#endif
+        //// Serial.println("Test strings written - Display 1: 'BUS0', Display 2: 'BUS1'");
     }
 }
 
@@ -165,7 +208,7 @@ void loop() {
 void singleInputMode() {
     String userInput = webServer.getInputString();
     if (userInput != webServer.getWrittenString()) {
-        display.writeString(userInput, MAX_RPM, webServer.getCentering());
+        display1.writeString(userInput, MAX_RPM, webServer.getCentering());
         webServer.setWrittenString(userInput);
     }
 }
@@ -176,7 +219,7 @@ void multiInputMode() {
         String userInput = webServer.getMultiInputString();
         String currWord = extractFromCSV(userInput, webServer.getMultiWordCurrentIndex());
         if (currWord != webServer.getWrittenString()) {
-            display.writeString(currWord, MAX_RPM, webServer.getCentering());
+            display1.writeString(currWord, MAX_RPM, webServer.getCentering());
             webServer.setWrittenString(currWord);
         }
         webServer.setLastSwitchMultiTime(millis());
@@ -192,8 +235,8 @@ void dateMode() {
         String strftimeFormat = convertToStrftime(format);
         String result = renderDate(strftimeFormat);
 
-        if (result.length() <= display.getNumModules() && result != webServer.getWrittenString()) {
-            display.writeString(result, MAX_RPM);
+        if (result.length() <= display1.getNumModules() && result != webServer.getWrittenString()) {
+            display1.writeString(result, MAX_RPM);
             webServer.setWrittenString(result);
         }
     }
@@ -212,14 +255,14 @@ void timeMode() {
 
         // Write to display if it changed
         if (result != webServer.getWrittenString()) {
-            display.writeString(result, MAX_RPM);
+            display1.writeString(result, MAX_RPM);
             webServer.setWrittenString(result);
         }
     }
 }
 
 void randomTest() {
-    display.testRandom();
+    display1.testRandom();
     delay(2500);
 }
 
@@ -234,21 +277,21 @@ void checkConnection() {
 void reconnectIfNeeded() {
     if (webServer.getAttemptReconnect()) { // check if the device should attempt reconnection to wifi
         webServer.setAttemptReconnect(false);
-        display.writeString("");
+        display1.writeString("");
         if (! webServer.connectToWifi()) {
             webServer.startAccessPoint();
             webServer.enableOta();
             webServer.endMDNS();
             webServer.startMDNS();
-            display.writeChar('X');
+            display1.writeChar('X');
         } else {
             webServer.enableOta();
             webServer.endMDNS();
             webServer.startMDNS();
-            display.writeString("OK");
+            display1.writeString("OK");
             webServer.setWrittenString("OK");
             delay(500);
-            display.writeString("");
+            display1.writeString("");
             webServer.setWrittenString("");
         }
 
@@ -282,7 +325,7 @@ String renderDate(const String &format) {
 
     strftime(buf, sizeof(buf), format.c_str(), timeinfo);
 
-    return trimToModuleCount(String(buf), display.getNumModules());
+    return trimToModuleCount(String(buf), display1.getNumModules());
 }
 
 String renderTime(const String &format) {
@@ -292,7 +335,7 @@ String renderTime(const String &format) {
 
     strftime(buf, sizeof(buf), format.c_str(), timeinfo);
 
-    return trimToModuleCount(String(buf), display.getNumModules());
+    return trimToModuleCount(String(buf), display1.getNumModules());
 }
 
 String trimToModuleCount(const String &str, int maxLen) {

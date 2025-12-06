@@ -12,7 +12,7 @@ class SplitFlapMqtt;
 
 class SplitFlapDisplay {
   public:
-    SplitFlapDisplay(JsonSettings &settings);
+    SplitFlapDisplay(JsonSettings &settings, TwoWire &wire, int busNumber);
 
     void init();
     void writeString(
@@ -38,6 +38,8 @@ class SplitFlapDisplay {
 
   private:
     JsonSettings &settings;
+    TwoWire *wire;      // pointer to I2C bus (Wire or Wire1)
+    int busNumber;      // 0 for Wire, 1 for Wire1
 
     bool checkAllFalse(bool array[], int size);
     void stopMotors();
@@ -54,8 +56,6 @@ class SplitFlapDisplay {
     int stepsPerRot;    // number of motor steps per full rotation of character
                         // drum
     int magnetPosition; // position of drum wheel when magnet is detected
-    int SDAPin;         // SDA pin
-    int SCLPin;         // SCL pin
 
     SplitFlapMqtt *mqtt = nullptr;
 };

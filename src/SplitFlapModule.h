@@ -8,7 +8,7 @@ class SplitFlapModule {
     // Constructor declarationS
     SplitFlapModule(); // default constructor required to allocate memory for
     // SplitFlapDisplay class
-    SplitFlapModule(uint8_t I2Caddress, int stepsPerFullRotation, int stepOffset, int magnetPos, int charSetSize);
+    SplitFlapModule(uint8_t I2Caddress, int stepsPerFullRotation, int stepOffset, int magnetPos, int charSetSize, TwoWire &wire);
 
     void init();
 
@@ -35,6 +35,7 @@ class SplitFlapModule {
     int stepNumber;                 // current position in the stepping order, to make motor move
     int stepsPerRot;                // number of steps per rotation
     bool hasErrored = false;        // flag to indicate if an error has occurred
+    TwoWire *wire;                  // pointer to I2C bus (Wire or Wire1)
 
     void writeIO(uint16_t data);    // write to motor in pins
 

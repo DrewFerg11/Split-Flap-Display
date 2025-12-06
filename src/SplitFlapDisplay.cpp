@@ -4,27 +4,36 @@
 #include "SplitFlapModule.h"
 #include "SplitFlapMqtt.h"
 
-SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
+SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings, TwoWire &wireRef, int bus) 
+    : settings(settings), wire(&wireRef), busNumber(bus) {}
 
 void SplitFlapDisplay::init() {
-    numModules = settings.getInt("moduleCount");
-    stepsPerRot = settings.getInt("stepsPerRot");
-    displayOffset = settings.getInt("displayOffset");
-    magnetPosition = settings.getInt("magnetPosition");
-    maxVel = settings.getFloat("maxVel");
-    charSetSize = settings.getInt("charset");
+    // Build setting keys with bus number suffix
+    String suffix = String(busNumber + 1); // bus 0 -> "1", bus 1 -> "2"
+    String modCountKey = "d" + suffix + "_modCnt";
+    String modAddrsKey = "d" + suffix + "_modAddrs";
+    String modOffsKey = "d" + suffix + "_modOffs";
+    String dispOffsKey = "d" + suffix + "_dispOffs";
+    
+    // Read display-specific settings
+    numModules = settings.getInt(modCountKey.c_str());
+    stepsPerRot = settings.getInt("stepsPerRot");  // shared
+    displayOffset = settings.getInt(dispOffsKey.c_str());
+    magnetPosition = settings.getInt("magnetPosition");  // shared
+    maxVel = settings.getFloat("maxVel");  // shared
+    charSetSize = settings.getInt("charset");  // shared
 
-    std::vector<int> settingAddresses = settings.getIntVector("moduleAddresses");
+    std::vector<int> settingAddresses = settings.getIntVector(modAddrsKey.c_str());
     for (int i = 0; i < numModules; i++) {
         moduleAddresses[i] = (uint8_t) settingAddresses[i];
     }
 
-    std::vector<int> settingOffsets = settings.getIntVector("moduleOffsets");
+    std::vector<int> settingOffsets = settings.getIntVector(modOffsKey.c_str());
     for (int i = 0; i < numModules; i++) {
         moduleOffsets[i] = settingOffsets[i];
     }
 
-    Serial.print("Module Offsets: ");
+    Serial.printf("Display %d - Module Offsets: ", busNumber + 1);
     for (int i = 0; i < numModules; i++) {
         Serial.print(moduleOffsets[i]);
         Serial.print(" ");
@@ -33,16 +42,12 @@ void SplitFlapDisplay::init() {
 
     for (uint8_t i = 0; i < numModules; i++) {
         modules[i] = SplitFlapModule(
-            moduleAddresses[i], stepsPerRot, moduleOffsets[i] + displayOffset, magnetPosition, charSetSize
+            moduleAddresses[i], stepsPerRot, moduleOffsets[i] + displayOffset, magnetPosition, charSetSize, *wire
         );
     }
 
-    SDAPin = settings.getInt("sdaPin");
-    SCLPin = settings.getInt("sclPin");
-
-    Wire.begin(SDAPin, SCLPin);
-    Wire.setClock(400000);
-
+    // Note: Wire.begin() is now called in main setup() before init()
+    
     for (uint8_t i = 0; i < numModules; i++) {
         modules[i].init();
     }
@@ -110,10 +115,20 @@ void SplitFlapDisplay::testCount() {
 }
 
 void SplitFlapDisplay::home(float speed) {
-    Serial.println("Homing");
+    Serial.printf("\n=== Display %d - Homing ===\n", busNumber + 1);
+    
+    // First, read all hall sensors to see current state
+    Serial.print("Initial hall sensor states: ");
+    for (int i = 0; i < numModules; i++) {
+        bool sensorState = modules[i].readHallEffectSensor();
+        Serial.printf("M%d:%d ", i, sensorState);
+    }
+    Serial.println();
+    
     int targetPositions[numModules];
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
+        Serial.printf("Module %d: pos=%d, target=%d\n", i, modules[i].getPosition(), targetPositions[i]);
     }
     startMotors();
     moveTo(targetPositions, speed, false);
@@ -123,6 +138,7 @@ void SplitFlapDisplay::home(float speed) {
         targetPositions[i] = modules[i].getCharPosition(homeChar);
     }
     moveTo(targetPositions, speed);
+    Serial.println("=== Homing complete ===\n");
 }
 
 void SplitFlapDisplay::homeToString(String homeString, float speed, bool centering) {
@@ -255,30 +271,21 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
             }
         }
 
-        if ((currentTime - lastSensorCheckTime) > checkIntervalUs) { // check hall effect sensor every checkIntervalMs
+            if ((currentTime - lastSensorCheckTime) > checkIntervalUs) { // check hall effect sensor every checkIntervalMs
             // check every modules sensor
             for (int i = 0; i < numModules; i++) {
-                if (needsStepping[i] &&
-                    (modules[i].readHallEffectSensor() == true
-                    )) { // only check sensors where the module is still moving
-                    if (! resetLatches[i]) {
-                        // UNCOMMENTING THIS WILL PROBBALY MAKE THE MOTORS INACCURATE, DUE
-                        // TO TIME TAKEN TO PRINT
-                        //  Serial.print("Module: ");
-                        //  Serial.print(i);
-                        //  Serial.print(" Magnet Position: ");
-                        //  Serial.print(modules[i].getMagnetPosition());
-                        //  Serial.print(" Actual Position: ");
-                        //  Serial.print(modules[i].getPosition());
-                        //  Serial.print(" Error: ");
-                        //  Serial.println((modules[i].getMagnetPosition() -
-                        //  modules[i].getPosition()));
-                        modules[i].magnetDetected(); // update position to the modules
-                        // magnet position
-                        resetLatches[i] = true;
+                if (needsStepping[i]) {
+                    bool sensorState = modules[i].readHallEffectSensor();
+                    
+                    if (sensorState == true) { // only check sensors where the module is still moving
+                        if (! resetLatches[i]) {
+                            modules[i].magnetDetected(); // update position to the modules
+                            // magnet position
+                            resetLatches[i] = true;
+                        }
+                    } else if (resetLatches[i] == true) {
+                        resetLatches[i] = false;
                     }
-                } else if (resetLatches[i] == true) {
-                    resetLatches[i] = false;
                 }
             }
             isFinished = checkAllFalse(needsStepping, numModules);
