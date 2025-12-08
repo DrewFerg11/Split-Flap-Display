@@ -448,6 +448,14 @@ void SplitFlapWebServer::startWebServer() {
             response["message"] = "Display parameter must be '1' or '2'";
         }
 
+        // Check if the display is enabled
+        bool isEnabled = settings.getInt(displayNum == "1" ? "d1_enabled" : "d2_enabled") != 0;
+        if (!isEnabled) {
+            response["message"] = "Display " + displayNum + " is disabled";
+            response["type"] = "error";
+            return request->send(400, "application/json", response.as<String>());
+        }
+
         if (response["message"].is<String>()) {
             response["type"] = "error";
             return request->send(400, "application/json", response.as<String>());

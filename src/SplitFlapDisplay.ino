@@ -31,6 +31,9 @@ JsonSettings settings = JsonSettings("config", {
     {"mqtt_port", JsonSetting(1883)},
     {"mqtt_user", JsonSetting("")},
     {"mqtt_pass", JsonSetting("")},
+    // Display Enable/Disable
+    {"d1_enabled", JsonSetting(true)},
+    {"d2_enabled", JsonSetting(true)},
     // Legacy shared hardware settings (deprecated, kept for compatibility)
     {"magnetPosition", JsonSetting(730)},
     {"stepsPerRot", JsonSetting(2048)},
@@ -39,8 +42,8 @@ JsonSettings settings = JsonSettings("config", {
     // Display 1 (Wire/Bus 0) Hardware Settings - GPIO 21/22, I2C addresses
     {"d1_sdaPin", JsonSetting(21)},
     {"d1_sclPin", JsonSetting(22)},
-    {"d1_magnetPosition", JsonSetting(730)},
-    {"d1_stepsPerRot", JsonSetting(2048)},
+    {"d1_magnetPos", JsonSetting(730)},
+    {"d1_stepsRot", JsonSetting(2048)},
     {"d1_maxVel", JsonSetting(15.0f)},
     {"d1_modCnt", JsonSetting(8)},
     {"d1_modAddrs", JsonSetting(std::vector<int>{0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27})},
@@ -49,8 +52,8 @@ JsonSettings settings = JsonSettings("config", {
     // Display 2 (Wire1/Bus 1) Hardware Settings - GPIO 16/17, I2C addresses
     {"d2_sdaPin", JsonSetting(16)},
     {"d2_sclPin", JsonSetting(17)},
-    {"d2_magnetPosition", JsonSetting(730)},
-    {"d2_stepsPerRot", JsonSetting(2048)},
+    {"d2_magnetPos", JsonSetting(730)},
+    {"d2_stepsRot", JsonSetting(2048)},
     {"d2_maxVel", JsonSetting(15.0f)},
     {"d2_modCnt", JsonSetting(8)},
     {"d2_modAddrs", JsonSetting(std::vector<int>{0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27})},
@@ -112,6 +115,18 @@ void setup() {
     esp_log_level_set("Preferences", ESP_LOG_NONE);
     esp_log_level_set("nvs", ESP_LOG_NONE);
     esp_log_level_set("*", ESP_LOG_WARN);  // Set all components to WARNING level or higher
+
+    // Initialize settings with defaults if this is first boot
+    // This prevents INVALID_HANDLE errors when toJson() is called before any settings are saved
+    Preferences prefs;
+    prefs.begin("config", true);  // Read-only check
+    bool hasSettings = prefs.isKey("name");  // Check if any setting exists
+    prefs.end();
+    
+    if (!hasSettings) {
+        Serial.println("First boot detected - initializing settings with defaults");
+        settings.reset();  // This will write all default values to NVS
+    }
 
     Serial.println("\n=== Split-Flap Display Startup ===");
     
@@ -195,26 +210,32 @@ void setup() {
 void loop() {
     splitflapMqtt.loop();
 
-    // Check per-display modes
+    // Check per-display modes and enabled state
+    bool d1Enabled = settings.getInt("d1_enabled") != 0;
+    bool d2Enabled = settings.getInt("d2_enabled") != 0;
     int d1Mode = settings.getInt("d1_mode");
     int d2Mode = settings.getInt("d2_mode");
     
-    // Handle Display 1 mode
-    switch (d1Mode) {
-        case 0: singleInputMode(); break;
-        case 1: multiInputMode(); break;
-        case 2: dateMode(); break;
-        case 3: timeMode(); break;
-        case 4: break; // Manual control via /text endpoint
-        case 5: randomTest(); break;
-        default: break;
+    // Handle Display 1 mode (only if enabled)
+    if (d1Enabled) {
+        switch (d1Mode) {
+            case 0: singleInputMode(); break;
+            case 1: multiInputMode(); break;
+            case 2: dateMode(); break;
+            case 3: timeMode(); break;
+            case 4: break; // Manual control via /text endpoint
+            case 5: randomTest(); break;
+            default: break;
+        }
     }
     
-    // Handle Display 2 mode (placeholder for future implementation)
-    switch (d2Mode) {
-        case 4: break; // Manual control via /text endpoint
-        // Other modes not yet implemented for display2
-        default: break;
+    // Handle Display 2 mode (only if enabled, placeholder for future implementation)
+    if (d2Enabled) {
+        switch (d2Mode) {
+            case 4: break; // Manual control via /text endpoint
+            // Other modes not yet implemented for display2
+            default: break;
+        }
     }
 
     webServer.handleOta();

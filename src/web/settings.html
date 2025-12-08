@@ -387,143 +387,74 @@
                 </div>
             </div>
 
-            <!-- Display 1 Hardware Settings -->
+            <!-- Display Enable/Disable Section -->
             <h2
-                class="text-xl font-semibold text-left w-full border-b border-blue-600 pb-2 mt-10 mb-2"
+                class="text-xl font-semibold text-left w-full border-b border-gray-600 pb-2 mt-10 mb-2"
             >
-                <span class="text-blue-400">Display 1</span> Hardware Settings
+                Displays
             </h2>
 
-            <div class="gap-2 grid grid-cols-2 w-full">
-                <div>
-                    <label for="d1_modCnt" class="block text-left text-lg mt-4">
-                        Number of Modules
-                    </label>
+            <div class="gap-4 grid grid-cols-2 w-full mt-4">
+                <div class="flex items-center gap-3">
                     <input
-                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        type="number"
-                        id="d1_modCnt"
-                        x-model="settings.d1_modCnt"
-                        min="0"
-                        max="8"
-                        placeholder="0-8"
+                        type="checkbox"
+                        id="d1_enabled"
+                        x-model="settings.d1_enabled"
+                        :checked="settings.d1_enabled"
+                        class="w-6 h-6 rounded border-gray-600 bg-neutral-700 text-blue-600 focus:ring-blue-500 focus:ring-2"
                     />
-                </div>
-                <div>
                     <label
-                        for="d1_dispOffs"
-                        class="block text-left text-lg mt-4"
+                        for="d1_enabled"
+                        class="text-lg text-blue-400 font-semibold"
                     >
-                        Display Offset
+                        Enable Display 1
                     </label>
+                </div>
+
+                <div class="flex items-center gap-3">
                     <input
-                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        type="number"
-                        id="d1_dispOffs"
-                        x-model="settings.d1_dispOffs"
-                        placeholder="0"
+                        type="checkbox"
+                        id="d2_enabled"
+                        x-model="settings.d2_enabled"
+                        :checked="settings.d2_enabled"
+                        class="w-6 h-6 rounded border-gray-600 bg-neutral-700 text-green-600 focus:ring-green-500 focus:ring-2"
                     />
+                    <label
+                        for="d2_enabled"
+                        class="text-lg text-green-400 font-semibold"
+                    >
+                        Enable Display 2
+                    </label>
                 </div>
             </div>
 
-            <label class="block text-left text-lg mt-4"
-                >Module Addresses (I2C)</label
-            >
-            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
-                <template
-                    x-for="(val, i) in Array.from({ length: settings.d1_modCnt || 0 })"
-                    :key="`d1-addr-${i}`"
+            <!-- Display 1 Hardware Settings -->
+            <div x-show="settings.d1_enabled" x-cloak>
+                <h2
+                    class="text-xl font-semibold text-left w-full border-b border-blue-600 pb-2 mt-10 mb-2"
                 >
-                    <input
-                        type="number"
-                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        :value="d1_addressArray[i]"
-                        @input="setD1Address(i, $event.target.value)"
-                        :placeholder="`0x${(32 + i).toString(16)}`"
-                    />
-                </template>
-            </div>
+                    <span class="text-blue-400">Display 1</span> Hardware
+                    Settings
+                </h2>
 
-            <label class="block text-left text-lg mt-4">Module Offsets</label>
-            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
-                <template
-                    x-for="(val, i) in Array.from({ length: settings.d1_modCnt || 0 })"
-                    :key="`d1-off-${i}`"
-                >
-                    <input
-                        type="number"
-                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        :value="d1_offsetArray[i]"
-                        @input="setD1Offset(i, $event.target.value)"
-                        placeholder="0"
-                    />
-                </template>
-            </div>
-
-            <!-- Display 1 Advanced Settings -->
-            <a
-                href="#"
-                class="block w-full text-center text-sm hover:underline mt-6 mb-2 text-blue-400"
-                x-on:click.prevent="showD1Advanced = !showD1Advanced"
-                x-text="showD1Advanced ? 'Hide Display 1 Advanced Settings ▲' : 'Show Display 1 Advanced Settings ▼'"
-            ></a>
-
-            <div
-                x-show="showD1Advanced"
-                x-cloak
-                class="border-l-4 border-blue-600 pl-4"
-            >
-                <div class="grid grid-cols-3 gap-2 w-full">
+                <div class="gap-2 grid grid-cols-2 w-full">
                     <div>
                         <label
-                            for="d1_magnetPosition"
+                            for="d1_modCnt"
                             class="block text-left text-lg mt-4"
                         >
-                            Magnet Position
+                            Number of Modules
                         </label>
                         <input
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
-                            id="d1_magnetPosition"
-                            x-model="settings.d1_magnetPosition"
-                            placeholder="730"
+                            id="d1_modCnt"
+                            x-model="settings.d1_modCnt"
+                            min="0"
+                            max="8"
+                            placeholder="0-8"
                         />
                     </div>
-
-                    <div>
-                        <label
-                            for="d1_sdaPin"
-                            class="block text-left text-lg mt-4"
-                        >
-                            SDA Pin
-                        </label>
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="d1_sdaPin"
-                            x-model="settings.d1_sdaPin"
-                            placeholder="21"
-                        />
-                    </div>
-
-                    <div>
-                        <label
-                            for="d1_sclPin"
-                            class="block text-left text-lg mt-4"
-                        >
-                            SCL Pin
-                        </label>
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="d1_sclPin"
-                            x-model="settings.d1_sclPin"
-                            placeholder="22"
-                        />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2 w-full">
                     <div>
                         <label
                             for="d1_dispOffs"
@@ -539,187 +470,195 @@
                             placeholder="0"
                         />
                     </div>
-
-                    <div>
-                        <label
-                            for="d1_stepsPerRot"
-                            class="block text-left text-lg mt-4"
-                        >
-                            Steps Per Rotation
-                        </label>
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="d1_stepsPerRot"
-                            x-model="settings.d1_stepsPerRot"
-                            placeholder="2048"
-                        />
-                    </div>
-
-                    <div>
-                        <label
-                            for="d1_maxVel"
-                            class="block text-left text-lg mt-4"
-                        >
-                            Max Velocity
-                        </label>
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="d1_maxVel"
-                            x-model="settings.d1_maxVel"
-                            placeholder="15"
-                        />
-                    </div>
                 </div>
 
-                <button
-                    class="w-full p-3 mt-4 text-lg font-semibold text-white bg-red-600 rounded-md hover:bg-red-500 transition-colors"
-                    x-on:click.prevent="resetDisplay1()"
-                    :disabled="processing"
-                    :class="{'opacity-50 cursor-not-allowed': processing}"
+                <label class="block text-left text-lg mt-4"
+                    >Module Addresses (I2C)</label
                 >
-                    Reset Display 1 to Defaults
-                </button>
+                <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
+                    <template
+                        x-for="(val, i) in Array.from({ length: settings.d1_modCnt || 0 })"
+                        :key="`d1-addr-${i}`"
+                    >
+                        <input
+                            type="number"
+                            class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            :value="d1_addressArray[i]"
+                            @input="setD1Address(i, $event.target.value)"
+                            :placeholder="`0x${(32 + i).toString(16)}`"
+                        />
+                    </template>
+                </div>
+
+                <label class="block text-left text-lg mt-4"
+                    >Module Offsets</label
+                >
+                <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
+                    <template
+                        x-for="(val, i) in Array.from({ length: settings.d1_modCnt || 0 })"
+                        :key="`d1-off-${i}`"
+                    >
+                        <input
+                            type="number"
+                            class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            :value="d1_offsetArray[i]"
+                            @input="setD1Offset(i, $event.target.value)"
+                            placeholder="0"
+                        />
+                    </template>
+                </div>
+
+                <!-- Display 1 Advanced Settings -->
+                <a
+                    href="#"
+                    class="block w-full text-center text-sm hover:underline mt-6 mb-2 text-blue-400"
+                    x-on:click.prevent="showD1Advanced = !showD1Advanced"
+                    x-text="showD1Advanced ? 'Hide Display 1 Advanced Settings ▲' : 'Show Display 1 Advanced Settings ▼'"
+                ></a>
+
+                <div
+                    x-show="showD1Advanced"
+                    x-cloak
+                    class="border-l-4 border-blue-600 pl-4"
+                >
+                    <div class="grid grid-cols-3 gap-2 w-full">
+                        <div>
+                            <label
+                                for="d1_magnetPos"
+                                class="block text-left text-lg mt-4"
+                            >
+                                Magnet Position
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d1_magnetPos"
+                                x-model="settings.d1_magnetPos"
+                                placeholder="730"
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                for="d1_sdaPin"
+                                class="block text-left text-lg mt-4"
+                            >
+                                SDA Pin
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d1_sdaPin"
+                                x-model="settings.d1_sdaPin"
+                                placeholder="21"
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                for="d1_sclPin"
+                                class="block text-left text-lg mt-4"
+                            >
+                                SCL Pin
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d1_sclPin"
+                                x-model="settings.d1_sclPin"
+                                placeholder="22"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 w-full">
+                        <div>
+                            <label
+                                for="d1_dispOffs"
+                                class="block text-left text-lg mt-4"
+                            >
+                                Display Offset
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d1_dispOffs"
+                                x-model="settings.d1_dispOffs"
+                                placeholder="0"
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                for="d1_stepsRot"
+                                class="block text-left text-lg mt-4"
+                            >
+                                Steps Per Rotation
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d1_stepsRot"
+                                x-model="settings.d1_stepsRot"
+                                placeholder="2048"
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                for="d1_maxVel"
+                                class="block text-left text-lg mt-4"
+                            >
+                                Max Velocity
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d1_maxVel"
+                                x-model="settings.d1_maxVel"
+                                placeholder="15"
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        class="w-full p-3 mt-4 text-lg font-semibold text-white bg-red-600 rounded-md hover:bg-red-500 transition-colors"
+                        x-on:click.prevent="resetDisplay1()"
+                        :disabled="processing"
+                        :class="{'opacity-50 cursor-not-allowed': processing}"
+                    >
+                        Reset Display 1 to Defaults
+                    </button>
+                </div>
             </div>
 
             <!-- Display 2 Hardware Settings -->
-            <h2
-                class="text-xl font-semibold text-left w-full border-b border-green-600 pb-2 mt-10 mb-2"
-            >
-                <span class="text-green-400">Display 2</span> Hardware Settings
-            </h2>
-
-            <div class="gap-2 grid grid-cols-2 w-full">
-                <div>
-                    <label for="d2_modCnt" class="block text-left text-lg mt-4">
-                        Number of Modules
-                    </label>
-                    <input
-                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        type="number"
-                        id="d2_modCnt"
-                        x-model="settings.d2_modCnt"
-                        min="0"
-                        max="8"
-                        placeholder="0-8"
-                    />
-                </div>
-                <div>
-                    <label
-                        for="d2_dispOffs"
-                        class="block text-left text-lg mt-4"
-                    >
-                        Display Offset
-                    </label>
-                    <input
-                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        type="number"
-                        id="d2_dispOffs"
-                        x-model="settings.d2_dispOffs"
-                        placeholder="0"
-                    />
-                </div>
-            </div>
-
-            <label class="block text-left text-lg mt-4"
-                >Module Addresses (I2C)</label
-            >
-            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
-                <template
-                    x-for="(val, i) in Array.from({ length: settings.d2_modCnt || 0 })"
-                    :key="`d2-addr-${i}`"
+            <div x-show="settings.d2_enabled" x-cloak>
+                <h2
+                    class="text-xl font-semibold text-left w-full border-b border-green-600 pb-2 mt-10 mb-2"
                 >
-                    <input
-                        type="number"
-                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        :value="d2_addressArray[i]"
-                        @input="setD2Address(i, $event.target.value)"
-                        :placeholder="`0x${(32 + i).toString(16)}`"
-                    />
-                </template>
-            </div>
+                    <span class="text-green-400">Display 2</span> Hardware
+                    Settings
+                </h2>
 
-            <label class="block text-left text-lg mt-4">Module Offsets</label>
-            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
-                <template
-                    x-for="(val, i) in Array.from({ length: settings.d2_modCnt || 0 })"
-                    :key="`d2-off-${i}`"
-                >
-                    <input
-                        type="number"
-                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        :value="d2_offsetArray[i]"
-                        @input="setD2Offset(i, $event.target.value)"
-                        placeholder="0"
-                    />
-                </template>
-            </div>
-
-            <!-- Display 2 Advanced Settings -->
-            <a
-                href="#"
-                class="block w-full text-center text-sm hover:underline mt-6 mb-2 text-green-400"
-                x-on:click.prevent="showD2Advanced = !showD2Advanced"
-                x-text="showD2Advanced ? 'Hide Display 2 Advanced Settings ▲' : 'Show Display 2 Advanced Settings ▼'"
-            ></a>
-
-            <div
-                x-show="showD2Advanced"
-                x-cloak
-                class="border-l-4 border-green-600 pl-4"
-            >
-                <div class="grid grid-cols-3 gap-2 w-full">
+                <div class="gap-2 grid grid-cols-2 w-full">
                     <div>
                         <label
-                            for="d2_magnetPosition"
+                            for="d2_modCnt"
                             class="block text-left text-lg mt-4"
                         >
-                            Magnet Position
+                            Number of Modules
                         </label>
                         <input
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
-                            id="d2_magnetPosition"
-                            x-model="settings.d2_magnetPosition"
-                            placeholder="730"
+                            id="d2_modCnt"
+                            x-model="settings.d2_modCnt"
+                            min="0"
+                            max="8"
+                            placeholder="0-8"
                         />
                     </div>
-
-                    <div>
-                        <label
-                            for="d2_sdaPin"
-                            class="block text-left text-lg mt-4"
-                        >
-                            SDA Pin
-                        </label>
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="d2_sdaPin"
-                            x-model="settings.d2_sdaPin"
-                            placeholder="16"
-                        />
-                    </div>
-
-                    <div>
-                        <label
-                            for="d2_sclPin"
-                            class="block text-left text-lg mt-4"
-                        >
-                            SCL Pin
-                        </label>
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="d2_sclPin"
-                            x-model="settings.d2_sclPin"
-                            placeholder="17"
-                        />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2 w-full">
                     <div>
                         <label
                             for="d2_dispOffs"
@@ -735,48 +674,166 @@
                             placeholder="0"
                         />
                     </div>
-
-                    <div>
-                        <label
-                            for="d2_stepsPerRot"
-                            class="block text-left text-lg mt-4"
-                        >
-                            Steps Per Rotation
-                        </label>
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="d2_stepsPerRot"
-                            x-model="settings.d2_stepsPerRot"
-                            placeholder="2048"
-                        />
-                    </div>
-
-                    <div>
-                        <label
-                            for="d2_maxVel"
-                            class="block text-left text-lg mt-4"
-                        >
-                            Max Velocity
-                        </label>
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="d2_maxVel"
-                            x-model="settings.d2_maxVel"
-                            placeholder="15"
-                        />
-                    </div>
                 </div>
 
-                <button
-                    class="w-full p-3 mt-4 text-lg font-semibold text-white bg-red-600 rounded-md hover:bg-red-500 transition-colors"
-                    x-on:click.prevent="resetDisplay2()"
-                    :disabled="processing"
-                    :class="{'opacity-50 cursor-not-allowed': processing}"
+                <label class="block text-left text-lg mt-4"
+                    >Module Addresses (I2C)</label
                 >
-                    Reset Display 2 to Defaults
-                </button>
+                <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
+                    <template
+                        x-for="(val, i) in Array.from({ length: settings.d2_modCnt || 0 })"
+                        :key="`d2-addr-${i}`"
+                    >
+                        <input
+                            type="number"
+                            class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            :value="d2_addressArray[i]"
+                            @input="setD2Address(i, $event.target.value)"
+                            :placeholder="`0x${(32 + i).toString(16)}`"
+                        />
+                    </template>
+                </div>
+
+                <label class="block text-left text-lg mt-4"
+                    >Module Offsets</label
+                >
+                <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
+                    <template
+                        x-for="(val, i) in Array.from({ length: settings.d2_modCnt || 0 })"
+                        :key="`d2-off-${i}`"
+                    >
+                        <input
+                            type="number"
+                            class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            :value="d2_offsetArray[i]"
+                            @input="setD2Offset(i, $event.target.value)"
+                            placeholder="0"
+                        />
+                    </template>
+                </div>
+
+                <!-- Display 2 Advanced Settings -->
+                <a
+                    href="#"
+                    class="block w-full text-center text-sm hover:underline mt-6 mb-2 text-green-400"
+                    x-on:click.prevent="showD2Advanced = !showD2Advanced"
+                    x-text="showD2Advanced ? 'Hide Display 2 Advanced Settings ▲' : 'Show Display 2 Advanced Settings ▼'"
+                ></a>
+
+                <div
+                    x-show="showD2Advanced"
+                    x-cloak
+                    class="border-l-4 border-green-600 pl-4"
+                >
+                    <div class="grid grid-cols-3 gap-2 w-full">
+                        <div>
+                            <label
+                                for="d2_magnetPos"
+                                class="block text-left text-lg mt-4"
+                            >
+                                Magnet Position
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d2_magnetPos"
+                                x-model="settings.d2_magnetPos"
+                                placeholder="730"
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                for="d2_sdaPin"
+                                class="block text-left text-lg mt-4"
+                            >
+                                SDA Pin
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d2_sdaPin"
+                                x-model="settings.d2_sdaPin"
+                                placeholder="16"
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                for="d2_sclPin"
+                                class="block text-left text-lg mt-4"
+                            >
+                                SCL Pin
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d2_sclPin"
+                                x-model="settings.d2_sclPin"
+                                placeholder="17"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 w-full">
+                        <div>
+                            <label
+                                for="d2_dispOffs"
+                                class="block text-left text-lg mt-4"
+                            >
+                                Display Offset
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d2_dispOffs"
+                                x-model="settings.d2_dispOffs"
+                                placeholder="0"
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                for="d2_stepsRot"
+                                class="block text-left text-lg mt-4"
+                            >
+                                Steps Per Rotation
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d2_stepsRot"
+                                x-model="settings.d2_stepsRot"
+                                placeholder="2048"
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                for="d2_maxVel"
+                                class="block text-left text-lg mt-4"
+                            >
+                                Max Velocity
+                            </label>
+                            <input
+                                class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                type="number"
+                                id="d2_maxVel"
+                                x-model="settings.d2_maxVel"
+                                placeholder="15"
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        class="w-full p-3 mt-4 text-lg font-semibold text-white bg-red-600 rounded-md hover:bg-red-500 transition-colors"
+                        x-on:click.prevent="resetDisplay2()"
+                        :disabled="processing"
+                        :class="{'opacity-50 cursor-not-allowed': processing}"
+                    >
+                        Reset Display 2 to Defaults
+                    </button>
+                </div>
             </div>
 
             <!-- Debug Section -->

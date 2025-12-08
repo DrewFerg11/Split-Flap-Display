@@ -21,6 +21,8 @@ document.addEventListener("alpine:init", () => {
             mode: 2,
             dateFormat: "ddd dd/MM",
             timeFormat: "HH:mm",
+            d1_enabled: true, // Default to enabled
+            d2_enabled: true, // Default to enabled
         },
         errors: {},
         timezones: {},
@@ -146,6 +148,18 @@ document.addEventListener("alpine:init", () => {
             fetch("/settings")
                 .then((res) => res.json())
                 .then((data) => {
+                    // Convert integer booleans to actual booleans for checkboxes
+                    // Backend stores booleans as integers (0/1), but Alpine checkboxes need true/false
+                    if (data.d1_enabled !== undefined) {
+                        data.d1_enabled = Boolean(data.d1_enabled);
+                    } else {
+                        data.d1_enabled = true; // Default if not present
+                    }
+                    if (data.d2_enabled !== undefined) {
+                        data.d2_enabled = Boolean(data.d2_enabled);
+                    } else {
+                        data.d2_enabled = true; // Default if not present
+                    }
                     Object.assign(this.settings, data);
                 })
                 .catch(() =>
@@ -342,10 +356,19 @@ document.addEventListener("alpine:init", () => {
             this.saving = true;
             this.errors = {};
 
+            // Convert boolean checkboxes back to integers for backend
+            const settingsToSave = { ...this.settings };
+            if (settingsToSave.d1_enabled !== undefined) {
+                settingsToSave.d1_enabled = settingsToSave.d1_enabled ? 1 : 0;
+            }
+            if (settingsToSave.d2_enabled !== undefined) {
+                settingsToSave.d2_enabled = settingsToSave.d2_enabled ? 1 : 0;
+            }
+
             fetch("/settings", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(this.settings),
+                body: JSON.stringify(settingsToSave),
             })
                 .then((res) => res.json())
                 .then((data) => {
@@ -390,15 +413,15 @@ document.addEventListener("alpine:init", () => {
                 )
             ) {
                 // Reset Display 1 specific settings to defaults
-                this.settings.d1_magnetPosition = 730;
+                this.settings.d1_magnetPos = 730;
                 this.settings.d1_sdaPin = 21;
                 this.settings.d1_sclPin = 22;
                 this.settings.d1_dispOffs = 0;
-                this.settings.d1_stepsPerRot = 2048;
+                this.settings.d1_stepsRot = 2048;
                 this.settings.d1_maxVel = 15;
-                this.settings.d1_modCnt = 5;
-                this.settings.d1_modAddrs = "32,33,34,35,36";
-                this.settings.d1_modOffs = "0,0,0,0,0";
+                this.settings.d1_modCnt = 8;
+                this.settings.d1_modAddrs = "32,33,34,35,36,37,38,39";
+                this.settings.d1_modOffs = "0,0,0,0,0,0,0,0";
                 this.showDialog("Display 1 reset to defaults", "success");
             }
         },
@@ -410,15 +433,15 @@ document.addEventListener("alpine:init", () => {
                 )
             ) {
                 // Reset Display 2 specific settings to defaults
-                this.settings.d2_magnetPosition = 730;
+                this.settings.d2_magnetPos = 730;
                 this.settings.d2_sdaPin = 16;
                 this.settings.d2_sclPin = 17;
                 this.settings.d2_dispOffs = 0;
-                this.settings.d2_stepsPerRot = 2048;
+                this.settings.d2_stepsRot = 2048;
                 this.settings.d2_maxVel = 15;
-                this.settings.d2_modCnt = 5;
-                this.settings.d2_modAddrs = "32,33,34,35,36";
-                this.settings.d2_modOffs = "0,0,0,0,0";
+                this.settings.d2_modCnt = 8;
+                this.settings.d2_modAddrs = "32,33,34,35,36,37,38,39";
+                this.settings.d2_modOffs = "0,0,0,0,0,0,0,0";
                 this.showDialog("Display 2 reset to defaults", "success");
             }
         },

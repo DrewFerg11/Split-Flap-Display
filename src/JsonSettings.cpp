@@ -103,7 +103,14 @@ bool JsonSettings::fromJson(JsonDocument settings) {
 
     for (JsonPair kv : settings.as<JsonObject>()) {
         const char *key = kv.key().c_str();
-        JsonSetting setting = this->find(key);
+        
+        // Skip keys that aren't in our settings map (allows frontend to send extra data)
+        auto it = this->map.find(key);
+        if (it == this->map.end()) {
+            continue;
+        }
+        
+        JsonSetting setting = it->second;
 
         if (! setting.validate(kv.value().as<String>())) {
             lastValidationError = setting.getLastValidationError();
@@ -127,9 +134,29 @@ bool JsonSettings::fromJson(JsonDocument settings) {
 bool JsonSettings::reset() {
     preferences.begin("config", false);
     preferences.clear();
+    
+    // Write all default values from the settings map to NVS
+    for (const auto &pair : map) {
+        const String &key = pair.first;
+        const JsonSetting &setting = pair.second;
+
+        switch (setting.type) {
+            case JsonSettingType::JST_STR:
+            case JsonSettingType::JST_INT_VECTOR:
+                preferences.putString(key.c_str(), setting.strDefault);
+                break;
+            case JsonSettingType::JST_INT:
+                preferences.putInt(key.c_str(), setting.intDefault);
+                break;
+            case JsonSettingType::JST_FLOAT:
+                preferences.putFloat(key.c_str(), setting.floatDefault);
+                break;
+        }
+    }
+    
     preferences.end();
 
-    return fromJson(toJson());
+    return true;
 }
 
 JsonSetting JsonSettings::find(const char *key) {
