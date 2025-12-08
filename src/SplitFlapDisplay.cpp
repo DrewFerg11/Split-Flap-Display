@@ -54,6 +54,11 @@ void SplitFlapDisplay::init() {
 }
 
 void SplitFlapDisplay::testAll() {
+    if (numModules == 0) {
+        Serial.println("Error: testAll called but numModules is 0");
+        return;
+    }
+    
     char testChars[37] = {' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
                           'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
     int numChars = sizeof(testChars) / sizeof(testChars[0]);
@@ -77,13 +82,18 @@ void SplitFlapDisplay::testAll() {
 }
 
 void SplitFlapDisplay::testRandom(float speed) {
+    if (numModules == 0) {
+        Serial.println("Error: testRandom called but numModules is 0");
+        return;
+    }
+    
     char testChars[37] = {' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
                           'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
     int targetPositions[numModules];
     char randChar;
 
-    Serial.print("Target: ");
+    Serial.printf("Display %d Random Test - Target: ", busNumber + 1);
     for (int i = 0; i < numModules; i++) {
         randChar = testChars[random(0, 37)];
         targetPositions[i] = modules[i].getCharPosition(randChar);
@@ -94,6 +104,11 @@ void SplitFlapDisplay::testRandom(float speed) {
 }
 
 void SplitFlapDisplay::testCount() {
+    if (numModules == 0) {
+        Serial.println("Error: testCount called but numModules is 0");
+        return;
+    }
+    
     int count = 0;
     int maxCount = pow(10, numModules);
     char targetChar;
@@ -142,7 +157,7 @@ void SplitFlapDisplay::home(float speed) {
 }
 
 void SplitFlapDisplay::homeToString(String homeString, float speed, bool centering) {
-    Serial.println("Homing");
+    Serial.printf("Homing Display %d\n", busNumber + 1);
     int targetPositions[numModules];
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
@@ -150,10 +165,11 @@ void SplitFlapDisplay::homeToString(String homeString, float speed, bool centeri
     startMotors();
     moveTo(targetPositions, speed, false);
     writeString(homeString, speed, centering);
+    Serial.printf("Homing Display %d to '%s' complete\n", busNumber + 1, homeString.c_str());
 }
 
 void SplitFlapDisplay::homeToChar(char homeChar, float speed) {
-    Serial.println("Homing");
+    Serial.printf("Homing Display %d\n", busNumber + 1);
     int targetPositions[numModules];
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
@@ -165,6 +181,7 @@ void SplitFlapDisplay::homeToChar(char homeChar, float speed) {
         targetPositions[i] = modules[i].getCharPosition(homeChar);
     }
     moveTo(targetPositions, true, speed);
+    Serial.printf("Homing Display %d to '%c' complete\n", busNumber + 1, homeChar);
 }
 
 void SplitFlapDisplay::writeChar(char inputChar, float speed) {
@@ -177,6 +194,11 @@ void SplitFlapDisplay::writeChar(char inputChar, float speed) {
 }
 
 void SplitFlapDisplay::writeString(String inputString, float speed, bool centering) {
+    if (numModules == 0) {
+        Serial.println("Error: writeString called but numModules is 0");
+        return;
+    }
+    
     String displayString = inputString.substring(0, numModules);
 
     if (centering) {

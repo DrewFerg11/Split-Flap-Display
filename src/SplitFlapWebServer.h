@@ -11,9 +11,11 @@
 #include <WiFi.h>
 #include <time.h>
 
+class SplitFlapDisplay; // Forward declaration
+
 class SplitFlapWebServer {
   public:
-    SplitFlapWebServer(JsonSettings &settings);
+    SplitFlapWebServer(JsonSettings &settings, SplitFlapDisplay &display1, SplitFlapDisplay &display2);
     void init();
     void setTimezone();
     void checkRebootRequired();
@@ -66,6 +68,8 @@ class SplitFlapWebServer {
 
   private:
     JsonSettings &settings;
+    SplitFlapDisplay &display1;
+    SplitFlapDisplay &display2;
 
     String decodeURIComponent(String encodedString);
     void setInputString(String input) { inputString = input; }

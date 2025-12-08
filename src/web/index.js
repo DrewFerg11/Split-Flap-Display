@@ -25,7 +25,24 @@ document.addEventListener("alpine:init", () => {
         errors: {},
         timezones: {},
 
-        // Control page specific
+        // Control page specific - Display 1
+        display1Mode: 6, // Default to custom text
+        display1Text: "",
+        display1SingleMode: true,
+        display1CenterText: false,
+
+        // Control page specific - Display 2
+        display2Mode: 6, // Default to custom text
+        display2Text: "",
+        display2SingleMode: true,
+        display2CenterText: false,
+
+        // Settings page specific - Advanced settings toggles
+        showD1Advanced: false,
+        showD2Advanced: false,
+
+        // Legacy control page variables (kept for compatibility)
+        selectedDisplay: "both",
         singleMode: true,
         singleWord: "",
         multiWord: "",
@@ -62,6 +79,60 @@ document.addEventListener("alpine:init", () => {
             const arr = this.offsetArray;
             arr[index] = value;
             this.settings.moduleOffsets = arr.join(",");
+        },
+
+        // Display 1 helpers
+        get d1_addressArray() {
+            const val = this.settings.d1_modAddrs;
+            if (Array.isArray(val)) return val;
+            if (typeof val === "string")
+                return val.split(",").map((v) => parseInt(v.trim()));
+            return [];
+        },
+        setD1Address(index, value) {
+            const arr = [...this.d1_addressArray];
+            arr[index] = parseInt(value);
+            this.settings.d1_modAddrs = arr.join(",");
+        },
+
+        get d1_offsetArray() {
+            const val = this.settings.d1_modOffs;
+            if (Array.isArray(val)) return val;
+            if (typeof val === "string")
+                return val.split(",").map((v) => parseInt(v.trim()));
+            return [];
+        },
+        setD1Offset(index, value) {
+            const arr = [...this.d1_offsetArray];
+            arr[index] = parseInt(value);
+            this.settings.d1_modOffs = arr.join(",");
+        },
+
+        // Display 2 helpers
+        get d2_addressArray() {
+            const val = this.settings.d2_modAddrs;
+            if (Array.isArray(val)) return val;
+            if (typeof val === "string")
+                return val.split(",").map((v) => parseInt(v.trim()));
+            return [];
+        },
+        setD2Address(index, value) {
+            const arr = [...this.d2_addressArray];
+            arr[index] = parseInt(value);
+            this.settings.d2_modAddrs = arr.join(",");
+        },
+
+        get d2_offsetArray() {
+            const val = this.settings.d2_modOffs;
+            if (Array.isArray(val)) return val;
+            if (typeof val === "string")
+                return val.split(",").map((v) => parseInt(v.trim()));
+            return [];
+        },
+        setD2Offset(index, value) {
+            const arr = [...this.d2_offsetArray];
+            arr[index] = parseInt(value);
+            this.settings.d2_modOffs = arr.join(",");
         },
 
         init() {
@@ -142,6 +213,7 @@ document.addEventListener("alpine:init", () => {
                             : this.multiWords,
                         delay: this.delay,
                         center: this.centerText,
+                        display: this.selectedDisplay, // Add display selector
                     }),
                 })
                     .then((res) => res.json())
@@ -161,6 +233,109 @@ document.addEventListener("alpine:init", () => {
 
         removeWord(index) {
             this.multiWords.splice(index, 1);
+        },
+
+        // New functions for dual display control
+        updateDisplay1() {
+            if (this.display1Mode === 6) {
+                if (this.display1Text.trim() === "") {
+                    return this.showDialog(
+                        "Display 1 text cannot be empty.",
+                        "error",
+                    );
+                }
+
+                fetch("/text", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        mode: "single",
+                        words: [this.display1Text],
+                        display: "1",
+                        center: this.display1CenterText,
+                        delay: 1,
+                    }),
+                })
+                    .then((res) => res.json())
+                    .then((res) =>
+                        this.showDialog("Display 1: " + res.message, res.type),
+                    )
+                    .catch((err) =>
+                        this.showDialog(
+                            "Display 1 error: " + err.message,
+                            "error",
+                        ),
+                    );
+            } else {
+                // Update mode for display 1
+                fetch("/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        d1_mode: this.display1Mode,
+                    }),
+                })
+                    .then(() =>
+                        this.showDialog("Display 1 mode updated.", "success"),
+                    )
+                    .catch((err) =>
+                        this.showDialog(
+                            "Display 1 error: " + err.message,
+                            "error",
+                        ),
+                    );
+            }
+        },
+
+        updateDisplay2() {
+            if (this.display2Mode === 6) {
+                if (this.display2Text.trim() === "") {
+                    return this.showDialog(
+                        "Display 2 text cannot be empty.",
+                        "error",
+                    );
+                }
+
+                fetch("/text", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        mode: "single",
+                        words: [this.display2Text],
+                        display: "2",
+                        center: this.display2CenterText,
+                        delay: 1,
+                    }),
+                })
+                    .then((res) => res.json())
+                    .then((res) =>
+                        this.showDialog("Display 2: " + res.message, res.type),
+                    )
+                    .catch((err) =>
+                        this.showDialog(
+                            "Display 2 error: " + err.message,
+                            "error",
+                        ),
+                    );
+            } else {
+                // Update mode for display 2
+                fetch("/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        d2_mode: this.display2Mode,
+                    }),
+                })
+                    .then(() =>
+                        this.showDialog("Display 2 mode updated.", "success"),
+                    )
+                    .catch((err) =>
+                        this.showDialog(
+                            "Display 2 error: " + err.message,
+                            "error",
+                        ),
+                    );
+            }
         },
 
         save() {
@@ -205,6 +380,46 @@ document.addEventListener("alpine:init", () => {
                     .catch(() => {
                         this.showDialog("Failed to reset settings.", "error");
                     });
+            }
+        },
+
+        resetDisplay1() {
+            if (
+                confirm(
+                    "Are you sure you want to reset Display 1 settings to defaults?",
+                )
+            ) {
+                // Reset Display 1 specific settings to defaults
+                this.settings.d1_magnetPosition = 730;
+                this.settings.d1_sdaPin = 21;
+                this.settings.d1_sclPin = 22;
+                this.settings.d1_dispOffs = 0;
+                this.settings.d1_stepsPerRot = 2048;
+                this.settings.d1_maxVel = 15;
+                this.settings.d1_modCnt = 5;
+                this.settings.d1_modAddrs = "32,33,34,35,36";
+                this.settings.d1_modOffs = "0,0,0,0,0";
+                this.showDialog("Display 1 reset to defaults", "success");
+            }
+        },
+
+        resetDisplay2() {
+            if (
+                confirm(
+                    "Are you sure you want to reset Display 2 settings to defaults?",
+                )
+            ) {
+                // Reset Display 2 specific settings to defaults
+                this.settings.d2_magnetPosition = 730;
+                this.settings.d2_sdaPin = 16;
+                this.settings.d2_sclPin = 17;
+                this.settings.d2_dispOffs = 0;
+                this.settings.d2_stepsPerRot = 2048;
+                this.settings.d2_maxVel = 15;
+                this.settings.d2_modCnt = 5;
+                this.settings.d2_modAddrs = "32,33,34,35,36";
+                this.settings.d2_modOffs = "0,0,0,0,0";
+                this.showDialog("Display 2 reset to defaults", "success");
             }
         },
 

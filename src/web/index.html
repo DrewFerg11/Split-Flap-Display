@@ -28,145 +28,319 @@
                 ></h1>
             </div>
 
-            <label class="block text-left text-lg mb-4">Select Mode:</label>
-            <select
-                class="w-full p-3 mb-6 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
-                x-model.number="settings.mode"
-            >
-                <option value="2">Date</option>
-                <option value="3">Time</option>
-                <!--        <option value="4">Count</option>-->
-                <option value="6">Custom Text</option>
-                <option value="5">Random</option>
-            </select>
+            <!-- Display 1 Controls -->
+            <div class="w-full mb-8 p-4 border-2 border-blue-600 rounded-lg">
+                <h3 class="text-2xl font-bold mb-4 text-blue-400">Display 1</h3>
 
-            <template x-if="settings.mode == 6">
-                <div class="w-full">
-                    <div class="flex items-center justify-between gap-4 mb-4">
-                        <div class="flex items-center gap-4">
-                            <label
-                                class="text-lg font-medium"
-                                x-text="singleMode ? 'Single Word' : 'Multiple Words'"
-                            ></label>
-                            <label class="relative inline-block w-12 h-6">
-                                <input
-                                    type="checkbox"
-                                    x-model="singleMode"
-                                    class="hidden"
-                                />
-                                <span
-                                    class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
-                                ></span>
-                                <span
-                                    class="absolute left-1 top-1 w-4 h-4 bg-neutral-300 cursor-pointer rounded-full transition-transform duration-300"
-                                    :class="singleMode ? 'translate-x-0' : 'translate-x-6'"
-                                ></span>
-                            </label>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <label class="text-lg font-medium"
-                                >Center Text</label
-                            >
-                            <label class="relative inline-block w-12 h-6">
-                                <input
-                                    type="checkbox"
-                                    x-model="centerText"
-                                    class="hidden"
-                                />
-                                <span
-                                    class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
-                                ></span>
-                                <span
-                                    class="absolute left-1 top-1 w-4 h-4 cursor-pointer rounded-full transition-transform duration-300"
-                                    :class="centerText ? 'translate-x-6 bg-green-600' : 'translate-x-0 bg-neutral-300'"
-                                ></span>
-                            </label>
-                        </div>
-                    </div>
+                <label class="block text-left text-lg mb-2">Mode:</label>
+                <select
+                    class="w-full p-3 mb-4 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                    x-model.number="display1Mode"
+                >
+                    <option value="6">Custom Text</option>
+                    <!-- Date, Time, and Random modes disabled for individual display control -->
+                    <!-- <option value="2">Date</option> -->
+                    <!-- <option value="3">Time</option> -->
+                    <!-- <option value="5">Random</option> -->
+                </select>
 
-                    <div class="w-full" x-show="singleMode" x-cloak>
-                        <label for="singleWord" class="block text-left text-lg"
+                <template x-if="display1Mode === 6">
+                    <div class="w-full">
+                        <div
+                            class="flex items-center justify-between gap-4 mb-4"
+                        >
+                            <div class="flex items-center gap-4">
+                                <label class="text-lg font-medium"
+                                    >Single Word</label
+                                >
+                                <label class="relative inline-block w-12 h-6">
+                                    <input
+                                        type="checkbox"
+                                        x-model="display1SingleMode"
+                                        class="hidden"
+                                    />
+                                    <span
+                                        class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                    ></span>
+                                    <span
+                                        class="absolute left-1 top-1 w-4 h-4 bg-neutral-300 cursor-pointer rounded-full transition-transform duration-300"
+                                        :class="display1SingleMode ? 'translate-x-0' : 'translate-x-6'"
+                                    ></span>
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <label class="text-lg font-medium"
+                                    >Center Text</label
+                                >
+                                <label class="relative inline-block w-12 h-6">
+                                    <input
+                                        type="checkbox"
+                                        x-model="display1CenterText"
+                                        class="hidden"
+                                    />
+                                    <span
+                                        class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                    ></span>
+                                    <span
+                                        class="absolute left-1 top-1 w-4 h-4 bg-neutral-300 cursor-pointer rounded-full transition-transform duration-300"
+                                        :class="display1CenterText ? 'translate-x-6' : 'translate-x-0'"
+                                    ></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <label
+                            for="display1Text"
+                            class="block text-left text-lg"
                             >Custom Text:</label
                         >
                         <input
                             type="text"
-                            x-model="singleWord"
-                            id="singleWord"
-                            placeholder="Enter a single word"
-                            class="w-full p-3 mt-2 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                            x-model="display1Text"
+                            id="display1Text"
+                            placeholder="Enter text for Display 1"
+                            class="w-full p-3 mt-2 mb-4 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
                         />
                     </div>
+                </template>
 
-                    <div class="w-full mt-6" x-show="! singleMode" x-cloak>
-                        <label class="block text-left text-lg"
-                            >Word List:</label
-                        >
+                <button
+                    class="w-full p-3 text-lg font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-500 transition-colors"
+                    x-on:click="updateDisplay1()"
+                >
+                    Update Display 1
+                </button>
+            </div>
+
+            <!-- Display 2 Controls -->
+            <div class="w-full mb-6 p-4 border-2 border-green-600 rounded-lg">
+                <h3 class="text-2xl font-bold mb-4 text-green-400">
+                    Display 2
+                </h3>
+
+                <label class="block text-left text-lg mb-2">Mode:</label>
+                <select
+                    class="w-full p-3 mb-4 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                    x-model.number="display2Mode"
+                >
+                    <option value="6">Custom Text</option>
+                    <!-- Date, Time, and Random modes disabled for individual display control -->
+                    <!-- <option value="2">Date</option> -->
+                    <!-- <option value="3">Time</option> -->
+                    <!-- <option value="5">Random</option> -->
+                </select>
+
+                <template x-if="display2Mode === 6">
+                    <div class="w-full">
                         <div
-                            class="flex flex-wrap gap-2 p-3 rounded-lg min-h-[50px] items-center bg-neutral-700 transition-colors"
-                            :class="multiWords.length > 0 ? 'border-green-600 border-2' : 'border-transparent border-2'"
+                            class="flex items-center justify-between gap-4 mb-4"
                         >
-                            <template x-if="multiWords.length === 0">
-                                <span class="text-neutral-400 text-sm italic"
-                                    >No words added yet</span
+                            <div class="flex items-center gap-4">
+                                <label class="text-lg font-medium"
+                                    >Single Word</label
                                 >
-                            </template>
-
-                            <template
-                                x-for="(word, index) in multiWords"
-                                :key="index"
-                            >
-                                <span
-                                    class="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-full text-sm"
+                                <label class="relative inline-block w-12 h-6">
+                                    <input
+                                        type="checkbox"
+                                        x-model="display2SingleMode"
+                                        class="hidden"
+                                    />
+                                    <span
+                                        class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                    ></span>
+                                    <span
+                                        class="absolute left-1 top-1 w-4 h-4 bg-neutral-300 cursor-pointer rounded-full transition-transform duration-300"
+                                        :class="display2SingleMode ? 'translate-x-0' : 'translate-x-6'"
+                                    ></span>
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <label class="text-lg font-medium"
+                                    >Center Text</label
                                 >
-                                    <span x-text="word"></span>
-                                    <button
-                                        class="font-bold text-white hover:text-neutral-200"
-                                        x-on:click="removeWord(index)"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            </template>
+                                <label class="relative inline-block w-12 h-6">
+                                    <input
+                                        type="checkbox"
+                                        x-model="display2CenterText"
+                                        class="hidden"
+                                    />
+                                    <span
+                                        class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                    ></span>
+                                    <span
+                                        class="absolute left-1 top-1 w-4 h-4 bg-neutral-300 cursor-pointer rounded-full transition-transform duration-300"
+                                        :class="display2CenterText ? 'translate-x-6' : 'translate-x-0'"
+                                    ></span>
+                                </label>
+                            </div>
                         </div>
 
-                        <div class="flex gap-4 items-center mt-4">
+                        <label
+                            for="display2Text"
+                            class="block text-left text-lg"
+                            >Custom Text:</label
+                        >
+                        <input
+                            type="text"
+                            x-model="display2Text"
+                            id="display2Text"
+                            placeholder="Enter text for Display 2"
+                            class="w-full p-3 mt-2 mb-4 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                        />
+                    </div>
+                </template>
+
+                <button
+                    class="w-full p-3 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
+                    x-on:click="updateDisplay2()"
+                >
+                    Update Display 2
+                </button>
+            </div>
+
+            <!-- Legacy single mode controls (hidden for now) -->
+            <div x-show="false" x-cloak>
+                <label class="block text-left text-lg mb-2">Select Mode:</label>
+                <select
+                    class="w-full p-3 mb-6 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                    x-model.number="settings.mode"
+                >
+                    <option value="2">Date</option>
+                    <option value="3">Time</option>
+                    <!--        <option value="4">Count</option>-->
+                    <option value="6">Custom Text</option>
+                    <option value="5">Random</option>
+                </select>
+
+                <template x-if="settings.mode == 6">
+                    <div class="w-full">
+                        <div
+                            class="flex items-center justify-between gap-4 mb-4"
+                        >
+                            <div class="flex items-center gap-4">
+                                <label
+                                    class="text-lg font-medium"
+                                    x-text="singleMode ? 'Single Word' : 'Multiple Words'"
+                                ></label>
+                                <label class="relative inline-block w-12 h-6">
+                                    <input
+                                        type="checkbox"
+                                        x-model="singleMode"
+                                        class="hidden"
+                                    />
+                                    <span
+                                        class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                    ></span>
+                                    <span
+                                        class="absolute left-1 top-1 w-4 h-4 bg-neutral-300 cursor-pointer rounded-full transition-transform duration-300"
+                                        :class="singleMode ? 'translate-x-0' : 'translate-x-6'"
+                                    ></span>
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <label class="text-lg font-medium"
+                                    >Center Text</label
+                                >
+                                <label class="relative inline-block w-12 h-6">
+                                    <input
+                                        type="checkbox"
+                                        x-model="centerText"
+                                        class="hidden"
+                                    />
+                                    <span
+                                        class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                    ></span>
+                                    <span
+                                        class="absolute left-1 top-1 w-4 h-4 cursor-pointer rounded-full transition-transform duration-300"
+                                        :class="centerText ? 'translate-x-6 bg-green-600' : 'translate-x-0 bg-neutral-300'"
+                                    ></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="w-full" x-show="singleMode" x-cloak>
+                            <label
+                                for="singleWord"
+                                class="block text-left text-lg"
+                                >Custom Text:</label
+                            >
                             <input
-                                class="flex-1 p-3 text-lg border border-neutral-600 rounded-md bg-neutral-700 text-white"
                                 type="text"
-                                placeholder="Type a word"
-                                x-model="multiWord"
+                                x-model="singleWord"
+                                id="singleWord"
+                                placeholder="Enter a single word"
+                                class="w-full p-3 mt-2 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
                             />
-                            <button
-                                class="p-3 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
-                                x-on:click="addWord"
-                            >
-                                Add
-                            </button>
                         </div>
 
-                        <div class="mt-4">
-                            <label for="delay" class="block text-left text-lg"
-                                >Pause Between Words (seconds):</label
+                        <div class="w-full mt-6" x-show="! singleMode" x-cloak>
+                            <label class="block text-left text-lg"
+                                >Word List:</label
                             >
-                            <input
-                                class="w-full p-3 mt-2 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
-                                type="number"
-                                id="delay"
-                                min="1"
-                                placeholder="Enter delay"
-                                x-model="delay"
-                            />
+                            <div
+                                class="flex flex-wrap gap-2 p-3 rounded-lg min-h-[50px] items-center bg-neutral-700 transition-colors"
+                                :class="multiWords.length > 0 ? 'border-green-600 border-2' : 'border-transparent border-2'"
+                            >
+                                <template x-if="multiWords.length === 0">
+                                    <span
+                                        class="text-neutral-400 text-sm italic"
+                                        >No words added yet</span
+                                    >
+                                </template>
+
+                                <template
+                                    x-for="(word, index) in multiWords"
+                                    :key="index"
+                                >
+                                    <span
+                                        class="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-full text-sm"
+                                    >
+                                        <span x-text="word"></span>
+                                        <button
+                                            class="font-bold text-white hover:text-neutral-200"
+                                            x-on:click="removeWord(index)"
+                                        >
+                                            ×
+                                        </button>
+                                    </span>
+                                </template>
+                            </div>
+
+                            <div class="flex gap-4 items-center mt-4">
+                                <input
+                                    class="flex-1 p-3 text-lg border border-neutral-600 rounded-md bg-neutral-700 text-white"
+                                    type="text"
+                                    placeholder="Type a word"
+                                    x-model="multiWord"
+                                />
+                                <button
+                                    class="p-3 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
+                                    x-on:click="addWord"
+                                >
+                                    Add
+                                </button>
+                            </div>
+
+                            <div class="mt-4">
+                                <label
+                                    for="delay"
+                                    class="block text-left text-lg"
+                                    >Pause Between Words (seconds):</label
+                                >
+                                <input
+                                    class="w-full p-3 mt-2 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                                    type="number"
+                                    id="delay"
+                                    min="1"
+                                    placeholder="Enter delay"
+                                    x-model="delay"
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-            </template>
-
-            <button
-                class="w-full p-3 mt-6 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
-                x-on:click="() => setTimeout(() => updateDisplay(), 0)"
-            >
-                Update Display
-            </button>
+                </template>
+            </div>
+            <!-- End legacy controls -->
 
             <a
                 href="settings.html"

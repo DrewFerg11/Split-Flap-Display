@@ -31,30 +31,43 @@ JsonSettings settings = JsonSettings("config", {
     {"mqtt_port", JsonSetting(1883)},
     {"mqtt_user", JsonSetting("")},
     {"mqtt_pass", JsonSetting("")},
-    // Hardware Settings - Shared between displays
+    // Legacy shared hardware settings (deprecated, kept for compatibility)
     {"magnetPosition", JsonSetting(730)},
     {"stepsPerRot", JsonSetting(2048)},
     {"maxVel", JsonSetting(15.0f)},
     {"charset", JsonSetting(37)},
-    // Display 1 (Wire/Bus 0) Hardware Settings - only address 0x20
-    {"d1_modCnt", JsonSetting(5)},
-    {"d1_modAddrs", JsonSetting(std::vector<int>{0x20, 0x21, 0x22, 0x23, 0x24})},
-    {"d1_modOffs", JsonSetting(std::vector<int>{0, 0, 0, 0, 0})},
+    // Display 1 (Wire/Bus 0) Hardware Settings - GPIO 21/22, I2C addresses
+    {"d1_sdaPin", JsonSetting(21)},
+    {"d1_sclPin", JsonSetting(22)},
+    {"d1_magnetPosition", JsonSetting(730)},
+    {"d1_stepsPerRot", JsonSetting(2048)},
+    {"d1_maxVel", JsonSetting(15.0f)},
+    {"d1_modCnt", JsonSetting(8)},
+    {"d1_modAddrs", JsonSetting(std::vector<int>{0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27})},
+    {"d1_modOffs", JsonSetting(std::vector<int>{0, 0, 0, 0, 0, 0, 0, 0})},
     {"d1_dispOffs", JsonSetting(0)},
-    // Display 2 (Wire1/Bus 1) Hardware Settings - only address 0x20
-    {"d2_modCnt", JsonSetting(5)},
-    {"d2_modAddrs", JsonSetting(std::vector<int>{0x20, 0x21, 0x22, 0x23, 0x24})},
-    {"d2_modOffs", JsonSetting(std::vector<int>{0, 0, 0, 0, 0})},
+    // Display 2 (Wire1/Bus 1) Hardware Settings - GPIO 16/17, I2C addresses
+    {"d2_sdaPin", JsonSetting(16)},
+    {"d2_sclPin", JsonSetting(17)},
+    {"d2_magnetPosition", JsonSetting(730)},
+    {"d2_stepsPerRot", JsonSetting(2048)},
+    {"d2_maxVel", JsonSetting(15.0f)},
+    {"d2_modCnt", JsonSetting(8)},
+    {"d2_modAddrs", JsonSetting(std::vector<int>{0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27})},
+    {"d2_modOffs", JsonSetting(std::vector<int>{0, 0, 0, 0, 0, 0, 0, 0})},
     {"d2_dispOffs", JsonSetting(0)},
-    // Operational States (keeping original for now, will need duplication later)
-    {"mode", JsonSetting(0)}
+    // Per-Display Modes (4 = inactive/manual control)
+    {"d1_mode", JsonSetting(4)},
+    {"d2_mode", JsonSetting(4)},
+    // Legacy global mode (deprecated, kept for compatibility)
+    {"mode", JsonSetting(4)}
 });
 // clang-format on
 
 WiFiClient wifiClient;
 SplitFlapDisplay display1(settings, Wire, 0);
 SplitFlapDisplay display2(settings, Wire1, 1);
-SplitFlapWebServer webServer(settings);
+SplitFlapWebServer webServer(settings, display1, display2);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
 
 // I2C Bus Scanner - logs all devices found on specified bus
@@ -64,10 +77,7 @@ void scanI2CBus(TwoWire &wire, const char* busName, uint8_t sdaPin, uint8_t sclP
     
     int devicesFound = 0;
     // Scan only the range where PCF8575 modules are expected (0x20-0x27)
-    for (uint8_t address = 0x20; address <= 0x27; address++) {
-        Serial.printf("  Scanning 0x%02X...\n", address);
-        Serial.flush();
-        
+    for (uint8_t address = 0x20; address <= 0x27; address++) {        
         wire.beginTransmission(address);
         byte error = wire.endTransmission(true);  // Send stop bit
         
@@ -185,14 +195,25 @@ void setup() {
 void loop() {
     splitflapMqtt.loop();
 
-    // check what mode the display is in, this value is updated by the web server
-    switch (webServer.getMode()) {
+    // Check per-display modes
+    int d1Mode = settings.getInt("d1_mode");
+    int d2Mode = settings.getInt("d2_mode");
+    
+    // Handle Display 1 mode
+    switch (d1Mode) {
         case 0: singleInputMode(); break;
         case 1: multiInputMode(); break;
         case 2: dateMode(); break;
         case 3: timeMode(); break;
-        case 4: break;
+        case 4: break; // Manual control via /text endpoint
         case 5: randomTest(); break;
+        default: break;
+    }
+    
+    // Handle Display 2 mode (placeholder for future implementation)
+    switch (d2Mode) {
+        case 4: break; // Manual control via /text endpoint
+        // Other modes not yet implemented for display2
         default: break;
     }
 

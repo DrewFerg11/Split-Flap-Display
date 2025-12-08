@@ -1,4 +1,5 @@
 #include "SplitFlapWebServer.h"
+#include "SplitFlapDisplay.h"
 
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
@@ -13,8 +14,8 @@
 #define WIFI_PASS ""
 #endif
 
-SplitFlapWebServer::SplitFlapWebServer(JsonSettings &settings)
-    : settings(settings), server(80), multiWordDelay(1000), rebootRequired(false), attemptReconnect(false),
+SplitFlapWebServer::SplitFlapWebServer(JsonSettings &settings, SplitFlapDisplay &display1, SplitFlapDisplay &display2)
+    : settings(settings), display1(display1), display2(display2), server(80), multiWordDelay(1000), rebootRequired(false), attemptReconnect(false),
       multiWordCurrentIndex(0), numMultiWords(0), wifiCheckInterval(1000), connectionMode(0), checkDateInterval(250),
       centering(1) {
     lastSwitchMultiTime = millis();
@@ -416,8 +417,8 @@ void SplitFlapWebServer::startWebServer() {
         Serial.println("Received text update request");
         Serial.println(json.as<String>());
 
-        // {"mode":"single","words":["adfasdf"],"delay":1,"center":false}
-        // {"mode":"multiple","words":["asdf","asdfasdf","fffff"],"delay":"14","center":true}
+        // {"mode":"single","words":["adfasdf"],"delay":1,"center":false,"display":"1"}
+        // {"mode":"multiple","words":["asdf","asdfasdf","fffff"],"delay":"14","center":true,"display":"2"}
         JsonDocument response;
 
         if (! json["mode"].is<String>()) {
@@ -437,43 +438,46 @@ void SplitFlapWebServer::startWebServer() {
             response["message"] = "Invalid center type";
         }
 
+        // Validate display parameter
+        if (! json["display"].is<String>()) {
+            response["message"] = "Invalid display parameter";
+        }
+
+        String displayNum = json["display"].as<String>();
+        if (displayNum != "1" && displayNum != "2") {
+            response["message"] = "Display parameter must be '1' or '2'";
+        }
+
         if (response["message"].is<String>()) {
             response["type"] = "error";
             return request->send(400, "application/json", response.as<String>());
         }
 
-        this->setMultiDelay(delay * 1000);
-        Serial.println("Delay: " + String(this->getMultiWordDelay()));
+        // Select the correct display
+        SplitFlapDisplay &targetDisplay = (displayNum == "1") ? display1 : display2;
 
-        centering = json["center"].as<bool>() ? 1 : 0;
-        Serial.println("centering: " + String(centering ? "true" : "false"));
+        bool center = json["center"].as<bool>();
+        Serial.println("Display: " + displayNum);
+        Serial.println("Center: " + String(center ? "true" : "false"));
 
         if (json["mode"] == "single") {
             String word = decodeURIComponent(json["words"][0].as<String>());
             Serial.println("Single Word: " + word);
-            this->setInputString(word);
-            this->setMode(0); // change mode last once all variables updated
+            
+            // Write directly to the selected display
+            targetDisplay.writeString(word, MAX_RPM, center);
         }
 
         if (json["mode"] == "multiple") {
             JsonArray wordsArray = json["words"].as<JsonArray>();
-            String words = "";
-            for (JsonVariant v : wordsArray) {
-                words += decodeURIComponent(v.as<String>()) + ",";
-            }
-            if (words.length() > 0) {
-                words.remove(words.length() - 1);
-            }
-
-            this->setMultiInputString(words);
-            this->numMultiWords = wordsArray.size();
-            Serial.println("Multiple Words: " + words);
-            Serial.println("Number of Words: " + String(this->numMultiWords));
-
-            this->setMode(1);
+            
+            Serial.println("Multiple mode not yet implemented for dual displays");
+            response["message"] = "Multiple word mode not yet supported for individual displays";
+            response["type"] = "error";
+            return request->send(400, "application/json", response.as<String>());
         }
 
-        response["message"] = "Text updated successfully!";
+        response["message"] = "Display " + displayNum + " updated successfully!";
         response["type"] = "success";
 
         request->send(200, "application/json", response.as<String>());

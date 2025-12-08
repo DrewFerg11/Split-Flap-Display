@@ -387,15 +387,436 @@
                 </div>
             </div>
 
+            <!-- Display 1 Hardware Settings -->
             <h2
-                class="text-xl font-semibold text-left w-full border-b border-gray-600 pb-2 mt-10 mb-2 flex justify-between"
+                class="text-xl font-semibold text-left w-full border-b border-blue-600 pb-2 mt-10 mb-2"
             >
-                Hardware Settings
+                <span class="text-blue-400">Display 1</span> Hardware Settings
+            </h2>
+
+            <div class="gap-2 grid grid-cols-2 w-full">
+                <div>
+                    <label for="d1_modCnt" class="block text-left text-lg mt-4">
+                        Number of Modules
+                    </label>
+                    <input
+                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                        type="number"
+                        id="d1_modCnt"
+                        x-model="settings.d1_modCnt"
+                        min="0"
+                        max="8"
+                        placeholder="0-8"
+                    />
+                </div>
+                <div>
+                    <label
+                        for="d1_dispOffs"
+                        class="block text-left text-lg mt-4"
+                    >
+                        Display Offset
+                    </label>
+                    <input
+                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                        type="number"
+                        id="d1_dispOffs"
+                        x-model="settings.d1_dispOffs"
+                        placeholder="0"
+                    />
+                </div>
+            </div>
+
+            <label class="block text-left text-lg mt-4"
+                >Module Addresses (I2C)</label
+            >
+            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
+                <template
+                    x-for="(val, i) in Array.from({ length: settings.d1_modCnt || 0 })"
+                    :key="`d1-addr-${i}`"
+                >
+                    <input
+                        type="number"
+                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                        :value="d1_addressArray[i]"
+                        @input="setD1Address(i, $event.target.value)"
+                        :placeholder="`0x${(32 + i).toString(16)}`"
+                    />
+                </template>
+            </div>
+
+            <label class="block text-left text-lg mt-4">Module Offsets</label>
+            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
+                <template
+                    x-for="(val, i) in Array.from({ length: settings.d1_modCnt || 0 })"
+                    :key="`d1-off-${i}`"
+                >
+                    <input
+                        type="number"
+                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                        :value="d1_offsetArray[i]"
+                        @input="setD1Offset(i, $event.target.value)"
+                        placeholder="0"
+                    />
+                </template>
+            </div>
+
+            <!-- Display 1 Advanced Settings -->
+            <a
+                href="#"
+                class="block w-full text-center text-sm hover:underline mt-6 mb-2 text-blue-400"
+                x-on:click.prevent="showD1Advanced = !showD1Advanced"
+                x-text="showD1Advanced ? 'Hide Display 1 Advanced Settings ▲' : 'Show Display 1 Advanced Settings ▼'"
+            ></a>
+
+            <div
+                x-show="showD1Advanced"
+                x-cloak
+                class="border-l-4 border-blue-600 pl-4"
+            >
+                <div class="grid grid-cols-3 gap-2 w-full">
+                    <div>
+                        <label
+                            for="d1_magnetPosition"
+                            class="block text-left text-lg mt-4"
+                        >
+                            Magnet Position
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d1_magnetPosition"
+                            x-model="settings.d1_magnetPosition"
+                            placeholder="730"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            for="d1_sdaPin"
+                            class="block text-left text-lg mt-4"
+                        >
+                            SDA Pin
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d1_sdaPin"
+                            x-model="settings.d1_sdaPin"
+                            placeholder="21"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            for="d1_sclPin"
+                            class="block text-left text-lg mt-4"
+                        >
+                            SCL Pin
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d1_sclPin"
+                            x-model="settings.d1_sclPin"
+                            placeholder="22"
+                        />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 w-full">
+                    <div>
+                        <label
+                            for="d1_dispOffs"
+                            class="block text-left text-lg mt-4"
+                        >
+                            Display Offset
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d1_dispOffs"
+                            x-model="settings.d1_dispOffs"
+                            placeholder="0"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            for="d1_stepsPerRot"
+                            class="block text-left text-lg mt-4"
+                        >
+                            Steps Per Rotation
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d1_stepsPerRot"
+                            x-model="settings.d1_stepsPerRot"
+                            placeholder="2048"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            for="d1_maxVel"
+                            class="block text-left text-lg mt-4"
+                        >
+                            Max Velocity
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d1_maxVel"
+                            x-model="settings.d1_maxVel"
+                            placeholder="15"
+                        />
+                    </div>
+                </div>
 
                 <button
-                    type="button"
-                    class="ml-1 text-sm text-gray-400 hover:text-white cursor-pointer transition-colors"
-                    @click="$dispatch('open-help', {
+                    class="w-full p-3 mt-4 text-lg font-semibold text-white bg-red-600 rounded-md hover:bg-red-500 transition-colors"
+                    x-on:click.prevent="resetDisplay1()"
+                    :disabled="processing"
+                    :class="{'opacity-50 cursor-not-allowed': processing}"
+                >
+                    Reset Display 1 to Defaults
+                </button>
+            </div>
+
+            <!-- Display 2 Hardware Settings -->
+            <h2
+                class="text-xl font-semibold text-left w-full border-b border-green-600 pb-2 mt-10 mb-2"
+            >
+                <span class="text-green-400">Display 2</span> Hardware Settings
+            </h2>
+
+            <div class="gap-2 grid grid-cols-2 w-full">
+                <div>
+                    <label for="d2_modCnt" class="block text-left text-lg mt-4">
+                        Number of Modules
+                    </label>
+                    <input
+                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                        type="number"
+                        id="d2_modCnt"
+                        x-model="settings.d2_modCnt"
+                        min="0"
+                        max="8"
+                        placeholder="0-8"
+                    />
+                </div>
+                <div>
+                    <label
+                        for="d2_dispOffs"
+                        class="block text-left text-lg mt-4"
+                    >
+                        Display Offset
+                    </label>
+                    <input
+                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                        type="number"
+                        id="d2_dispOffs"
+                        x-model="settings.d2_dispOffs"
+                        placeholder="0"
+                    />
+                </div>
+            </div>
+
+            <label class="block text-left text-lg mt-4"
+                >Module Addresses (I2C)</label
+            >
+            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
+                <template
+                    x-for="(val, i) in Array.from({ length: settings.d2_modCnt || 0 })"
+                    :key="`d2-addr-${i}`"
+                >
+                    <input
+                        type="number"
+                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                        :value="d2_addressArray[i]"
+                        @input="setD2Address(i, $event.target.value)"
+                        :placeholder="`0x${(32 + i).toString(16)}`"
+                    />
+                </template>
+            </div>
+
+            <label class="block text-left text-lg mt-4">Module Offsets</label>
+            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
+                <template
+                    x-for="(val, i) in Array.from({ length: settings.d2_modCnt || 0 })"
+                    :key="`d2-off-${i}`"
+                >
+                    <input
+                        type="number"
+                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                        :value="d2_offsetArray[i]"
+                        @input="setD2Offset(i, $event.target.value)"
+                        placeholder="0"
+                    />
+                </template>
+            </div>
+
+            <!-- Display 2 Advanced Settings -->
+            <a
+                href="#"
+                class="block w-full text-center text-sm hover:underline mt-6 mb-2 text-green-400"
+                x-on:click.prevent="showD2Advanced = !showD2Advanced"
+                x-text="showD2Advanced ? 'Hide Display 2 Advanced Settings ▲' : 'Show Display 2 Advanced Settings ▼'"
+            ></a>
+
+            <div
+                x-show="showD2Advanced"
+                x-cloak
+                class="border-l-4 border-green-600 pl-4"
+            >
+                <div class="grid grid-cols-3 gap-2 w-full">
+                    <div>
+                        <label
+                            for="d2_magnetPosition"
+                            class="block text-left text-lg mt-4"
+                        >
+                            Magnet Position
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d2_magnetPosition"
+                            x-model="settings.d2_magnetPosition"
+                            placeholder="730"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            for="d2_sdaPin"
+                            class="block text-left text-lg mt-4"
+                        >
+                            SDA Pin
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d2_sdaPin"
+                            x-model="settings.d2_sdaPin"
+                            placeholder="16"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            for="d2_sclPin"
+                            class="block text-left text-lg mt-4"
+                        >
+                            SCL Pin
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d2_sclPin"
+                            x-model="settings.d2_sclPin"
+                            placeholder="17"
+                        />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 w-full">
+                    <div>
+                        <label
+                            for="d2_dispOffs"
+                            class="block text-left text-lg mt-4"
+                        >
+                            Display Offset
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d2_dispOffs"
+                            x-model="settings.d2_dispOffs"
+                            placeholder="0"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            for="d2_stepsPerRot"
+                            class="block text-left text-lg mt-4"
+                        >
+                            Steps Per Rotation
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d2_stepsPerRot"
+                            x-model="settings.d2_stepsPerRot"
+                            placeholder="2048"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            for="d2_maxVel"
+                            class="block text-left text-lg mt-4"
+                        >
+                            Max Velocity
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="d2_maxVel"
+                            x-model="settings.d2_maxVel"
+                            placeholder="15"
+                        />
+                    </div>
+                </div>
+
+                <button
+                    class="w-full p-3 mt-4 text-lg font-semibold text-white bg-red-600 rounded-md hover:bg-red-500 transition-colors"
+                    x-on:click.prevent="resetDisplay2()"
+                    :disabled="processing"
+                    :class="{'opacity-50 cursor-not-allowed': processing}"
+                >
+                    Reset Display 2 to Defaults
+                </button>
+            </div>
+
+            <!-- Debug Section -->
+            <h2
+                class="text-xl font-semibold text-left w-full border-b border-gray-600 pb-2 mt-10 mb-2"
+            >
+                Debug
+            </h2>
+
+            <div class="w-full mt-4" x-data="{ showDebug: false }">
+                <a
+                    href="#"
+                    class="w-full p-3 text-xs font-semibold text-white bg-neutral-600 rounded-md hover:bg-neutral-500 transition-colors flex justify-between items-center"
+                    x-on:click.prevent="showDebug = !showDebug"
+                >
+                    <span class="flex-1 text-left">Debugging Info</span>
+                    <span
+                        class="flex-none"
+                        x-text="showDebug ? '▲' : '▼'"
+                    ></span>
+                </a>
+                <div x-show="showDebug" class="mt-2">
+                    <pre
+                        class="w-full p-3 text-sm bg-neutral-700 text-gray-100 rounded-md overflow-auto text-left"
+                        x-text="JSON.stringify(settings, null, 2)"
+                    ></pre>
+                </div>
+            </div>
+
+            <!-- Legacy Hardware Settings (hidden, kept for compatibility) -->
+            <div x-show="false" x-cloak>
+                <h2
+                    class="text-xl font-semibold text-left w-full border-b border-gray-600 pb-2 mt-10 mb-2 flex justify-between"
+                >
+                    Hardware Settings
+
+                    <button
+                        type="button"
+                        class="ml-1 text-sm text-gray-400 hover:text-white cursor-pointer transition-colors"
+                        @click="$dispatch('open-help', {
         title: 'Hardware Settings Help',
         content: `
             <ul class='list-disc list-inside pl-2'>
@@ -418,278 +839,124 @@
             </p>
         `
     })"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="size-6"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
-                        />
-                    </svg>
-                </button>
-            </h2>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor"
+                            class="size-6"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
+                            />
+                        </svg>
+                    </button>
+                </h2>
 
-            <div class="gap-2 grid grid-cols-2 w-full">
-                <div>
-                    <label
-                        for="moduleCount"
-                        class="block text-left text-lg mt-4"
-                    >
-                        Number of Modules
-                    </label>
-                    <input
-                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        type="number"
-                        id="moduleCount"
-                        x-model="settings.moduleCount"
-                        min="1"
-                        max="8"
-                        placeholder="1-8"
-                    />
-                    <div
-                        class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                        x-cloak
-                        x-show="errors.key === 'moduleCount'"
-                        x-text="errors.message"
-                    ></div>
-                </div>
-                <div>
-                    <label for="charset" class="block text-left text-lg mt-4">
-                        Character Set
-                    </label>
-                    <select
-                        class="w-full p-3.5 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-white"
-                        x-model.number="settings.charset"
-                        id="charset"
-                        @change="
+                <div class="gap-2 grid grid-cols-2 w-full">
+                    <div>
+                        <label
+                            for="moduleCount"
+                            class="block text-left text-lg mt-4"
+                        >
+                            Number of Modules
+                        </label>
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="moduleCount"
+                            x-model="settings.moduleCount"
+                            min="1"
+                            max="8"
+                            placeholder="1-8"
+                        />
+                        <div
+                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
+                            x-cloak
+                            x-show="errors.key === 'moduleCount'"
+                            x-text="errors.message"
+                        ></div>
+                    </div>
+                    <div>
+                        <label
+                            for="charset"
+                            class="block text-left text-lg mt-4"
+                        >
+                            Character Set
+                        </label>
+                        <select
+                            class="w-full p-3.5 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-white"
+                            x-model.number="settings.charset"
+                            id="charset"
+                            @change="
                             if (settings.charset === 37) {
                                 settings.magnetPosition = 730;
                             } else if (settings.charset === 48) {
                                 settings.magnetPosition = 615;
                             }
                         "
+                        >
+                            <option value="37">Standard (37)</option>
+                            <option value="48">Extended (48)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label class="block text-left text-lg mt-4">
+                    Module Addresses
+                </label>
+                <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
+                    <template
+                        x-for="(val, i) in Array.from({ length: settings.moduleCount })"
+                        :key="`addr-${i}-${addressArray[i]}`"
                     >
-                        <option value="37">Standard (37)</option>
-                        <option value="48">Extended (48)</option>
-                    </select>
+                        <input
+                            type="number"
+                            class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            :value="addressArray[i]"
+                            @input="setAddress(i, $event.target.value)"
+                            :placeholder="`e.g. ${32 + i}`"
+                        />
+                    </template>
                 </div>
-            </div>
+                <div
+                    class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
+                    x-cloak
+                    x-show="errors.key === 'moduleAddresses'"
+                    x-text="errors.message"
+                ></div>
 
-            <label class="block text-left text-lg mt-4">
-                Module Addresses
-            </label>
-            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
-                <template
-                    x-for="(val, i) in Array.from({ length: settings.moduleCount })"
-                    :key="`addr-${i}-${addressArray[i]}`"
-                >
-                    <input
-                        type="number"
-                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        :value="addressArray[i]"
-                        @input="setAddress(i, $event.target.value)"
-                        :placeholder="`e.g. ${32 + i}`"
-                    />
-                </template>
-            </div>
-            <div
-                class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                x-cloak
-                x-show="errors.key === 'moduleAddresses'"
-                x-text="errors.message"
-            ></div>
-
-            <label class="block text-left text-lg mt-4"> Module Offsets </label>
-            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
-                <template
-                    x-for="(val, i) in Array.from({ length: settings.moduleCount })"
-                    :key="`off-${i}-${offsetArray[i]}`"
-                >
-                    <input
-                        type="number"
-                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        :value="offsetArray[i]"
-                        @input="setOffset(i, $event.target.value)"
-                        placeholder="e.g. 0"
-                    />
-                </template>
-            </div>
-            <div
-                class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                x-cloak
-                x-show="errors.key === 'moduleOffsets'"
-                x-text="errors.message"
-            ></div>
-
-            <a
-                href="#"
-                class="block w-full text-center text-sm hover:underline mt-6 mb-2"
-                x-on:click.prevent="showAdvanced = !showAdvanced"
-                x-text="showAdvanced ? 'Hide Advanced Settings ▲' : 'Show Advanced Settings ▼'"
-            ></a>
-
-            <div x-show="showAdvanced" x-cloak>
-                <div class="grid grid-cols-3 gap-2 w-full">
-                    <div>
-                        <label
-                            for="magnetPosition"
-                            class="block text-left text-lg mt-4"
-                        >
-                            Magnet Position
-                        </label>
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="magnetPosition"
-                            x-model="settings.magnetPosition"
-                            placeholder="730"
-                        />
-                        <div
-                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                            x-cloak
-                            x-show="errors.key === 'magnetPosition'"
-                            x-text="errors.message"
-                        ></div>
-                    </div>
-                    <div>
-                        <label for="sdaPin" class="block text-left text-lg mt-4"
-                            >SDA Pin</label
-                        >
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="sdaPin"
-                            x-model="settings.sdaPin"
-                            placeholder="Enter SDA pin"
-                        />
-                        <div
-                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                            x-cloak
-                            x-show="errors.key === 'sdaPin'"
-                            x-text="errors.message"
-                        ></div>
-                    </div>
-
-                    <div>
-                        <label for="sclPin" class="block text-left text-lg mt-4"
-                            >SCL Pin</label
-                        >
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="sclPin"
-                            x-model="settings.sclPin"
-                            placeholder="Enter SCL pin"
-                        />
-                        <div
-                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                            x-cloak
-                            x-show="errors.key === 'sclPin'"
-                            x-text="errors.message"
-                        ></div>
-                    </div>
-
-                    <div>
-                        <label
-                            for="displayOffset"
-                            class="block text-left text-lg mt-4"
-                            >Display Offset</label
-                        >
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="displayOffset"
-                            x-model="settings.displayOffset"
-                            placeholder="Enter display offset"
-                        />
-                        <div
-                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                            x-cloak
-                            x-show="errors.key === 'displayOffset'"
-                            x-text="errors.message"
-                        ></div>
-                    </div>
-
-                    <div>
-                        <label
-                            for="stepsPerRot"
-                            class="block text-left text-lg mt-4"
-                            >Steps Per Rotation</label
-                        >
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="stepsPerRot"
-                            x-model="settings.stepsPerRot"
-                            placeholder="Enter steps per rotation"
-                        />
-                        <div
-                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                            x-cloak
-                            x-show="errors.key === 'stepsPerRot'"
-                            x-text="errors.message"
-                        ></div>
-                    </div>
-
-                    <div>
-                        <label for="maxVel" class="block text-left text-lg mt-4"
-                            >Max Velocity</label
-                        >
-                        <input
-                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                            type="number"
-                            id="maxVel"
-                            step="0.1"
-                            x-model="settings.maxVel"
-                            placeholder="Enter max velocity"
-                        />
-                        <div
-                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                            x-cloak
-                            x-show="errors.key === 'maxVel'"
-                            x-text="errors.message"
-                        ></div>
-                    </div>
-                </div>
-
-                <button
-                    class="w-full p-3 mt-4 text-lg font-semibold text-white bg-red-600 rounded-md hover:bg-red-500 transition-colors"
-                    x-on:click.prevent="reset()"
-                    :disabled="processing"
-                    :class="{'opacity-50 cursor-not-allowed': processing}"
-                >
-                    Reset to Defaults
-                </button>
-
-                <div class="w-full mt-4" x-data="{ showDebug: false }">
-                    <a
-                        href="#"
-                        class="w-full p-3 text-xs font-semibold text-white bg-neutral-600 rounded-md hover:bg-neutral-500 transition-colors flex justify-between items-center"
-                        x-on:click.prevent="showDebug = !showDebug"
+                <label class="block text-left text-lg mt-4">
+                    Module Offsets
+                </label>
+                <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
+                    <template
+                        x-for="(val, i) in Array.from({ length: settings.moduleCount })"
+                        :key="`off-${i}-${offsetArray[i]}`"
                     >
-                        <span class="flex-1 text-left">Debugging Info</span>
-                        <span
-                            class="flex-none"
-                            x-text="showDebug ? '▲' : '▼'"
-                        ></span>
-                    </a>
-                    <div x-show="showDebug" class="mt-2">
-                        <pre
-                            class="w-full p-3 text-sm bg-neutral-700 text-gray-100 rounded-md overflow-auto text-left"
-                            x-text="JSON.stringify(settings, null, 2)"
-                        ></pre>
-                    </div>
+                        <input
+                            type="number"
+                            class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            :value="offsetArray[i]"
+                            @input="setOffset(i, $event.target.value)"
+                            placeholder="e.g. 0"
+                        />
+                    </template>
                 </div>
+                <div
+                    class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
+                    x-cloak
+                    x-show="errors.key === 'moduleOffsets'"
+                    x-text="errors.message"
+                ></div>
             </div>
+            <!-- End legacy hardware settings -->
 
-            <div class="flex items-center justify-between w-full my-6">
+            <div class="flex items-center justify-between w-full gap-4 mt-6">
                 <a
                     href="index.html"
                     class="p-3 w-1/3 text-lg font-semibold text-white hover:text-amber-600 transition-colors"
