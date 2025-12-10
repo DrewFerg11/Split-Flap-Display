@@ -352,6 +352,62 @@ document.addEventListener("alpine:init", () => {
             }
         },
 
+        updateBothDisplays() {
+            // Validate both text inputs
+            if (this.display1Text.trim() === "") {
+                return this.showDialog(
+                    "Display 1 text cannot be empty.",
+                    "error",
+                );
+            }
+            if (this.display2Text.trim() === "") {
+                return this.showDialog(
+                    "Display 2 text cannot be empty.",
+                    "error",
+                );
+            }
+
+            // Send both requests in parallel
+            const display1Request = fetch("/text", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    mode: "single",
+                    words: [this.display1Text],
+                    display: "1",
+                    center: this.display1CenterText,
+                    delay: 1,
+                }),
+            });
+
+            const display2Request = fetch("/text", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    mode: "single",
+                    words: [this.display2Text],
+                    display: "2",
+                    center: this.display2CenterText,
+                    delay: 1,
+                }),
+            });
+
+            // Wait for both to complete
+            Promise.all([display1Request, display2Request])
+                .then(() =>
+                    this.showDialog(
+                        "Both displays updated successfully!",
+                        "success",
+                    ),
+                )
+                .catch((err) =>
+                    this.showDialog(
+                        "Error updating displays: " + err.message,
+                        "error",
+                    ),
+                );
+        },
+
         save() {
             this.saving = true;
             this.errors = {};

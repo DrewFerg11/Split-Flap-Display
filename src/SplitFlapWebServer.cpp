@@ -1,4 +1,5 @@
 #include "SplitFlapWebServer.h"
+#include "DisplayCommand.h"
 #include "SplitFlapDisplay.h"
 
 #include <ArduinoJson.h>
@@ -398,6 +399,11 @@ void SplitFlapWebServer::startWebServer() {
             return request->send(400, "application/json", response.as<String>());
         }
 
+        // Update timezone if it changed
+        if (json["timezone"].is<String>() && json["timezone"].as<String>() != "") {
+            setTimezone();
+        }
+
         response["type"] = "success";
         response["persistent"] = reconnect;
 
@@ -463,6 +469,7 @@ void SplitFlapWebServer::startWebServer() {
 
         // Select the correct display
         SplitFlapDisplay &targetDisplay = (displayNum == "1") ? display1 : display2;
+        QueueHandle_t targetQueue = (displayNum == "1") ? display1Queue : display2Queue;
 
         bool center = json["center"].as<bool>();
         Serial.println("Display: " + displayNum);
@@ -472,8 +479,29 @@ void SplitFlapWebServer::startWebServer() {
             String word = decodeURIComponent(json["words"][0].as<String>());
             Serial.println("Single Word: " + word);
             
-            // Write directly to the selected display
-            targetDisplay.writeString(word, MAX_RPM, center);
+            // Automatically switch to Manual mode (4) when custom text is sent
+            // This prevents modes like Random from overwriting the custom text
+            String modeKey = displayNum == "1" ? "d1_mode" : "d2_mode";
+            settings.putInt(modeKey.c_str(), 4);  // Set to Manual mode
+            
+            // Queue the command for non-blocking parallel execution
+            if (targetQueue != NULL) {
+                DisplayCommand cmd;
+                cmd.text = word;
+                cmd.centerText = center;
+                
+                if (xQueueSend(targetQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
+                    Serial.println("Display " + displayNum + ": Command queued successfully (mode set to Manual)");
+                } else {
+                    response["message"] = "Display " + displayNum + " queue full, try again";
+                    response["type"] = "error";
+                    return request->send(503, "application/json", response.as<String>());
+                }
+            } else {
+                response["message"] = "Display " + displayNum + " queue not initialized";
+                response["type"] = "error";
+                return request->send(500, "application/json", response.as<String>());
+            }
         }
 
         if (json["mode"] == "multiple") {

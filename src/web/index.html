@@ -42,10 +42,10 @@
                     x-model.number="display1Mode"
                 >
                     <option value="6">Custom Text</option>
+                    <option value="5">Random</option>
                     <!-- Date, Time, and Random modes disabled for individual display control -->
                     <!-- <option value="2">Date</option> -->
                     <!-- <option value="3">Time</option> -->
-                    <!-- <option value="5">Random</option> -->
                 </select>
 
                 <template x-if="display1Mode === 6">
@@ -111,9 +111,8 @@
                 <button
                     class="w-full p-3 text-lg font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-500 transition-colors"
                     x-on:click="updateDisplay1()"
-                >
-                    Update Display 1
-                </button>
+                    x-text="display1Mode === 6 ? 'Update Display 1' : 'Set Display 1 Mode'"
+                ></button>
             </div>
 
             <!-- Display 2 Controls -->
@@ -132,10 +131,10 @@
                     x-model.number="display2Mode"
                 >
                     <option value="6">Custom Text</option>
+                    <option value="5">Random</option>
                     <!-- Date, Time, and Random modes disabled for individual display control -->
                     <!-- <option value="2">Date</option> -->
                     <!-- <option value="3">Time</option> -->
-                    <!-- <option value="5">Random</option> -->
                 </select>
 
                 <template x-if="display2Mode === 6">
@@ -201,8 +200,21 @@
                 <button
                     class="w-full p-3 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
                     x-on:click="updateDisplay2()"
+                    x-text="display2Mode === 6 ? 'Update Display 2' : 'Set Display 2 Mode'"
+                ></button>
+            </div>
+
+            <!-- Update Both Displays Button (only visible when both are enabled and in custom text mode) -->
+            <div
+                class="w-full mb-6 p-4 border-2 border-amber-600 rounded-lg"
+                x-show="settings.d1_enabled && settings.d2_enabled && display1Mode === 6 && display2Mode === 6"
+                x-cloak
+            >
+                <button
+                    class="w-full p-3 text-lg font-semibold text-white bg-amber-600 rounded-md hover:bg-amber-500 transition-colors"
+                    x-on:click="updateBothDisplays()"
                 >
-                    Update Display 2
+                    Update Both Displays
                 </button>
             </div>
 

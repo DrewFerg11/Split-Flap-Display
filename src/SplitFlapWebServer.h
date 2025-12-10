@@ -10,6 +10,8 @@
 #include <LittleFS.h>
 #include <WiFi.h>
 #include <time.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 
 class SplitFlapDisplay; // Forward declaration
 
@@ -19,6 +21,12 @@ class SplitFlapWebServer {
     void init();
     void setTimezone();
     void checkRebootRequired();
+    
+    // Set display command queues for non-blocking updates
+    void setDisplayQueues(QueueHandle_t q1, QueueHandle_t q2) {
+        display1Queue = q1;
+        display2Queue = q2;
+    }
 
     // Wifi Connectivity
     bool loadWiFiCredentials();
@@ -98,4 +106,7 @@ class SplitFlapWebServer {
     unsigned long lastCheckWifiTime;
     int wifiCheckInterval;
     AsyncWebServer server; // Declare server as a class member
+    
+    QueueHandle_t display1Queue;
+    QueueHandle_t display2Queue;
 };

@@ -4,6 +4,7 @@
 // Thom Koopman 03/30/2025
 
 // Enjoy :)
+#include "DisplayCommand.h"
 #include "JsonSettings.h"
 #include "SplitFlapDisplay.h"
 #include "SplitFlapMqtt.h"
@@ -14,6 +15,25 @@
 #include <Wire.h>
 #include <esp_log.h>
 
+// Forward declarations
+void randomMode(SplitFlapDisplay &display, int displayNum);
+void display1LoopTask(void *parameter);
+void display2LoopTask(void *parameter);
+
+// FreeRTOS task handles for parallel homing
+TaskHandle_t homeDisplay1TaskHandle = NULL;
+TaskHandle_t homeDisplay2TaskHandle = NULL;
+volatile bool display1HomeComplete = false;
+volatile bool display2HomeComplete = false;
+
+// Persistent task handles for parallel operation
+TaskHandle_t display1LoopTaskHandle = NULL;
+TaskHandle_t display2LoopTaskHandle = NULL;
+
+// Command queues for non-blocking display updates
+QueueHandle_t display1Queue = NULL;
+QueueHandle_t display2Queue = NULL;
+
 // clang-format off
 JsonSettings settings = JsonSettings("config", {
     // General Settings
@@ -22,7 +42,7 @@ JsonSettings settings = JsonSettings("config", {
     {"otaPass", JsonSetting("")},
     {"timezone", JsonSetting("UTC0")},
     {"dateFormat", JsonSetting("{dd}-{mm}-{yy}")},
-    {"timeFormat", JsonSetting("{HH}:{mm}")},
+    {"timeFormat", JsonSetting("{HH}:{MM}")},
     // Wifi Settings
     {"ssid", JsonSetting("")},
     {"password", JsonSetting("")},
@@ -72,6 +92,74 @@ SplitFlapDisplay display1(settings, Wire, 0);
 SplitFlapDisplay display2(settings, Wire1, 1);
 SplitFlapWebServer webServer(settings, display1, display2);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
+
+// Task to home Display 1 (receives SplitFlapDisplay pointer as parameter)
+void homeDisplay1Task(void *parameter) {
+    SplitFlapDisplay *display = (SplitFlapDisplay *)parameter;
+    display->homeToString("D1");
+    delay(250);
+    display->writeString("");
+    display1HomeComplete = true;
+    vTaskDelete(NULL); // Delete this task when done
+}
+
+// Task to home Display 2 (receives SplitFlapDisplay pointer as parameter)
+void homeDisplay2Task(void *parameter) {
+    SplitFlapDisplay *display = (SplitFlapDisplay *)parameter;
+    display->homeToString("D2");
+    delay(250);
+    display->writeString("");
+    display2HomeComplete = true;
+    vTaskDelete(NULL); // Delete this task when done
+}
+
+// Persistent task for Display 1 operations (runs continuously on Core 0)
+void display1LoopTask(void *parameter) {
+    while (true) {
+        bool d1Enabled = settings.getInt("d1_enabled") != 0;
+        int d1Mode = settings.getInt("d1_mode");
+        
+        // Check for queued text commands
+        DisplayCommand cmd;
+        if (xQueueReceive(display1Queue, &cmd, 0) == pdTRUE) {
+            Serial.println("Display 1: Processing queued text update");
+            display1.writeString(cmd.text, MAX_RPM, cmd.centerText);
+        } else if (d1Enabled) {
+            // Only run mode logic if no queued commands
+            switch (d1Mode) {
+                case 4: break; // Manual control via /text endpoint
+                case 5: randomMode(display1, 1); break;
+                default: break;
+            }
+        }
+        
+        vTaskDelay(10 / portTICK_PERIOD_MS); // Small delay to prevent task starvation
+    }
+}
+
+// Persistent task for Display 2 operations (runs continuously on Core 1)
+void display2LoopTask(void *parameter) {
+    while (true) {
+        bool d2Enabled = settings.getInt("d2_enabled") != 0;
+        int d2Mode = settings.getInt("d2_mode");
+        
+        // Check for queued text commands
+        DisplayCommand cmd;
+        if (xQueueReceive(display2Queue, &cmd, 0) == pdTRUE) {
+            Serial.println("Display 2: Processing queued text update");
+            display2.writeString(cmd.text, MAX_RPM, cmd.centerText);
+        } else if (d2Enabled) {
+            // Only run mode logic if no queued commands
+            switch (d2Mode) {
+                case 4: break; // Manual control via /text endpoint
+                case 5: randomMode(display2, 2); break;
+                default: break;
+            }
+        }
+        
+        vTaskDelay(10 / portTICK_PERIOD_MS); // Small delay to prevent task starvation
+    }
+}
 
 // I2C Bus Scanner - logs all devices found on specified bus
 void scanI2CBus(TwoWire &wire, const char* busName, uint8_t sdaPin, uint8_t sclPin) {
@@ -175,6 +263,19 @@ void setup() {
     } else {
         webServer.enableOta();
         webServer.startMDNS();
+        
+        // Create command queues for non-blocking display updates
+        display1Queue = xQueueCreate(5, sizeof(DisplayCommand));
+        display2Queue = xQueueCreate(5, sizeof(DisplayCommand));
+        
+        if (display1Queue == NULL || display2Queue == NULL) {
+            Serial.println("ERROR: Failed to create display queues!");
+        } else {
+            Serial.println("Display command queues created");
+            // Pass queues to web server for non-blocking updates
+            webServer.setDisplayQueues(display1Queue, display2Queue);
+        }
+        
         webServer.startWebServer();
 
         // Initialize both displays
@@ -187,56 +288,82 @@ void setup() {
         splitflapMqtt.setDisplay(&display1);
         display1.setMqtt(&splitflapMqtt);
 
-        display1.homeToString("OK");
-        delay(250);
-
-        //// // TEST CODE: Verify both displays work independently
-        //// Serial.println("\n=== Testing Display Independence ===");
+        // Home both displays in parallel using FreeRTOS tasks\
+        bool d1Enabled = settings.getInt("d1_enabled") != 0;
+        bool d2Enabled = settings.getInt("d2_enabled") != 0;
         
-        //// // IMPORTANT: moveTo() is BLOCKING - each display must complete its movement before starting the next
-        //// // Home and write to Display 1 first
-        display1.writeString("");
+        // Create homing tasks
+        if (d1Enabled) {
+            xTaskCreatePinnedToCore(
+                homeDisplay1Task,           // Task function
+                "HomeDisplay1",             // Name
+                4096,                       // Stack size (bytes)
+                &display1,                  // Pass display1 as parameter
+                1,                          // Priority
+                &homeDisplay1TaskHandle,    // Task handle
+                0                           // Core 0
+            );
+        } else {
+            display1HomeComplete = true; // Mark as complete if disabled
+        }
         
 #if defined(SDA2_PIN) && defined(SCL2_PIN)
-        // Now home and write to Display 2 (after Display 1 completes)
-        display2.homeToString("OK");  // Home Display 2
-        delay(250);
-        display2.writeString("");
+        if (d2Enabled) {
+            xTaskCreatePinnedToCore(
+                homeDisplay2Task,           // Task function
+                "HomeDisplay2",             // Name
+                4096,                       // Stack size (bytes)
+                &display2,                  // Pass display2 as parameter
+                1,                          // Priority
+                &homeDisplay2TaskHandle,    // Task handle
+                1                           // Core 1
+            );
+        } else {
+            display2HomeComplete = true; // Mark as complete if disabled
+        }
+#else
+        display2HomeComplete = true; // Mark as complete if not compiled
 #endif
-        //// Serial.println("Test strings written - Display 1: 'BUS0', Display 2: 'BUS1'");
+
+        // Wait for both homing tasks to complete
+        while (!display1HomeComplete || !display2HomeComplete) {
+            delay(100);
+        }
+        
+        Serial.println("Homing Complete\n");
+        
+        // Create persistent tasks for parallel display operation
+        Serial.println("Creating persistent display tasks...");
+        
+        xTaskCreatePinnedToCore(
+            display1LoopTask,           // Task function
+            "Display1Loop",             // Name
+            8192,                       // Stack size (bytes) - larger for continuous operation
+            NULL,                       // Parameters
+            1,                          // Priority
+            &display1LoopTaskHandle,    // Task handle
+            0                           // Core 0
+        );
+        
+        xTaskCreatePinnedToCore(
+            display2LoopTask,           // Task function
+            "Display2Loop",             // Name
+            8192,                       // Stack size (bytes)
+            NULL,                       // Parameters
+            1,                          // Priority
+            &display2LoopTaskHandle,    // Task handle
+            1                           // Core 1
+        );
+        
+        Serial.println("Display tasks created - operating in parallel mode\n");
     }
 }
 
 void loop() {
     splitflapMqtt.loop();
 
-    // Check per-display modes and enabled state
-    bool d1Enabled = settings.getInt("d1_enabled") != 0;
-    bool d2Enabled = settings.getInt("d2_enabled") != 0;
-    int d1Mode = settings.getInt("d1_mode");
-    int d2Mode = settings.getInt("d2_mode");
-    
-    // Handle Display 1 mode (only if enabled)
-    if (d1Enabled) {
-        switch (d1Mode) {
-            case 0: singleInputMode(); break;
-            case 1: multiInputMode(); break;
-            case 2: dateMode(); break;
-            case 3: timeMode(); break;
-            case 4: break; // Manual control via /text endpoint
-            case 5: randomTest(); break;
-            default: break;
-        }
-    }
-    
-    // Handle Display 2 mode (only if enabled, placeholder for future implementation)
-    if (d2Enabled) {
-        switch (d2Mode) {
-            case 4: break; // Manual control via /text endpoint
-            // Other modes not yet implemented for display2
-            default: break;
-        }
-    }
+    // Display mode handling is now done in parallel tasks (display1LoopTask and display2LoopTask)
+    // This loop only handles web server, OTA, and WiFi management
 
     webServer.handleOta();
     checkConnection();
@@ -303,9 +430,17 @@ void timeMode() {
     }
 }
 
-void randomTest() {
-    display1.testRandom();
-    delay(2500);
+void randomMode(SplitFlapDisplay &display, int displayNum) {
+    // Use separate timing variables for each display
+    static unsigned long lastRandomD1 = 0;
+    static unsigned long lastRandomD2 = 0;
+    
+    unsigned long &lastRandom = (displayNum == 1) ? lastRandomD1 : lastRandomD2;
+    
+    if (millis() - lastRandom > 2500) {
+        display.testRandom();
+        lastRandom = millis();
+    }
 }
 
 void checkConnection() {
