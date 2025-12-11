@@ -274,6 +274,8 @@ void setup() {
             Serial.println("Display command queues created");
             // Pass queues to web server for non-blocking updates
             webServer.setDisplayQueues(display1Queue, display2Queue);
+            // Pass queues to MQTT for dual-display support
+            splitflapMqtt.setDisplayQueues(&display1Queue, &display2Queue);
         }
         
         webServer.startWebServer();

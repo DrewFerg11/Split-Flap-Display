@@ -14,6 +14,7 @@ class SplitFlapMqtt {
     void loop();                                               // needed for PubSubClient3
     void publishState(const String &message);
     void setDisplay(SplitFlapDisplay *display);
+    void setDisplayQueues(QueueHandle_t *q1, QueueHandle_t *q2);
     bool isConnected();
 
   private:
@@ -22,6 +23,8 @@ class SplitFlapMqtt {
 
     JsonSettings &settings;
     SplitFlapDisplay *display;
+    QueueHandle_t *display1Queue_ptr = nullptr;
+    QueueHandle_t *display2Queue_ptr = nullptr;
 
     void connectToMqtt();
 
@@ -35,6 +38,7 @@ class SplitFlapMqtt {
     String topic_avail;
     String topic_config_text;
     String topic_config_sensor;
+    String topic_displays_update;  // New topic for dual-display control
 
     unsigned long lastAttempt = 0;
     int retryCount = 0;

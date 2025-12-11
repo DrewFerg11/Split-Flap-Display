@@ -1,4 +1,6 @@
 #include "SplitFlapMqtt.h"
+#include "DisplayCommand.h"
+#include <ArduinoJson.h>
 
 SplitFlapMqtt::SplitFlapMqtt(JsonSettings &settings, WiFiClient &wifiClient)
     : settings(settings), wifiClient(wifiClient), mqttClient(wifiClient), display(nullptr) {}
@@ -17,6 +19,7 @@ void SplitFlapMqtt::setup() {
     topic_avail = "splitflap/" + mdns + "/availability";
     topic_config_text = "homeassistant/text/splitflap_text_" + mdns + "/config";
     topic_config_sensor = "homeassistant/sensor/splitflap_sensor_" + mdns + "/config";
+    topic_displays_update = "splitflap/" + mdns + "/displays/set";
 
     mqttClient.setServer(mqttServer.c_str(), mqttPort);
     mqttClient.setCallback([this](char *topic, byte *payload, unsigned int length) {
@@ -24,10 +27,59 @@ void SplitFlapMqtt::setup() {
         for (unsigned int i = 0; i < length; i++) {
             message += (char) payload[i];
         }
-        Serial.printf("[MQTT] Message received: %s\n", message.c_str());
-        if (display) {
-            float maxVel = settings.getFloat("maxVel");
-            display->writeString(message, maxVel, false);
+        Serial.printf("[MQTT] Message received on topic %s: %s\n", topic, message.c_str());
+        
+        String topicStr = String(topic);
+        
+        // Handle dual-display updates
+        if (topicStr == topic_displays_update) {
+            JsonDocument doc;
+            DeserializationError error = deserializeJson(doc, message);
+            
+            if (error) {
+                Serial.printf("[MQTT] JSON parse error: %s\n", error.c_str());
+                return;
+            }
+            
+            // Process each display update in the array
+            JsonArray displays = doc["displays"].as<JsonArray>();
+            for (JsonObject displayUpdate : displays) {
+                int displayNum = displayUpdate["num"].as<int>();
+                int mode = displayUpdate["mode"].as<int>();
+                
+                Serial.printf("[MQTT] Display %d: mode=%d\n", displayNum, mode);
+                
+                // Update the mode setting
+                String modeKey = (displayNum == 1) ? "d1_mode" : "d2_mode";
+                settings.putInt(modeKey, mode);
+                
+                // If mode 6 (custom text) and text provided, queue the command
+                if (mode == 6 && displayUpdate.containsKey("text")) {
+                    String text = displayUpdate["text"].as<String>();
+                    QueueHandle_t *targetQueue = (displayNum == 1) ? display1Queue_ptr : display2Queue_ptr;
+                    
+                    if (targetQueue && *targetQueue) {
+                        DisplayCommand cmd;
+                        cmd.text = text;
+                        cmd.centerText = false;  // Can add this to payload if needed
+                        
+                        if (xQueueSend(*targetQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
+                            Serial.printf("[MQTT] Queued text '%s' for display %d\n", text.c_str(), displayNum);
+                        } else {
+                            Serial.printf("[MQTT] Failed to queue command for display %d\n", displayNum);
+                        }
+                    } else {
+                        Serial.printf("[MQTT] Queue not available for display %d\n", displayNum);
+                    }
+                }
+            }
+        }
+        // Handle legacy single-display command
+        else if (topicStr == topic_command) {
+            if (display) {
+                float maxVel = settings.getFloat("maxVel");
+                display->writeString(message, maxVel, false);
+            }
         }
     });
 
@@ -81,6 +133,7 @@ void SplitFlapMqtt::connectToMqtt() {
             // clang-format on
 
             mqttClient.subscribe(topic_command.c_str());
+            mqttClient.subscribe(topic_displays_update.c_str());
             mqttClient.publish(topic_avail.c_str(), "online", true);
             mqttClient.publish(topic_state.c_str(), "", true);
 
@@ -94,6 +147,11 @@ void SplitFlapMqtt::connectToMqtt() {
 
 void SplitFlapMqtt::setDisplay(SplitFlapDisplay *d) {
     display = d;
+}
+
+void SplitFlapMqtt::setDisplayQueues(QueueHandle_t *q1, QueueHandle_t *q2) {
+    display1Queue_ptr = q1;
+    display2Queue_ptr = q2;
 }
 
 void SplitFlapMqtt::publishState(const String &message) {
