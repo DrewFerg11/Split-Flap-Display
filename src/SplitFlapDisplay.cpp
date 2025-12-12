@@ -7,12 +7,22 @@
 SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
 
 void SplitFlapDisplay::init() {
-    numModules = settings.getInt("moduleCount");
     stepsPerRot = settings.getInt("stepsPerRot");
     displayOffset = settings.getInt("displayOffset");
     magnetPosition = settings.getInt("magnetPosition");
     maxVel = settings.getFloat("maxVel");
     charSetSize = settings.getInt("charset");
+
+    // Load per-channel module counts and derive total
+    std::vector<int> settingCountPerChannel = settings.getIntVector("moduleCountPerChannel");
+    numModules = 0;
+    memset(moduleCountPerChannel, 0, sizeof(moduleCountPerChannel));
+    for (int ch = 0; ch < 8; ch++) {
+        if (ch < (int)settingCountPerChannel.size()) {
+            moduleCountPerChannel[ch] = settingCountPerChannel[ch];
+            numModules += moduleCountPerChannel[ch];
+        }
+    }
 
     std::vector<int> settingAddresses = settings.getIntVector("moduleAddresses");
     for (int i = 0; i < numModules; i++) {
@@ -24,12 +34,42 @@ void SplitFlapDisplay::init() {
         moduleOffsets[i] = settingOffsets[i];
     }
 
-    Serial.print("Module Offsets: ");
+    // Load module-to-mux-channel mapping; default to channel 0 if not present
+    std::vector<int> settingChannels = settings.getIntVector("moduleChannels");
     for (int i = 0; i < numModules; i++) {
-        Serial.print(moduleOffsets[i]);
-        Serial.print(" ");
+        uint8_t ch = 0;
+        if (i < (int)settingChannels.size()) {
+            ch = (uint8_t) settingChannels[i];
+        }
+        moduleChannels[i] = ch;
     }
-    Serial.println();
+
+    // Validation: verify array lengths match moduleCount
+    if ((int)settingAddresses.size() != numModules) {
+        Serial.printf("WARNING: moduleAddresses length (%d) != moduleCount (%d)\n", (int)settingAddresses.size(), numModules);
+    }
+    if ((int)settingOffsets.size() != numModules) {
+        Serial.printf("WARNING: moduleOffsets length (%d) != moduleCount (%d)\n", (int)settingOffsets.size(), numModules);
+    }
+    if ((int)settingChannels.size() != numModules) {
+        Serial.printf("WARNING: moduleChannels length (%d) != moduleCount (%d)\n", (int)settingChannels.size(), numModules);
+    }
+
+    // Print per-channel summary
+    Serial.println("\n=== Per-Channel Module Configurations ===");
+    int moduleIdx = 0;
+    for (int ch = 0; ch < 8; ch++) {
+        if (moduleCountPerChannel[ch] > 0) {
+            Serial.printf("Ch%d: %d module(s) @ ", ch, moduleCountPerChannel[ch]);
+            for (int j = 0; j < moduleCountPerChannel[ch]; j++) {
+                Serial.printf("0x%02X", moduleAddresses[moduleIdx]);
+                if (j < moduleCountPerChannel[ch] - 1) Serial.print(", ");
+                moduleIdx++;
+            }
+            Serial.println();
+        }
+    }
+    Serial.println("================================\n");
 
     for (uint8_t i = 0; i < numModules; i++) {
         modules[i] = SplitFlapModule(
@@ -42,8 +82,22 @@ void SplitFlapDisplay::init() {
 
     Wire.begin(SDAPin, SCLPin);
     Wire.setClock(400000);
+    
+    // Scan TCA9548A multiplexer channels at startup
+    Serial.println("\n=== TCA9548A I2C Multiplexer Scanner ===");
+    Wire.beginTransmission(muxAddress);
+    if (Wire.endTransmission() == 0) {
+        Serial.printf("TCA9548A found at address 0x%02X\n", muxAddress);
+        scanMuxChannels();
+    } else {
+        Serial.printf("WARNING: TCA9548A not detected at 0x%02X\n", muxAddress);
+        Serial.println("Scanning main I2C bus...");
+        selectMuxChannel(0);  // Default to channel 0
+    }
+    Serial.println("=== End I2C Scanner ===\n");
 
     for (uint8_t i = 0; i < numModules; i++) {
+        selectMuxChannel(moduleChannels[i]);
         modules[i].init();
     }
 }
@@ -317,4 +371,49 @@ void SplitFlapDisplay::stopMotors() {
 
 void SplitFlapDisplay::setMqtt(SplitFlapMqtt *mqttHandler) {
     mqtt = mqttHandler;
+}
+
+// TCA9548A Multiplexer Channel Selection
+void SplitFlapDisplay::selectMuxChannel(uint8_t channel) {
+    if (channel > 7) return;  // TCA9548A has 8 channels (0-7)
+    
+    Wire.beginTransmission(muxAddress);
+    Wire.write(1 << channel);  // Set bit for desired channel
+    Wire.endTransmission();
+}
+
+// Scan all TCA9548A channels for I2C devices
+void SplitFlapDisplay::scanMuxChannels() {
+    for (uint8_t channel = 0; channel < 8; channel++) {
+        selectMuxChannel(channel);
+        
+        Serial.printf("\nScanning channel %d: ", channel);
+        bool foundDevice = false;
+        
+        // Full address sweep from 0x08 to 0x77 (excluding reserved addresses)
+        for (uint8_t addr = 0x08; addr <= 0x77; addr++) {
+            // Skip the mux address itself (it's on the main bus, not downstream)
+            if (addr == muxAddress) continue;
+            
+            Wire.beginTransmission(addr);
+            uint8_t error = Wire.endTransmission();
+            
+            if (error == 0) {
+                if (!foundDevice) {
+                    Serial.print("[");
+                    foundDevice = true;
+                } else {
+                    Serial.print(", ");
+                }
+                Serial.printf("0x%02X", addr);
+            }
+        }
+        
+        if (foundDevice) {
+            Serial.print("]");
+        } else {
+            Serial.print("[]");
+        }
+    }
+    Serial.println();
 }

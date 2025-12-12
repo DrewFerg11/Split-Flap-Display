@@ -42,11 +42,17 @@ class SplitFlapDisplay {
     bool checkAllFalse(bool array[], int size);
     void stopMotors();
     void startMotors();
+    
+    // TCA9548A I2C Multiplexer helpers
+    void selectMuxChannel(uint8_t channel);
+    void scanMuxChannels();
 
     int numModules;
+    int moduleCountPerChannel[8];  // Per-channel module counts
     uint8_t moduleAddresses[MAX_MODULES];
     SplitFlapModule modules[MAX_MODULES];
     int moduleOffsets[MAX_MODULES];
+    uint8_t moduleChannels[MAX_MODULES];
     int displayOffset;
 
     float maxVel;       // Max Velocity In RPM
@@ -56,6 +62,8 @@ class SplitFlapDisplay {
     int magnetPosition; // position of drum wheel when magnet is detected
     int SDAPin;         // SDA pin
     int SCLPin;         // SCL pin
+    
+    const uint8_t muxAddress = 0x70;  // TCA9548A I2C multiplexer address
 
     SplitFlapMqtt *mqtt = nullptr;
 };
