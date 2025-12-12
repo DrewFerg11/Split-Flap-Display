@@ -298,8 +298,11 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
     bool isFinished = checkAllFalse(needsStepping, numModules);
     while (! isFinished) {
         currentTime = micros();
+        
+        // Step motors - select channel only when it changes
         for (int i = 0; i < numModules; i++) {
             if (((currentTime - lastStepTimes[i]) > timePerStep) && needsStepping[i]) {
+                selectMuxChannel(moduleChannels[i]);
                 modules[i].step();
                 lastStepTimes[i] = micros();
                 if (modules[i].getPosition() == targetPositions[i]) { // this module is not in the correct position,
@@ -310,29 +313,30 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
         }
 
         if ((currentTime - lastSensorCheckTime) > checkIntervalUs) { // check hall effect sensor every checkIntervalMs
-            // check every modules sensor
+            // check every modules sensor - select channel only when it changes
             for (int i = 0; i < numModules; i++) {
-                if (needsStepping[i] &&
-                    (modules[i].readHallEffectSensor() == true
-                    )) { // only check sensors where the module is still moving
-                    if (! resetLatches[i]) {
-                        // UNCOMMENTING THIS WILL PROBBALY MAKE THE MOTORS INACCURATE, DUE
-                        // TO TIME TAKEN TO PRINT
-                        //  Serial.print("Module: ");
-                        //  Serial.print(i);
-                        //  Serial.print(" Magnet Position: ");
-                        //  Serial.print(modules[i].getMagnetPosition());
-                        //  Serial.print(" Actual Position: ");
-                        //  Serial.print(modules[i].getPosition());
-                        //  Serial.print(" Error: ");
-                        //  Serial.println((modules[i].getMagnetPosition() -
-                        //  modules[i].getPosition()));
-                        modules[i].magnetDetected(); // update position to the modules
-                        // magnet position
-                        resetLatches[i] = true;
+                if (needsStepping[i]) {
+                    selectMuxChannel(moduleChannels[i]);  // Select channel before reading sensor
+                    if (modules[i].readHallEffectSensor() == true) { // only check sensors where the module is still moving
+                        if (! resetLatches[i]) {
+                            // UNCOMMENTING THIS WILL PROBBALY MAKE THE MOTORS INACCURATE, DUE
+                            // TO TIME TAKEN TO PRINT
+                            //  Serial.print("Module: ");
+                            //  Serial.print(i);
+                            //  Serial.print(" Magnet Position: ");
+                            //  Serial.print(modules[i].getMagnetPosition());
+                            //  Serial.print(" Actual Position: ");
+                            //  Serial.print(modules[i].getPosition());
+                            //  Serial.print(" Error: ");
+                            //  Serial.println((modules[i].getMagnetPosition() -
+                            //  modules[i].getPosition()));
+                            modules[i].magnetDetected(); // update position to the modules
+                            // magnet position
+                            resetLatches[i] = true;
+                        }
+                    } else if (resetLatches[i] == true) {
+                        resetLatches[i] = false;
                     }
-                } else if (resetLatches[i] == true) {
-                    resetLatches[i] = false;
                 }
             }
             isFinished = checkAllFalse(needsStepping, numModules);
@@ -355,9 +359,9 @@ bool SplitFlapDisplay::checkAllFalse(bool array[], int size) {
     return true;                       // All values were false
 }
 
-void SplitFlapDisplay::startMotors() { // Probably broken somewhere, not sure
-    // why, haven't looked
+void SplitFlapDisplay::startMotors() {
     for (int i = 0; i < numModules; i++) {
+        selectMuxChannel(moduleChannels[i]);
         modules[i].start();
     }
 }
@@ -365,6 +369,7 @@ void SplitFlapDisplay::startMotors() { // Probably broken somewhere, not sure
 void SplitFlapDisplay::stopMotors() {
     // Serial.println("Stopping Motors");
     for (int i = 0; i < numModules; i++) {
+        selectMuxChannel(moduleChannels[i]);
         modules[i].stop();
     }
 }
@@ -377,9 +382,18 @@ void SplitFlapDisplay::setMqtt(SplitFlapMqtt *mqttHandler) {
 void SplitFlapDisplay::selectMuxChannel(uint8_t channel) {
     if (channel > 7) return;  // TCA9548A has 8 channels (0-7)
     
+    static uint8_t lastChannel = 255;  // Track last selected channel
+    if (channel != lastChannel) {
+        // Serial.printf("[DEBUG] MUX: Switching to channel %d\n", channel);
+        lastChannel = channel;
+    }
+    
     Wire.beginTransmission(muxAddress);
     Wire.write(1 << channel);  // Set bit for desired channel
-    Wire.endTransmission();
+    byte error = Wire.endTransmission();
+    if (error != 0) {
+        Serial.printf("[ERROR] MUX channel select failed: error %d\n", error);
+    }
 }
 
 // Scan all TCA9548A channels for I2C devices
@@ -416,4 +430,74 @@ void SplitFlapDisplay::scanMuxChannels() {
         }
     }
     Serial.println();
+}
+
+// Home all active channels serially
+void SplitFlapDisplay::homeAllChannels(float speed) {
+    Serial.println("\n=== Homing All Channels ===");
+    
+    // Process each channel that has modules
+    for (uint8_t ch = 0; ch < 8; ch++) {
+        if (moduleCountPerChannel[ch] == 0) continue;  // Skip empty channels
+        
+        Serial.printf("Homing channel %d (%d modules)...\n", ch, moduleCountPerChannel[ch]);
+        
+        // Find the starting module index for this channel
+        int startIdx = 0;
+        for (int prevCh = 0; prevCh < ch; prevCh++) {
+            startIdx += moduleCountPerChannel[prevCh];
+        }
+        
+        int numChannelModules = moduleCountPerChannel[ch];
+        
+        // Build home string for this channel (first module "O", second "K", rest blank)
+        String homeString = "";
+        if (numChannelModules >= 2) {
+            homeString = "OK";
+            for (int i = 2; i < numChannelModules; i++) {
+                homeString += " ";
+            }
+        } else if (numChannelModules == 1) {
+            homeString = "O";  // Single module shows "O"
+        }
+        
+        // Phase 1: Step back one to trigger homing for this channel's modules
+        int targetPositions[numModules];
+        for (int i = 0; i < numModules; i++) {
+            targetPositions[i] = modules[i].getPosition();  // No movement
+        }
+        for (int i = 0; i < numChannelModules; i++) {
+            int moduleIdx = startIdx + i;
+            targetPositions[moduleIdx] = (modules[moduleIdx].getPosition() - 1 + stepsPerRot) % stepsPerRot;
+        }
+        moveTo(targetPositions, speed, false);
+        
+        // Phase 2: Move this channel to "OK" (or "O" or blank)
+        for (int i = 0; i < numModules; i++) {
+            targetPositions[i] = modules[i].getPosition();  // No movement
+        }
+        for (int i = 0; i < numChannelModules; i++) {
+            int moduleIdx = startIdx + i;
+            char targetChar = (i < homeString.length()) ? homeString[i] : ' ';
+            int charPos = modules[moduleIdx].getCharPosition(targetChar);
+            targetPositions[moduleIdx] = charPos;
+        }
+        moveTo(targetPositions, speed, false);
+        delay(500);
+        
+        // Phase 3: Clear this channel to blanks
+        for (int i = 0; i < numModules; i++) {
+            targetPositions[i] = modules[i].getPosition();  // No movement
+        }
+        for (int i = 0; i < numChannelModules; i++) {
+            int moduleIdx = startIdx + i;
+            targetPositions[moduleIdx] = modules[moduleIdx].getCharPosition(' ');
+        }
+        bool releaseLast = (ch == 7 || moduleCountPerChannel[ch + 1] == 0);  // Release on last channel
+        moveTo(targetPositions, speed, releaseLast);
+        
+        Serial.printf("Channel %d homing complete\n", ch);
+    }
+    
+    Serial.println("=== All Channels Homed ===\n");
 }

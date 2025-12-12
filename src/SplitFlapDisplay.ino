@@ -30,14 +30,14 @@ JsonSettings settings = JsonSettings("config", {
     {"mqtt_user", JsonSetting("")},
     {"mqtt_pass", JsonSetting("")},
     // Hardware Settings
-    {"moduleCountPerChannel", JsonSetting({5, 1, 1})},
-    {"moduleAddresses", JsonSetting({0x20,0x21,0x22,0x23,0x24, 0x20, 0x20})},
-    {"moduleChannels", JsonSetting({0,0,0,0,0, 1, 2})},
+    {"moduleCountPerChannel", JsonSetting({5, 1, 1, 1})},
+    {"moduleAddresses", JsonSetting({0x20,0x21,0x22,0x23,0x24, 0x20, 0x20, 0x21})},
+    {"moduleChannels", JsonSetting({0,0,0,0,0, 1, 2, 3})},
     {"magnetPosition", JsonSetting(730)},
-    {"moduleOffsets", JsonSetting({0,0,0,0,0, 0, 0})},
+    {"moduleOffsets", JsonSetting({0,0,0,0,0, 0, 0, 0})},
     {"displayOffset", JsonSetting(0)},
-    {"sdaPin", JsonSetting(8)},
-    {"sclPin", JsonSetting(9)},
+    {"sdaPin", JsonSetting(SDA_PIN)},
+    {"sclPin", JsonSetting(SCL_PIN)},
     {"stepsPerRot", JsonSetting(2048)},
     {"maxVel", JsonSetting(15.0f)},
     {"charset", JsonSetting(37)},
@@ -69,7 +69,7 @@ void setup() {
         webServer.startWebServer();
 
         display.init();
-        display.homeToString("");
+        display.homeAllChannels();
 
         if (display.getNumModules() == 8) {
             display.writeString("Wifi Err");
@@ -86,7 +86,7 @@ void setup() {
         splitflapMqtt.setDisplay(&display);
         display.setMqtt(&splitflapMqtt);
 
-        display.homeToString("OK");
+        display.homeAllChannels();
         delay(250);
         display.writeString("");
     }
