@@ -30,11 +30,15 @@ JsonSettings settings = JsonSettings("config", {
     {"mqtt_user", JsonSetting("")},
     {"mqtt_pass", JsonSetting("")},
     // Hardware Settings
-    {"moduleCountPerChannel", JsonSetting({5, 1, 1, 1})},
-    {"moduleAddresses", JsonSetting({0x20,0x21,0x22,0x23,0x24, 0x20, 0x20, 0x21})},
-    {"moduleChannels", JsonSetting({0,0,0,0,0, 1, 2, 3})},
+    // {"moduleCountPerChannel", JsonSetting(std::vector<int>{5, 1, 1, 0, 0, 0, 0, 2})},  // Ch0=5, Ch1=1, Ch2=1, Ch3-6=0, Ch7=2
+    // {"moduleAddresses", JsonSetting(std::vector<int>{0x20,0x21,0x22,0x23,0x24, 0x20, 0x20, 0x20,0x21})},
+    // {"moduleChannels", JsonSetting(std::vector<int>{0,0,0,0,0, 1, 2, 7,7})},
+    // {"moduleOffsets", JsonSetting(std::vector<int>{0,0,0,0,0, 0, 0, 0,0})},
+    {"moduleCountPerChannel", JsonSetting(std::vector<int>{1, 1, 3, 2})},
+    {"moduleAddresses", JsonSetting(std::vector<int>{0x20, 0x20, 0x20,0x21,0x22, 0x20,0x21})},
+    {"moduleChannels", JsonSetting(std::vector<int>{0, 1, 2,2,2, 7,7})},
+    {"moduleOffsets", JsonSetting(std::vector<int>{0, 0, 0,0,0, 0,0})},
     {"magnetPosition", JsonSetting(730)},
-    {"moduleOffsets", JsonSetting({0,0,0,0,0, 0, 0, 0})},
     {"displayOffset", JsonSetting(0)},
     {"sdaPin", JsonSetting(SDA_PIN)},
     {"sclPin", JsonSetting(SCL_PIN)},
@@ -87,8 +91,6 @@ void setup() {
         display.setMqtt(&splitflapMqtt);
 
         display.homeAllChannels();
-        delay(250);
-        display.writeString("");
     }
 }
 

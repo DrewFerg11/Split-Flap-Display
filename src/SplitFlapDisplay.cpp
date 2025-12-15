@@ -256,6 +256,56 @@ void SplitFlapDisplay::writeString(String inputString, float speed, bool centeri
     }
 }
 
+void SplitFlapDisplay::writeStringPerChannel(String channelStrings[], float speed, bool centering) {
+    int targetPositions[numModules];
+    
+    // Build target positions for all modules across all channels
+    int moduleIdx = 0;
+    for (int ch = 0; ch < 8; ch++) {
+        if (moduleCountPerChannel[ch] == 0) continue;  // Skip empty channels
+        
+        int numChannelModules = moduleCountPerChannel[ch];
+        String displayString = channelStrings[ch];
+        
+        // Truncate if too long
+        if (displayString.length() > numChannelModules) {
+            displayString = displayString.substring(0, numChannelModules);
+        }
+        
+        // Handle centering or padding for this channel
+        if (centering) {
+            int totalPadding = numChannelModules - displayString.length();
+            int paddingLeft = totalPadding / 2;
+            int paddingRight = totalPadding - paddingLeft;
+            
+            String result = "";
+            for (int i = 0; i < paddingLeft; i++) {
+                result += " ";
+            }
+            result += displayString;
+            for (int i = 0; i < paddingRight; i++) {
+                result += " ";
+            }
+            displayString = result;
+        } else {
+            // Pad with spaces to fill channel width
+            while (displayString.length() < numChannelModules) {
+                displayString += " ";
+            }
+        }
+        Serial.printf("Channel %d Target: '%s'\n", ch, displayString.c_str());
+        
+        // Set target positions for this channel's modules
+        for (int i = 0; i < numChannelModules; i++) {
+            char currentChar = displayString[i];
+            targetPositions[moduleIdx] = modules[moduleIdx].getCharPosition(currentChar);
+            moduleIdx++;
+        }
+    }
+    
+    moveTo(targetPositions, speed);
+}
+
 void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMotors) {
     // TODO check length of array and return if empty
 
@@ -432,72 +482,35 @@ void SplitFlapDisplay::scanMuxChannels() {
     Serial.println();
 }
 
-// Home all active channels serially
+// Home all active channels in parallel
 void SplitFlapDisplay::homeAllChannels(float speed) {
-    Serial.println("\n=== Homing All Channels ===");
+    Serial.println("\n=== Homing All Channels (Parallel) ===");
     
-    // Process each channel that has modules
-    for (uint8_t ch = 0; ch < 8; ch++) {
-        if (moduleCountPerChannel[ch] == 0) continue;  // Skip empty channels
-        
-        Serial.printf("Homing channel %d (%d modules)...\n", ch, moduleCountPerChannel[ch]);
-        
-        // Find the starting module index for this channel
-        int startIdx = 0;
-        for (int prevCh = 0; prevCh < ch; prevCh++) {
-            startIdx += moduleCountPerChannel[prevCh];
-        }
-        
-        int numChannelModules = moduleCountPerChannel[ch];
-        
-        // Build home string for this channel (first module "O", second "K", rest blank)
-        String homeString = "";
-        if (numChannelModules >= 2) {
-            homeString = "OK";
-            for (int i = 2; i < numChannelModules; i++) {
-                homeString += " ";
-            }
-        } else if (numChannelModules == 1) {
-            homeString = "O";  // Single module shows "O"
-        }
-        
-        // Phase 1: Step back one to trigger homing for this channel's modules
-        int targetPositions[numModules];
-        for (int i = 0; i < numModules; i++) {
-            targetPositions[i] = modules[i].getPosition();  // No movement
-        }
-        for (int i = 0; i < numChannelModules; i++) {
-            int moduleIdx = startIdx + i;
-            targetPositions[moduleIdx] = (modules[moduleIdx].getPosition() - 1 + stepsPerRot) % stepsPerRot;
-        }
-        moveTo(targetPositions, speed, false);
-        
-        // Phase 2: Move this channel to "OK" (or "O" or blank)
-        for (int i = 0; i < numModules; i++) {
-            targetPositions[i] = modules[i].getPosition();  // No movement
-        }
-        for (int i = 0; i < numChannelModules; i++) {
-            int moduleIdx = startIdx + i;
-            char targetChar = (i < homeString.length()) ? homeString[i] : ' ';
-            int charPos = modules[moduleIdx].getCharPosition(targetChar);
-            targetPositions[moduleIdx] = charPos;
-        }
-        moveTo(targetPositions, speed, false);
-        delay(500);
-        
-        // Phase 3: Clear this channel to blanks
-        for (int i = 0; i < numModules; i++) {
-            targetPositions[i] = modules[i].getPosition();  // No movement
-        }
-        for (int i = 0; i < numChannelModules; i++) {
-            int moduleIdx = startIdx + i;
-            targetPositions[moduleIdx] = modules[moduleIdx].getCharPosition(' ');
-        }
-        bool releaseLast = (ch == 7 || moduleCountPerChannel[ch + 1] == 0);  // Release on last channel
-        moveTo(targetPositions, speed, releaseLast);
-        
-        Serial.printf("Channel %d homing complete\n", ch);
+    int targetPositions[numModules];
+    
+    // Phase 1: Step back one for ALL modules to trigger homing
+    Serial.println("Phase 1: Triggering homing sequence for all modules...");
+    for (int i = 0; i < numModules; i++) {
+        targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
     }
+    moveTo(targetPositions, speed, false);
+    delay(2000);
+    
+    // Phase 2: Move ALL modules to their home characters simultaneously
+    Serial.println("Phase 2: Moving all modules to home positions...");
+    String channelHomeStrings[8];
+    for (int ch = 0; ch < 8; ch++) {
+        channelHomeStrings[ch] = "D" + String(ch + 1);  // Let writeStringPerChannel handle centering
+    }
+    writeStringPerChannel(channelHomeStrings, speed, true);
+    delay(1000);
+    
+    // Phase 3: Clear ALL modules to blanks simultaneously
+    Serial.println("Phase 3: Clearing all modules to blank...");
+    for (int i = 0; i < numModules; i++) {
+        targetPositions[i] = modules[i].getCharPosition(' ');
+    }
+    moveTo(targetPositions, speed, true);  // Release motors on final move
     
     Serial.println("=== All Channels Homed ===\n");
 }

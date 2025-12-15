@@ -5,7 +5,7 @@
 
 #include <Arduino.h>
 
-#define MAX_MODULES 8 // for memory allocation, update if more modules
+#define MAX_MODULES 64 // for memory allocation (8 channels × 8 addresses max)
 #define MAX_RPM 15.0f
 
 class SplitFlapMqtt;
@@ -19,6 +19,11 @@ class SplitFlapDisplay {
         String inputString, float speed = MAX_RPM,
         bool centering = true
     );                                     // Move all modules at once to show a specific string
+    void writeStringPerChannel(
+        String channelStrings[], 
+        float speed = MAX_RPM,
+        bool centering = true
+    );                                     // Write different strings to each channel with optional centering
     void writeChar(char inputChar,
                    float speed = MAX_RPM); // sets all modules to a single char
     void moveTo(int targetPositions[], float speed = MAX_RPM, bool releaseMotors = true);
@@ -29,7 +34,7 @@ class SplitFlapDisplay {
     );                                      // moves home and then writes a string
     void homeToChar(char homeChar,
                     float speed = MAX_RPM); // moves home and then sets all modules to a char
-    void homeAllChannels(float speed = MAX_RPM);  // Home all active channels serially
+    void homeAllChannels(float speed = MAX_RPM);  // Home all active channels in parallel
     void testAll();
     void testCount();
     void testRandom(float speed = MAX_RPM);
