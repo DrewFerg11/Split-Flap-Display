@@ -30,14 +30,11 @@ JsonSettings settings = JsonSettings("config", {
     {"mqtt_user", JsonSetting("")},
     {"mqtt_pass", JsonSetting("")},
     // Hardware Settings
-    // {"moduleCountPerChannel", JsonSetting(std::vector<int>{5, 1, 1, 0, 0, 0, 0, 2})},  // Ch0=5, Ch1=1, Ch2=1, Ch3-6=0, Ch7=2
-    // {"moduleAddresses", JsonSetting(std::vector<int>{0x20,0x21,0x22,0x23,0x24, 0x20, 0x20, 0x20,0x21})},
-    // {"moduleChannels", JsonSetting(std::vector<int>{0,0,0,0,0, 1, 2, 7,7})},
-    // {"moduleOffsets", JsonSetting(std::vector<int>{0,0,0,0,0, 0, 0, 0,0})},
-    {"moduleCountPerChannel", JsonSetting(std::vector<int>{1, 1, 3, 2})},
-    {"moduleAddresses", JsonSetting(std::vector<int>{0x20, 0x20, 0x20,0x21,0x22, 0x20,0x21})},
-    {"moduleChannels", JsonSetting(std::vector<int>{0, 1, 2,2,2, 7,7})},
-    {"moduleOffsets", JsonSetting(std::vector<int>{0, 0, 0,0,0, 0,0})},
+    // I2C addresses of multiplexers (comma-separated) (112 - 120)
+    {"muxAddrs", JsonSetting("112,113")},  
+    // Channels and module I2C addresses per mux (semicolon-separated channels, comma-separated addresses, NO SPACES)
+    {"chModAddrs112", JsonSetting("32;34,32;;;;;;;")},
+    {"chModAddrs113", JsonSetting("32;33;;;;;;;")}, 
     {"magnetPosition", JsonSetting(730)},
     {"displayOffset", JsonSetting(0)},
     {"sdaPin", JsonSetting(SDA_PIN)},
@@ -70,9 +67,11 @@ void setup() {
         webServer.startAccessPoint();
         webServer.enableOta();
         webServer.startMDNS();
-        webServer.startWebServer();
 
         display.init();
+        webServer.setDisplay(&display);  // Pass display reference to web server
+        webServer.startWebServer();
+
         display.homeAllChannels();
 
         if (display.getNumModules() == 8) {
@@ -83,9 +82,11 @@ void setup() {
     } else {
         webServer.enableOta();
         webServer.startMDNS();
-        webServer.startWebServer();
 
         display.init();
+        webServer.setDisplay(&display);  // Pass display reference to web server
+        webServer.startWebServer();
+
         splitflapMqtt.setup();
         splitflapMqtt.setDisplay(&display);
         display.setMqtt(&splitflapMqtt);
@@ -99,12 +100,13 @@ void loop() {
 
     // check what mode the display is in, this value is updated by the web server
     switch (webServer.getMode()) {
-        case 0: singleInputMode(); break;
-        case 1: multiInputMode(); break;
-        case 2: dateMode(); break;
-        case 3: timeMode(); break;
-        case 4: break;
-        case 5: randomTest(); break;
+        // case 0: singleInputMode(); break;
+        // case 1: multiInputMode(); break;
+        // case 2: dateMode(); break;
+        // case 3: timeMode(); break;
+        // case 4: break;
+        // case 5: randomTest(); break;
+        case 7: perDisplayMode(); break;
         default: break;
     }
 
@@ -176,6 +178,19 @@ void timeMode() {
 void randomTest() {
     display.testRandom();
     delay(2500);
+}
+
+void perDisplayMode() {
+    if (webServer.hasDisplayTextsUpdated()) {
+        int numDisplays = display.getNumDisplays();
+        String* displayTexts = new String[numDisplays];
+        for (int i = 0; i < numDisplays; i++) {
+            displayTexts[i] = webServer.getDisplayText(i);
+        }
+        display.writeDisplays(displayTexts, MAX_RPM, true);
+        delete[] displayTexts;
+        webServer.clearDisplayTextsUpdated();
+    }
 }
 
 void checkConnection() {

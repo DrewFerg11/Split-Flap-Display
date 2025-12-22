@@ -3,6 +3,7 @@
 #include "JsonSettings.h"
 #include "SplitFlapModule.h"
 #include "SplitFlapMqtt.h"
+#include <esp_task_wdt.h>
 
 SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
 
@@ -13,91 +14,24 @@ void SplitFlapDisplay::init() {
     maxVel = settings.getFloat("maxVel");
     charSetSize = settings.getInt("charset");
 
-    // Load per-channel module counts and derive total
-    std::vector<int> settingCountPerChannel = settings.getIntVector("moduleCountPerChannel");
-    numModules = 0;
-    memset(moduleCountPerChannel, 0, sizeof(moduleCountPerChannel));
-    for (int ch = 0; ch < 8; ch++) {
-        if (ch < (int)settingCountPerChannel.size()) {
-            moduleCountPerChannel[ch] = settingCountPerChannel[ch];
-            numModules += moduleCountPerChannel[ch];
-        }
-    }
+    // Configure modules based on settings
+    configureI2cModules();
 
-    std::vector<int> settingAddresses = settings.getIntVector("moduleAddresses");
-    for (int i = 0; i < numModules; i++) {
-        moduleAddresses[i] = (uint8_t) settingAddresses[i];
-    }
+    // Initialize I2C bus
+    SDAPin = settings.getInt("sdaPin");
+    SCLPin = settings.getInt("sclPin");
+    Wire.begin(SDAPin, SCLPin);
+    Wire.setClock(400000);
+    
+    // Scan modules to confirm connectivity
+    scanI2cModules();
 
-    std::vector<int> settingOffsets = settings.getIntVector("moduleOffsets");
-    for (int i = 0; i < numModules; i++) {
-        moduleOffsets[i] = settingOffsets[i];
-    }
-
-    // Load module-to-mux-channel mapping; default to channel 0 if not present
-    std::vector<int> settingChannels = settings.getIntVector("moduleChannels");
-    for (int i = 0; i < numModules; i++) {
-        uint8_t ch = 0;
-        if (i < (int)settingChannels.size()) {
-            ch = (uint8_t) settingChannels[i];
-        }
-        moduleChannels[i] = ch;
-    }
-
-    // Validation: verify array lengths match moduleCount
-    if ((int)settingAddresses.size() != numModules) {
-        Serial.printf("WARNING: moduleAddresses length (%d) != moduleCount (%d)\n", (int)settingAddresses.size(), numModules);
-    }
-    if ((int)settingOffsets.size() != numModules) {
-        Serial.printf("WARNING: moduleOffsets length (%d) != moduleCount (%d)\n", (int)settingOffsets.size(), numModules);
-    }
-    if ((int)settingChannels.size() != numModules) {
-        Serial.printf("WARNING: moduleChannels length (%d) != moduleCount (%d)\n", (int)settingChannels.size(), numModules);
-    }
-
-    // Print per-channel summary
-    Serial.println("\n=== Per-Channel Module Configurations ===");
-    int moduleIdx = 0;
-    for (int ch = 0; ch < 8; ch++) {
-        if (moduleCountPerChannel[ch] > 0) {
-            Serial.printf("Ch%d: %d module(s) @ ", ch, moduleCountPerChannel[ch]);
-            for (int j = 0; j < moduleCountPerChannel[ch]; j++) {
-                Serial.printf("0x%02X", moduleAddresses[moduleIdx]);
-                if (j < moduleCountPerChannel[ch] - 1) Serial.print(", ");
-                moduleIdx++;
-            }
-            Serial.println();
-        }
-    }
-    Serial.println("================================\n");
-
+    // Create and initialize all module objects
     for (uint8_t i = 0; i < numModules; i++) {
         modules[i] = SplitFlapModule(
             moduleAddresses[i], stepsPerRot, moduleOffsets[i] + displayOffset, magnetPosition, charSetSize
         );
-    }
-
-    SDAPin = settings.getInt("sdaPin");
-    SCLPin = settings.getInt("sclPin");
-
-    Wire.begin(SDAPin, SCLPin);
-    Wire.setClock(400000);
-    
-    // Scan TCA9548A multiplexer channels at startup
-    Serial.println("\n=== TCA9548A I2C Multiplexer Scanner ===");
-    Wire.beginTransmission(muxAddress);
-    if (Wire.endTransmission() == 0) {
-        Serial.printf("TCA9548A found at address 0x%02X\n", muxAddress);
-        scanMuxChannels();
-    } else {
-        Serial.printf("WARNING: TCA9548A not detected at 0x%02X\n", muxAddress);
-        Serial.println("Scanning main I2C bus...");
-        selectMuxChannel(0);  // Default to channel 0
-    }
-    Serial.println("=== End I2C Scanner ===\n");
-
-    for (uint8_t i = 0; i < numModules; i++) {
-        selectMuxChannel(moduleChannels[i]);
+        selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
         modules[i].init();
     }
 }
@@ -306,9 +240,64 @@ void SplitFlapDisplay::writeStringPerChannel(String channelStrings[], float spee
     moveTo(targetPositions, speed);
 }
 
-void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMotors) {
-    // TODO check length of array and return if empty
+void SplitFlapDisplay::writeDisplays(String displayTexts[], float speed, bool centering) {
+    int targetPositions[numModules];
+    
+    // Initialize all target positions to current positions (no movement by default)
+    for (int i = 0; i < numModules; i++) {
+        targetPositions[i] = modules[i].getPosition();
+    }
+    
+    // Build target positions by iterating through displays
+    for (int displayIdx = 0; displayIdx < numDisplays; displayIdx++) {
+        uint8_t muxIdx = displayMux[displayIdx];
+        uint8_t chIdx = displayChannel[displayIdx];
+        int numModules = displayModuleCount[displayIdx];
+        String displayString = displayTexts[displayIdx];
+        
+        // Truncate if too long
+        if (displayString.length() > numModules) {
+            displayString = displayString.substring(0, numModules);
+        }
+        
+        // Handle centering or padding
+        if (centering) {
+            int totalPadding = numModules - displayString.length();
+            int paddingLeft = totalPadding / 2;
+            int paddingRight = totalPadding - paddingLeft;
+            
+            String result = "";
+            for (int i = 0; i < paddingLeft; i++) {
+                result += " ";
+            }
+            result += displayString;
+            for (int i = 0; i < paddingRight; i++) {
+                result += " ";
+            }
+            displayString = result;
+        } else {
+            // Pad with spaces to fill display width
+            while (displayString.length() < numModules) {
+                displayString += " ";
+            }
+        }
+        
+        // Set target positions for this display's modules
+        // Find modules that belong to this display (matching mux and channel)
+        int charIdx = 0;
+        for (int i = 0; i < this->numModules; i++) {
+            if (moduleMuxes[i] == muxIdx && moduleChannels[i] == chIdx) {
+                char currentChar = displayString[charIdx];
+                targetPositions[i] = modules[i].getCharPosition(currentChar);
+                charIdx++;
+            }
+        }
+    }
+    
+    moveTo(targetPositions, speed);
+}
 
+void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMotors) {
     speed = constrain(speed, 2, maxVel);
     float stepsPerSecond = (speed / 60) * stepsPerRot;
     float timePerStep = 1000000 / stepsPerSecond;
@@ -352,7 +341,7 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
         // Step motors - select channel only when it changes
         for (int i = 0; i < numModules; i++) {
             if (((currentTime - lastStepTimes[i]) > timePerStep) && needsStepping[i]) {
-                selectMuxChannel(moduleChannels[i]);
+                selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
                 modules[i].step();
                 lastStepTimes[i] = micros();
                 if (modules[i].getPosition() == targetPositions[i]) { // this module is not in the correct position,
@@ -366,7 +355,7 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
             // check every modules sensor - select channel only when it changes
             for (int i = 0; i < numModules; i++) {
                 if (needsStepping[i]) {
-                    selectMuxChannel(moduleChannels[i]);  // Select channel before reading sensor
+                    selectMuxChannel(moduleMuxes[i], moduleChannels[i]);  // Select channel before reading sensor
                     if (modules[i].readHallEffectSensor() == true) { // only check sensors where the module is still moving
                         if (! resetLatches[i]) {
                             // UNCOMMENTING THIS WILL PROBBALY MAKE THE MOTORS INACCURATE, DUE
@@ -393,6 +382,11 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
             lastSensorCheckTime = currentTime; // recall micros because for loop may
             // take a moment to execute
         }
+        
+        // TODO: Decide if this is necessary based on testing
+        // // Yield to prevent watchdog timeout during long motor movements
+        // yield();
+        // esp_task_wdt_reset();  // Reset watchdog timer
     }
     if (releaseMotors) {
         delay(startStopDelay); // allow all motors time to settle
@@ -411,7 +405,7 @@ bool SplitFlapDisplay::checkAllFalse(bool array[], int size) {
 
 void SplitFlapDisplay::startMotors() {
     for (int i = 0; i < numModules; i++) {
-        selectMuxChannel(moduleChannels[i]);
+        selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
         modules[i].start();
     }
 }
@@ -419,7 +413,7 @@ void SplitFlapDisplay::startMotors() {
 void SplitFlapDisplay::stopMotors() {
     // Serial.println("Stopping Motors");
     for (int i = 0; i < numModules; i++) {
-        selectMuxChannel(moduleChannels[i]);
+        selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
         modules[i].stop();
     }
 }
@@ -429,88 +423,294 @@ void SplitFlapDisplay::setMqtt(SplitFlapMqtt *mqttHandler) {
 }
 
 // TCA9548A Multiplexer Channel Selection
-void SplitFlapDisplay::selectMuxChannel(uint8_t channel) {
+void SplitFlapDisplay::selectMuxChannel(uint8_t muxIndex, uint8_t channel) {
     if (channel > 7) return;  // TCA9548A has 8 channels (0-7)
-    
-    static uint8_t lastChannel = 255;  // Track last selected channel
-    if (channel != lastChannel) {
-        // Serial.printf("[DEBUG] MUX: Switching to channel %d\n", channel);
-        lastChannel = channel;
+    if (muxIndex >= numMuxes) {
+        Serial.printf("[ERROR] Invalid mux index %d (max %d)\n", muxIndex, numMuxes - 1);
+        return;
     }
     
-    Wire.beginTransmission(muxAddress);
+    uint8_t muxAddr = muxAddrs[muxIndex];
+    
+    static uint8_t lastMuxIndex = 255;
+    static uint8_t lastChannel = 255;
+    
+    // Only switch if needed (optimization to avoid excessive I2C traffic)
+    if (muxIndex == lastMuxIndex && channel == lastChannel) {
+        return;  // Already on the correct mux and channel
+    }
+    
+    // First, disable ALL muxes (including target) to ensure clean state
+    for (int i = 0; i < numMuxes; i++) {
+        Wire.beginTransmission(muxAddrs[i]);
+        Wire.write(0x00);  // Disable all channels
+        Wire.endTransmission();
+    }
+    
+    // Small delay to let muxes settle
+    delayMicroseconds(10);
+    
+    // Now enable only the target channel on the target mux
+    Wire.beginTransmission(muxAddr);
     Wire.write(1 << channel);  // Set bit for desired channel
     byte error = Wire.endTransmission();
     if (error != 0) {
-        Serial.printf("[ERROR] MUX channel select failed: error %d\n", error);
+        Serial.printf("[ERROR] MUX 0x%02X channel select failed: error %d\n", muxAddr, error);
     }
+    
+    // Small delay to let the mux channel activate
+    delayMicroseconds(10);
+    
+    lastMuxIndex = muxIndex;
+    lastChannel = channel;
 }
 
-// Scan all TCA9548A channels for I2C devices
-void SplitFlapDisplay::scanMuxChannels() {
-    for (uint8_t channel = 0; channel < 8; channel++) {
-        selectMuxChannel(channel);
+void SplitFlapDisplay::configureI2cModules() {
+    // Parse multiplexer addresses (e.g., "112,113" -> 0x70,0x71)
+    String muxAddrsStr = settings.getString("muxAddrs");
+    numMuxes = 0;
+    memset(muxAddrs, 0, sizeof(muxAddrs));
+    
+    int start = 0;
+    for (int i = 0; muxAddrsStr.length() > 0 && i <= muxAddrsStr.length() && numMuxes < 8; i++) {
+        if (i == muxAddrsStr.length() || muxAddrsStr[i] == ',') {
+            String addrStr = muxAddrsStr.substring(start, i);
+            addrStr.trim();
+            if (addrStr.length() > 0) {
+                muxAddrs[numMuxes++] = (uint8_t)addrStr.toInt();
+            }
+            start = i + 1;
+        }
+    }
+    
+    // Default to single mux at 0x70 if not configured
+    if (numMuxes == 0) {
+        muxAddrs[0] = 0x70;
+        numMuxes = 1;
+    }
+    
+    // Load module configuration from per-mux settings
+    numModules = 0;
+    memset(moduleCountPerChannel, 0, sizeof(moduleCountPerChannel));
+    memset(moduleMuxes, 0, sizeof(moduleMuxes));
+    
+    // Track displays (one per channel with modules)
+    numDisplays = 0;
+    memset(displayMux, 0, sizeof(displayMux));
+    memset(displayChannel, 0, sizeof(displayChannel));
+    memset(displayModuleCount, 0, sizeof(displayModuleCount));
+    
+    int flatIdx = 0;
+    
+    // Process each configured multiplexer
+    for (int muxIdx = 0; muxIdx < numMuxes; muxIdx++) {
+        String addrsKey = "chModAddrs" + String(muxAddrs[muxIdx]);
+        String moduleAddrStr = settings.getString(addrsKey.c_str());
         
-        Serial.printf("\nScanning channel %d: ", channel);
-        bool foundDevice = false;
+        if (moduleAddrStr.length() == 0) {
+            Serial.printf("[WARN] Missing chModAddrs%d config\n", muxAddrs[muxIdx]);
+            continue;
+        }
         
-        // Full address sweep from 0x08 to 0x77 (excluding reserved addresses)
-        for (uint8_t addr = 0x08; addr <= 0x77; addr++) {
-            // Skip the mux address itself (it's on the main bus, not downstream)
-            if (addr == muxAddress) continue;
-            
-            Wire.beginTransmission(addr);
-            uint8_t error = Wire.endTransmission();
-            
-            if (error == 0) {
-                if (!foundDevice) {
-                    Serial.print("[");
-                    foundDevice = true;
-                } else {
-                    Serial.print(", ");
+        // Parse channel addresses and derive counts: "32;;;;;;;;;" or "32;33,34;;;;;;;"
+        int chIdx = 0;
+        start = 0;
+        for (int i = 0; i <= moduleAddrStr.length() && chIdx < 8; i++) {
+            if (i == moduleAddrStr.length() || moduleAddrStr[i] == ';') {
+                String channelAddrs = moduleAddrStr.substring(start, i);
+                channelAddrs.trim();
+                
+                if (channelAddrs.length() > 0) {
+                    int addrStart = 0, addrCount = 0;
+                    for (int j = 0; j <= channelAddrs.length(); j++) {
+                        if (j == channelAddrs.length() || channelAddrs[j] == ',') {
+                            String addrStr = channelAddrs.substring(addrStart, j);
+                            addrStr.trim();
+                            if (addrStr.length() > 0 && flatIdx < MAX_MODULES) {
+                                moduleAddresses[flatIdx] = (uint8_t)addrStr.toInt();
+                                moduleChannels[flatIdx] = chIdx;
+                                moduleMuxes[flatIdx] = muxIdx;
+                                moduleOffsets[flatIdx] = 0;
+                                numModules++;
+                                flatIdx++;
+                                addrCount++;
+                            }
+                            addrStart = j + 1;
+                        }
+                    }
+                    // Track this as a display (one per channel with modules)
+                    if (addrCount > 0 && numDisplays < 64) {
+                        displayMux[numDisplays] = muxIdx;
+                        displayChannel[numDisplays] = chIdx;
+                        displayModuleCount[numDisplays] = addrCount;
+                        numDisplays++;
+                    }
                 }
-                Serial.printf("0x%02X", addr);
+                chIdx++;
+                start = i + 1;
+            }
+        }
+    }
+
+    // Print I2C configuration summary
+    Serial.printf("\n=== I2C Configurations ===\n");
+    for (int muxIdx = 0; muxIdx < numMuxes; muxIdx++) {
+        bool muxHasModules = false;
+        for (int i = 0; i < numModules; i++) {
+            if (moduleMuxes[i] == muxIdx) {
+                muxHasModules = true;
+                break;
             }
         }
         
-        if (foundDevice) {
-            Serial.print("]");
-        } else {
-            Serial.print("[]");
+        if (muxHasModules) {
+            Serial.printf("Mux%d (0x%02X): ", muxIdx, muxAddrs[muxIdx]);
+            for (int ch = 0; ch < 8; ch++) {
+                bool first = true;
+                for (int i = 0; i < numModules; i++) {
+                    if (moduleMuxes[i] == muxIdx && moduleChannels[i] == ch) {
+                        if (first) {
+                            Serial.printf("Ch%d[", ch);
+                            first = false;
+                        } else {
+                            Serial.print(",");
+                        }
+                        Serial.printf("0x%02X", moduleAddresses[i]);
+                    }
+                }
+                if (!first) Serial.print("] ");
+            }
+            Serial.println();
         }
     }
-    Serial.println();
+    Serial.println("==========================");
 }
 
-// Home all active channels in parallel
+void SplitFlapDisplay::scanI2cModules() {
+    Serial.println("\n=== I2C Scanner ===");
+    
+    // Scan all 8 possible TCA9548A addresses
+    for (uint8_t addr = 0x70; addr <= 0x77; addr++) {
+        Wire.beginTransmission(addr);
+        if (Wire.endTransmission() == 0) {
+            // Check if this is a configured mux
+            bool isConfigured = false;
+            uint8_t configIdx = 0;
+            for (uint8_t i = 0; i < numMuxes; i++) {
+                if (muxAddrs[i] == addr) {
+                    isConfigured = true;
+                    configIdx = i;
+                    break;
+                }
+            }
+            
+            // Print in same format as config output
+            Serial.printf("Mux%d (0x%02X)", configIdx, addr);
+            if (!isConfigured) {
+                Serial.print(" (found)");
+            }
+            Serial.print(": ");
+            
+            // Scan all channels and print inline
+            bool foundAny = false;
+            for (uint8_t channel = 0; channel < 8; channel++) {
+                // Disable ALL multiplexers first to prevent crosstalk
+                for (uint8_t a = 0x70; a <= 0x77; a++) {
+                    Wire.beginTransmission(a);
+                    Wire.write(0x00);
+                    Wire.endTransmission();
+                }
+                delay(10);
+                
+                // Enable only the target channel on the target mux
+                Wire.beginTransmission(addr);
+                Wire.write(1 << channel);
+                Wire.endTransmission();
+                delay(10);
+                
+                // Check if this channel is configured for this mux
+                bool channelConfigured = false;
+                if (isConfigured) {
+                    for (int i = 0; i < numModules; i++) {
+                        if (moduleMuxes[i] == configIdx && moduleChannels[i] == channel) {
+                            channelConfigured = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Scan for devices on this channel
+                bool foundOnChannel = false;
+                for (uint8_t devAddr = 0x08; devAddr <= 0x77; devAddr++) {
+                    // Skip mux addresses
+                    bool isMuxAddr = false;
+                    for (uint8_t i = 0; i < numMuxes; i++) {
+                        if (devAddr == muxAddrs[i]) {
+                            isMuxAddr = true;
+                            break;
+                        }
+                    }
+                    if (isMuxAddr) continue;
+                    
+                    Wire.beginTransmission(devAddr);
+                    if (Wire.endTransmission() == 0) {
+                        if (!foundOnChannel) {
+                            if (foundAny) Serial.print(" ");
+                            Serial.printf("Ch%d[", channel);
+                            foundOnChannel = true;
+                            foundAny = true;
+                        } else {
+                            Serial.print(",");
+                        }
+                        Serial.printf("0x%02X", devAddr);
+                    }
+                }
+                
+                if (foundOnChannel) {
+                    Serial.print("]");
+                    if (!channelConfigured) {
+                        Serial.print(" (found)");
+                    }
+                }
+            }
+            
+            // Disable all multiplexers after scan
+            for (uint8_t a = 0x70; a <= 0x77; a++) {
+                Wire.beginTransmission(a);
+                Wire.write(0x00);
+                Wire.endTransmission();
+            }
+            
+            Serial.println();
+        }
+    }
+    
+    Serial.println("===================\n");
+}
+
+// Home all active displays in parallel
 void SplitFlapDisplay::homeAllChannels(float speed) {
-    Serial.println("\n=== Homing All Channels (Parallel) ===");
-    
+    // Phase 1: Trigger homing for all modules
     int targetPositions[numModules];
-    
-    // Phase 1: Step back one for ALL modules to trigger homing
-    Serial.println("Phase 1: Triggering homing sequence for all modules...");
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
     }
+    startMotors();
     moveTo(targetPositions, speed, false);
     delay(2000);
     
-    // Phase 2: Move ALL modules to their home characters simultaneously
-    Serial.println("Phase 2: Moving all modules to home positions...");
-    String channelHomeStrings[8];
-    for (int ch = 0; ch < 8; ch++) {
-        channelHomeStrings[ch] = "D" + String(ch + 1);  // Let writeStringPerChannel handle centering
+    // Phase 2: Display labels on each configured display
+    String* displayStrings = new String[numDisplays];
+    for (int i = 0; i < numDisplays; i++) {
+        displayStrings[i] = "D" + String(i + 1);
     }
-    writeStringPerChannel(channelHomeStrings, speed, true);
+    writeDisplays(displayStrings, speed, true);
+    delete[] displayStrings;
     delay(1000);
     
-    // Phase 3: Clear ALL modules to blanks simultaneously
-    Serial.println("Phase 3: Clearing all modules to blank...");
+    // Phase 3: Clear all modules to blank
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = modules[i].getCharPosition(' ');
     }
-    moveTo(targetPositions, speed, true);  // Release motors on final move
-    
-    Serial.println("=== All Channels Homed ===\n");
+    moveTo(targetPositions, speed, true);
 }
