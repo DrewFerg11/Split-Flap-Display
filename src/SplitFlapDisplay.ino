@@ -31,10 +31,11 @@ JsonSettings settings = JsonSettings("config", {
     {"mqtt_pass", JsonSetting("")},
     // Hardware Settings
     // I2C addresses of multiplexers (comma-separated) (112 - 120)
-    {"muxAddrs", JsonSetting("112,113")},  
+    {"muxAddrs", JsonSetting("112")},  
     // Channels and module I2C addresses per mux (semicolon-separated channels, comma-separated addresses, NO SPACES)
-    {"chModAddrs112", JsonSetting("32;34,32;;;;;;;")},
-    {"chModAddrs113", JsonSetting("32;33;;;;;;;")}, 
+    {"chModAddrs112", JsonSetting("32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;;")},
+    // {"chModAddrs113", JsonSetting("32;32,33,34,35,36;;;;;;;")}, 
+    // {"chModAddrs112", JsonSetting("32;;;;;;;;")},
     {"magnetPosition", JsonSetting(730)},
     {"displayOffset", JsonSetting(0)},
     {"sdaPin", JsonSetting(SDA_PIN)},
@@ -99,7 +100,9 @@ void loop() {
     splitflapMqtt.loop();
 
     // check what mode the display is in, this value is updated by the web server
-    switch (webServer.getMode()) {
+    int mode = webServer.getMode();
+    
+    switch (mode) {
         // case 0: singleInputMode(); break;
         // case 1: multiInputMode(); break;
         // case 2: dateMode(); break;
@@ -187,7 +190,7 @@ void perDisplayMode() {
         for (int i = 0; i < numDisplays; i++) {
             displayTexts[i] = webServer.getDisplayText(i);
         }
-        display.writeDisplays(displayTexts, MAX_RPM, true);
+        display.writeDisplays(displayTexts, MAX_RPM, webServer.getDisplayCentering());
         delete[] displayTexts;
         webServer.clearDisplayTextsUpdated();
     }

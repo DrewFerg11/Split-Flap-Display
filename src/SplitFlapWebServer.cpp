@@ -1,4 +1,5 @@
 #include "SplitFlapWebServer.h"
+#include "SplitFlapDisplay.h"
 
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
@@ -16,8 +17,16 @@
 SplitFlapWebServer::SplitFlapWebServer(JsonSettings &settings)
     : settings(settings), server(80), multiWordDelay(1000), rebootRequired(false), attemptReconnect(false),
       multiWordCurrentIndex(0), numMultiWords(0), wifiCheckInterval(1000), connectionMode(0), checkDateInterval(250),
-      centering(1) {
+      centering(1), display(nullptr), displayTextsUpdated(false), displayCentering(true) {
     lastSwitchMultiTime = millis();
+    currentMode = settings.getInt("mode");  // Load mode from settings on startup
+    for (int i = 0; i < 8; i++) {
+        displayTexts[i] = "";
+    }
+}
+
+void SplitFlapWebServer::setDisplay(SplitFlapDisplay *displayPtr) {
+    display = displayPtr;
 }
 
 void SplitFlapWebServer::init() {
@@ -144,11 +153,12 @@ String SplitFlapWebServer::getCurrentDay() {
 }
 
 void SplitFlapWebServer::setMode(int targetMode) {
-    settings.putInt("mode", targetMode);
+    currentMode = targetMode;                 // Update cached mode immediately
+    settings.putInt("mode", targetMode);      // Persist to storage
 }
 
 int SplitFlapWebServer::getMode() {
-    return settings.getInt("mode");
+    return currentMode;                        // Return cached mode (fast)
 }
 
 void SplitFlapWebServer::checkWiFi() {
@@ -343,6 +353,86 @@ void SplitFlapWebServer::startWebServer() {
 
         this->attemptReconnect = true;
     });
+
+    // GET /api/display-config - Return display configuration info
+    server.on("/api/display-config", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        if (!display) {
+            request->send(500, "application/json", "{\"error\":\"Display not initialized\"}");
+            return;
+        }
+        
+        JsonDocument response;
+        JsonArray displays = response["displays"].to<JsonArray>();
+        
+        // Get display configuration from the display object
+        int numDisplays = display->getNumDisplays();
+        for (int i = 0; i < numDisplays; i++) {
+            JsonObject disp = displays.add<JsonObject>();
+            disp["index"] = i;
+            disp["mux"] = display->getDisplayMux(i);
+            disp["channel"] = display->getDisplayChannel(i);
+            disp["modules"] = display->getDisplayModuleCount(i);
+        }
+        
+        request->send(200, "application/json", response.as<String>());
+    });
+
+    // POST /api/displays - Store text for each display (Mode 7)
+    server.addHandler(new AsyncCallbackJsonWebHandler(
+        "/api/displays",
+        [this](AsyncWebServerRequest *request, JsonVariant &json) {
+            JsonDocument response;
+            
+            if (!json.is<JsonObject>()) {
+                response["error"] = "Invalid JSON format";
+                request->send(400, "application/json", response.as<String>());
+                return;
+            }
+            
+            if (!display) {
+                response["error"] = "Display not initialized";
+                request->send(500, "application/json", response.as<String>());
+                return;
+            }
+            
+            JsonObject obj = json.as<JsonObject>();
+            int numDisplays = display->getNumDisplays();
+            
+            // Parse centering preference (default to true)
+            bool center = obj["center"].is<bool>() ? obj["center"].as<bool>() : true;
+            displayCentering = center;
+            
+            // Dynamically allocate display texts array
+            String* texts = new String[numDisplays];
+            
+            // Parse display texts based on actual configured displays
+            for (int i = 0; i < numDisplays; i++) {
+                String key = "dis" + String(i + 1);
+                if (obj[key].is<String>()) {
+                    texts[i] = obj[key].as<String>();
+                } else {
+                    texts[i] = "";
+                }
+            }
+            
+            // Store display texts and set update flag (WebServer stores copy)
+            String textsCopy[8] = {"", "", "", "", "", "", "", ""};
+            for (int i = 0; i < numDisplays && i < 8; i++) {
+                textsCopy[i] = texts[i];
+            }
+            setDisplayTexts(textsCopy);
+            
+            // Set mode to 7 (per-display mode)
+            setMode(7);
+            
+            // Clean up
+            delete[] texts;
+            
+            response["success"] = true;
+            response["message"] = "Display texts updated";
+            request->send(200, "application/json", response.as<String>());
+        }
+    ));
 
     server.addHandler(new AsyncCallbackJsonWebHandler(
         "/settings",

@@ -11,10 +11,13 @@
 #include <WiFi.h>
 #include <time.h>
 
+class SplitFlapDisplay;
+
 class SplitFlapWebServer {
   public:
     SplitFlapWebServer(JsonSettings &settings);
     void init();
+    void setDisplay(SplitFlapDisplay *displayPtr);
     void setTimezone();
     void checkRebootRequired();
 
@@ -62,10 +65,23 @@ class SplitFlapWebServer {
     void setLastCheckDateTime(unsigned long input) { lastCheckDateTime = input; }
     int getDateCheckInterval() { return checkDateInterval; }
 
+    // Mode 7, Per-Display
+    String getDisplayText(int index) const { return displayTexts[index]; }
+    void setDisplayTexts(const String texts[8]) {
+        for (int i = 0; i < 8; i++) {
+            displayTexts[i] = texts[i];
+        }
+        displayTextsUpdated = true;
+    }
+    bool hasDisplayTextsUpdated() const { return displayTextsUpdated; }
+    void clearDisplayTextsUpdated() { displayTextsUpdated = false; }
+    bool getDisplayCentering() const { return displayCentering; }
+
     int getCentering() { return centering; }
 
   private:
     JsonSettings &settings;
+    SplitFlapDisplay *display;
 
     String decodeURIComponent(String encodedString);
     void setInputString(String input) { inputString = input; }
@@ -88,6 +104,12 @@ class SplitFlapWebServer {
 
     String inputString;      // latest single input from user
     String writtenString;    // string for whatever is currently written to the display
+
+    String displayTexts[8];  // Mode 7: per-display texts (dis1-dis8)
+    bool displayTextsUpdated; // Flag to indicate new display texts
+    bool displayCentering;    // Whether to center text in per-display mode
+    
+    int currentMode;         // Cached current mode (avoids constant Preferences reads)
 
     bool rebootRequired;
     bool attemptReconnect;

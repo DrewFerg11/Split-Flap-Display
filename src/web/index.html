@@ -33,11 +33,12 @@
                 class="w-full p-3 mb-6 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
                 x-model.number="settings.mode"
             >
-                <option value="2">Date</option>
-                <option value="3">Time</option>
+                <!-- <option value="2">Date</option>
+                <option value="3">Time</option> -->
                 <!--        <option value="4">Count</option>-->
-                <option value="6">Custom Text</option>
-                <option value="5">Random</option>
+                <!-- <option value="6">Custom Text</option>
+                <option value="5">Random</option> -->
+                <option value="7">Per-Display Text</option>
             </select>
 
             <template x-if="settings.mode == 6">
@@ -161,9 +162,76 @@
                 </div>
             </template>
 
+            <template x-if="settings.mode == 7">
+                <div class="w-full">
+                    <div
+                        class="text-center py-4 text-gray-400"
+                        x-show="loading.displayConfig"
+                        x-cloak
+                    >
+                        Loading display configuration...
+                    </div>
+
+                    <div
+                        class="text-sm text-gray-400 text-center py-4"
+                        x-show="!loading.displayConfig && displayConfig.length === 0"
+                        x-cloak
+                    >
+                        No displays configured
+                    </div>
+
+                    <div
+                        x-show="!loading.displayConfig && displayConfig.length > 0"
+                        x-cloak
+                    >
+                        <div class="flex items-center gap-2 mb-4">
+                            <label class="text-sm font-medium"
+                                >Center Text</label
+                            >
+                            <label class="relative inline-block w-12 h-6">
+                                <input
+                                    type="checkbox"
+                                    id="centerDisplayText"
+                                    x-model="centerDisplayText"
+                                    class="hidden"
+                                />
+                                <span
+                                    class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                ></span>
+                                <span
+                                    class="absolute left-1 top-1 w-4 h-4 cursor-pointer rounded-full transition-transform duration-300"
+                                    :class="centerDisplayText ? 'translate-x-6 bg-green-600' : 'translate-x-0 bg-neutral-300'"
+                                ></span>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <template
+                                x-for="disp in displayConfig"
+                                :key="disp.index"
+                            >
+                                <div>
+                                    <label
+                                        :for="'dis' + (disp.index + 1)"
+                                        class="block text-sm mb-1 cursor-help"
+                                        :title="`Mux ${disp.mux}, Channel ${disp.channel}, Modules ${disp.modules}`"
+                                        x-text="`Display ${disp.index + 1}`"
+                                    ></label>
+                                    <input
+                                        type="text"
+                                        :id="'dis' + (disp.index + 1)"
+                                        x-model="displayTexts['dis' + (disp.index + 1)]"
+                                        :placeholder="'Text for display ' + (disp.index + 1)"
+                                        class="w-full p-2 text-sm border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                                    />
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
             <button
                 class="w-full p-3 mt-6 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
-                x-on:click="() => setTimeout(() => updateDisplay(), 0)"
+                x-on:click="updateDisplay()"
             >
                 Update Display
             </button>

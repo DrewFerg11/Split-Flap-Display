@@ -436,30 +436,7 @@
                 </button>
             </h2>
 
-            <div class="gap-2 grid grid-cols-2 w-full">
-                <div>
-                    <label
-                        for="moduleCount"
-                        class="block text-left text-lg mt-4"
-                    >
-                        Number of Modules
-                    </label>
-                    <input
-                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        type="number"
-                        id="moduleCount"
-                        x-model="settings.moduleCount"
-                        min="1"
-                        max="8"
-                        placeholder="1-8"
-                    />
-                    <div
-                        class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                        x-cloak
-                        x-show="errors.key === 'moduleCount'"
-                        x-text="errors.message"
-                    ></div>
-                </div>
+            <div class="gap-2 grid grid-cols-2 w-full mb-4">
                 <div>
                     <label for="charset" class="block text-left text-lg mt-4">
                         Character Set
@@ -482,51 +459,173 @@
                 </div>
             </div>
 
-            <label class="block text-left text-lg mt-4">
-                Module Addresses
+            <label class="block text-left text-lg mt-6 mb-3">
+                Multiplexer Configuration
             </label>
-            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
-                <template
-                    x-for="(val, i) in Array.from({ length: settings.moduleCount })"
-                    :key="`addr-${i}-${addressArray[i]}`"
-                >
-                    <input
-                        type="number"
-                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        :value="addressArray[i]"
-                        @input="setAddress(i, $event.target.value)"
-                        :placeholder="`e.g. ${32 + i}`"
-                    />
-                </template>
+            <div class="text-xs text-gray-400 mb-3">
+                Configure TCA9548A I²C multiplexers. Each mux supports 8
+                channels with multiple modules per channel.
             </div>
-            <div
-                class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                x-cloak
-                x-show="errors.key === 'moduleAddresses'"
-                x-text="errors.message"
-            ></div>
 
-            <label class="block text-left text-lg mt-4"> Module Offsets </label>
-            <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
-                <template
-                    x-for="(val, i) in Array.from({ length: settings.moduleCount })"
-                    :key="`off-${i}-${offsetArray[i]}`"
-                >
-                    <input
-                        type="number"
-                        class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        :value="offsetArray[i]"
-                        @input="setOffset(i, $event.target.value)"
-                        placeholder="e.g. 0"
-                    />
+            <!-- Mux Address List -->
+            <div class="space-y-3 w-full mb-4">
+                <div class="bg-neutral-700 p-4 rounded-md">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm font-semibold"
+                            >Multiplexer Addresses</span
+                        >
+                        <button
+                            type="button"
+                            class="px-3 py-1 text-sm bg-orange-600 hover:bg-orange-500 rounded-md transition-colors"
+                            @click="addMux()"
+                            :disabled="muxAddresses.length >= 8"
+                            :class="{'opacity-50 cursor-not-allowed': muxAddresses.length >= 8}"
+                        >
+                            + Add Mux
+                        </button>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <template
+                            x-for="muxAddr in muxAddresses"
+                            :key="muxAddr"
+                        >
+                            <div
+                                class="flex items-center gap-2 px-3 py-2 bg-neutral-800 rounded-md"
+                            >
+                                <input
+                                    type="number"
+                                    class="w-16 p-1 text-sm border border-gray-600 rounded-md text-center bg-neutral-900 text-gray-100"
+                                    :value="muxAddr"
+                                    @change="updateMuxAddress(muxAddr, $event.target.value)"
+                                    min="112"
+                                    max="119"
+                                />
+                                <span
+                                    class="text-xs text-gray-400"
+                                    x-text="`(0x${muxAddr.toString(16).toUpperCase()})`"
+                                ></span>
+                                <button
+                                    type="button"
+                                    class="text-red-400 hover:text-red-300 font-bold"
+                                    @click="removeMux(muxAddr)"
+                                    :disabled="muxAddresses.length <= 1"
+                                    :class="{'opacity-30 cursor-not-allowed': muxAddresses.length <= 1}"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-2">
+                        Valid addresses: 112-119 (0x70-0x77). At least one mux
+                        required.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Per-Mux Channel Configuration -->
+            <div class="space-y-4 w-full">
+                <template x-for="muxAddr in muxAddresses" :key="muxAddr">
+                    <div class="bg-neutral-700 p-4 rounded-md">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3
+                                class="text-base font-semibold"
+                                x-text="`Mux ${muxAddr} (0x${muxAddr.toString(16).toUpperCase()}) - Channels`"
+                            ></h3>
+                            <button
+                                type="button"
+                                class="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-500 rounded-md transition-colors"
+                                @click="addChannelToMux(muxAddr)"
+                            >
+                                + Add Channel
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template
+                                x-for="ch in [0,1,2,3,4,5,6,7]"
+                                :key="`${muxAddr}-ch-${ch}`"
+                            >
+                                <div
+                                    x-show="channelHasModules(muxAddr, ch)"
+                                    class="bg-neutral-800 p-3 rounded-md"
+                                >
+                                    <div
+                                        class="flex items-center justify-between mb-2"
+                                    >
+                                        <div class="flex items-center gap-2">
+                                            <span
+                                                class="text-sm font-medium"
+                                                x-text="`Channel ${ch}`"
+                                            ></span>
+                                            <button
+                                                type="button"
+                                                class="text-red-400 hover:text-red-300 text-sm font-bold"
+                                                @click="removeChannel(muxAddr, ch)"
+                                                title="Remove channel"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="px-2 py-1 text-xs bg-purple-600 hover:bg-purple-500 rounded transition-colors"
+                                            @click="addModuleToMuxChannel(muxAddr, ch)"
+                                            :disabled="getMuxChannelAddresses(muxAddr, ch).length >= 8"
+                                            :class="{'opacity-50 cursor-not-allowed': getMuxChannelAddresses(muxAddr, ch).length >= 8}"
+                                        >
+                                            + Add Module
+                                        </button>
+                                    </div>
+
+                                    <div
+                                        x-data="{ addresses: getMuxChannelAddresses(muxAddr, ch) }"
+                                        x-effect="addresses = getMuxChannelAddresses(muxAddr, ch)"
+                                    >
+                                        <div class="grid grid-cols-4 gap-2">
+                                            <template
+                                                x-for="(addr, idx) in addresses"
+                                                :key="`${muxAddr}-${ch}-${idx}`"
+                                            >
+                                                <div
+                                                    class="flex items-center gap-1"
+                                                >
+                                                    <input
+                                                        type="number"
+                                                        class="w-16 p-2 text-sm border border-gray-600 rounded-md text-center bg-neutral-900 text-gray-100"
+                                                        :value="addr"
+                                                        @input="setModuleAddress(muxAddr, ch, idx, $event.target.value)"
+                                                        placeholder="32"
+                                                        min="8"
+                                                        max="119"
+                                                    />
+                                                    <span
+                                                        class="text-xs text-gray-400"
+                                                        x-text="`(0x${parseInt(addr).toString(16).toUpperCase().padStart(2, '0')})`"
+                                                    ></span>
+                                                    <button
+                                                        type="button"
+                                                        class="p-1 text-red-400 hover:text-red-300"
+                                                        @click="removeModuleFromMuxChannel(muxAddr, ch, idx)"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </template>
             </div>
-            <div
-                class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                x-cloak
-                x-show="errors.key === 'moduleOffsets'"
-                x-text="errors.message"
-            ></div>
+
+            <div class="text-xs text-gray-400 mt-3">
+                <strong>Configuration Format:</strong> Each channel can have
+                multiple modules. I²C addresses are in decimal (32=0x20,
+                33=0x21, 34=0x22, etc.).
+            </div>
 
             <a
                 href="#"
@@ -662,8 +761,8 @@
                 <button
                     class="w-full p-3 mt-4 text-lg font-semibold text-white bg-red-600 rounded-md hover:bg-red-500 transition-colors"
                     x-on:click.prevent="reset()"
-                    :disabled="processing"
-                    :class="{'opacity-50 cursor-not-allowed': processing}"
+                    :disabled="saving"
+                    :class="{'opacity-50 cursor-not-allowed': saving}"
                 >
                     Reset to Defaults
                 </button>
@@ -700,9 +799,8 @@
                 <button
                     class="w-2/3 p-3 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
                     x-on:click.prevent="save()"
-                    disabled
-                    :disabled="processing"
-                    :class="{'opacity-50 cursor-not-allowed': processing}"
+                    :disabled="saving"
+                    :class="{'opacity-50 cursor-not-allowed': saving}"
                 >
                     Save Settings
                 </button>

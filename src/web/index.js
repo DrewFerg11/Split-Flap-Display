@@ -10,6 +10,7 @@ document.addEventListener("alpine:init", () => {
         loading: {
             settings: true,
             timezones: true,
+            displayConfig: true,
         },
         saving: false,
         dialog: {
@@ -18,12 +19,13 @@ document.addEventListener("alpine:init", () => {
             type: null,
         },
         settings: {
-            mode: 2,
+            mode: 7, // Default to Per-Display Text mode
             dateFormat: "ddd dd/MM",
             timeFormat: "HH:mm",
         },
         errors: {},
         timezones: {},
+        displayConfig: [], // Will be populated from /api/display-config
 
         // Control page specific
         singleMode: true,
@@ -32,10 +34,15 @@ document.addEventListener("alpine:init", () => {
         multiWords: [],
         delay: 1,
         centerText: false,
+        centerDisplayText: false, // Center text for per-display mode
+        displayTexts: {}, // Will be dynamically populated based on displayConfig
 
         get processing() {
             return (
-                this.saving || this.loading.settings || this.loading.timezones
+                this.saving ||
+                this.loading.settings ||
+                this.loading.timezones ||
+                this.loading.displayConfig
             );
         },
 
@@ -64,10 +71,190 @@ document.addEventListener("alpine:init", () => {
             this.settings.moduleOffsets = arr.join(",");
         },
 
+        // Multi-mux helpers
+        get muxAddresses() {
+            if (!this.settings.muxAddrs) return [112]; // Default to 0x70 (112)
+            return this.settings.muxAddrs
+                .split(",")
+                .map((s) => parseInt(s.trim()))
+                .filter((n) => !isNaN(n));
+        },
+
+        addMux() {
+            const muxes = this.muxAddresses;
+            // Find next available address (112-119 = 0x70-0x77)
+            let nextAddr = 112;
+            while (muxes.includes(nextAddr) && nextAddr <= 119) {
+                nextAddr++;
+            }
+            if (nextAddr <= 119) {
+                muxes.push(nextAddr);
+                this.settings.muxAddrs = muxes.join(",");
+                // Initialize empty channel config for new mux
+                this.settings[`chModAddrs${nextAddr}`] = ";;;;;;;";
+            }
+        },
+
+        updateMuxAddress(oldAddr, newAddr) {
+            newAddr = parseInt(newAddr);
+            if (isNaN(newAddr) || newAddr < 112 || newAddr > 119) return;
+            if (this.muxAddresses.includes(newAddr) && newAddr !== oldAddr) {
+                // Address already in use
+                return;
+            }
+
+            const muxes = this.muxAddresses.map((a) =>
+                a === oldAddr ? newAddr : a,
+            );
+            this.settings.muxAddrs = muxes.join(",");
+
+            // Move channel config to new key
+            const oldKey = `chModAddrs${oldAddr}`;
+            const newKey = `chModAddrs${newAddr}`;
+            if (this.settings[oldKey]) {
+                this.settings[newKey] = this.settings[oldKey];
+                if (oldAddr !== newAddr) {
+                    delete this.settings[oldKey];
+                }
+            }
+        },
+
+        removeMux(addr) {
+            const muxes = this.muxAddresses.filter((a) => a !== addr);
+            this.settings.muxAddrs = muxes.join(",");
+            // Remove corresponding channel config
+            delete this.settings[`chModAddrs${addr}`];
+        },
+
+        getMuxChannelConfig(muxAddr) {
+            const key = `chModAddrs${muxAddr}`;
+            if (!this.settings[key]) return Array(8).fill("");
+            return this.settings[key].split(";").slice(0, 8);
+        },
+
+        setMuxChannelConfig(muxAddr, channelConfigs) {
+            const key = `chModAddrs${muxAddr}`;
+            // Ensure we have exactly 8 channel configs (semicolon-separated)
+            while (channelConfigs.length < 8) channelConfigs.push("");
+            this.settings[key] = channelConfigs.slice(0, 8).join(";");
+        },
+
+        getMuxChannelAddresses(muxAddr, ch) {
+            const configs = this.getMuxChannelConfig(muxAddr);
+            if (!configs[ch] || configs[ch] === "") return [];
+            return configs[ch]
+                .split(",")
+                .map((s) => s.trim())
+                .filter((s) => s !== "");
+        },
+
+        setMuxChannelAddresses(muxAddr, ch, addresses) {
+            const configs = this.getMuxChannelConfig(muxAddr);
+            configs[ch] = addresses.filter((a) => a !== "").join(",");
+            this.setMuxChannelConfig(muxAddr, configs);
+        },
+
+        addModuleToMuxChannel(muxAddr, ch) {
+            const addrs = this.getMuxChannelAddresses(muxAddr, ch);
+            if (addrs.length >= 8) return; // Max 8 modules per channel
+
+            // Find next available address starting from 32
+            let nextAddr = 32;
+            const usedAddrs = addrs.map((a) => parseInt(a));
+            while (usedAddrs.includes(nextAddr) && nextAddr <= 119) {
+                nextAddr++;
+            }
+
+            addrs.push(String(nextAddr));
+            this.setMuxChannelAddresses(muxAddr, ch, addrs);
+        },
+
+        addChannelToMux(muxAddr) {
+            // Find first empty channel and add a default module
+            const configs = this.getMuxChannelConfig(muxAddr);
+            for (let ch = 0; ch < 8; ch++) {
+                if (!configs[ch] || configs[ch] === "") {
+                    this.addModuleToMuxChannel(muxAddr, ch);
+                    return;
+                }
+            }
+        },
+
+        channelHasModules(muxAddr, ch) {
+            return this.getMuxChannelAddresses(muxAddr, ch).length > 0;
+        },
+
+        removeChannel(muxAddr, ch) {
+            const configs = this.getMuxChannelConfig(muxAddr);
+            configs[ch] = "";
+            this.setMuxChannelConfig(muxAddr, configs);
+        },
+
+        removeModuleFromMuxChannel(muxAddr, ch, index) {
+            const addrs = this.getMuxChannelAddresses(muxAddr, ch);
+            addrs.splice(index, 1);
+            this.setMuxChannelAddresses(muxAddr, ch, addrs);
+        },
+
+        setModuleAddress(muxAddr, ch, index, value) {
+            const addrs = this.getMuxChannelAddresses(muxAddr, ch);
+            addrs[index] = value;
+            this.setMuxChannelAddresses(muxAddr, ch, addrs);
+        },
+
+        // Per-channel configuration helpers (DEPRECATED - kept for compatibility)
+        getChannelModuleCount(ch) {
+            if (!this.settings.chModCount) return 0;
+            const counts = this.settings.chModCount
+                .split(",")
+                .map((s) => parseInt(s.trim()) || 0);
+            return counts[ch] || 0;
+        },
+
+        setChannelModuleCount(ch, value) {
+            const counts = this.settings.chModCount
+                ? this.settings.chModCount
+                      .split(",")
+                      .map((s) => parseInt(s.trim()) || 0)
+                : [0, 0, 0, 0, 0, 0, 0, 0];
+            while (counts.length < 8) counts.push(0);
+            counts[ch] = parseInt(value) || 0;
+            this.settings.chModCount = counts.join(",");
+        },
+
+        getChannelAddress(ch, moduleIdx) {
+            if (!this.settings.chModAddrs) return "";
+            const channelAddrs = this.settings.chModAddrs.split(";");
+            if (!channelAddrs[ch]) return "";
+            const addrs = channelAddrs[ch].split(",").map((s) => s.trim());
+            return addrs[moduleIdx] || "";
+        },
+
+        setChannelAddress(ch, moduleIdx, value) {
+            const channelAddrs = this.settings.chModAddrs
+                ? this.settings.chModAddrs.split(";")
+                : ["", "", "", "", "", "", "", ""];
+            while (channelAddrs.length < 8) channelAddrs.push("");
+
+            const addrs = channelAddrs[ch]
+                ? channelAddrs[ch].split(",").map((s) => s.trim())
+                : [];
+            while (addrs.length < 8) addrs.push("");
+            addrs[moduleIdx] = value;
+            channelAddrs[ch] = addrs
+                .filter((a, i) => i < this.getChannelModuleCount(ch) && a)
+                .join(",");
+
+            this.settings.chModAddrs = channelAddrs.join(";");
+        },
+
         init() {
             this.loadSettings();
             if (type === "Settings") {
                 this.loadTimezones();
+            }
+            if (type === "Control") {
+                this.loadDisplayConfig();
             }
         },
 
@@ -76,12 +263,37 @@ document.addEventListener("alpine:init", () => {
                 .then((res) => res.json())
                 .then((data) => {
                     Object.assign(this.settings, data);
+                    // Force mode 7 since it's the only available mode
+                    this.settings.mode = 7;
                 })
                 .catch(() =>
                     this.showDialog("Failed to load settings", "error", true),
                 )
                 .finally(() => {
                     this.loading.settings = false;
+                });
+        },
+
+        loadDisplayConfig() {
+            fetch("/api/display-config")
+                .then((res) => res.json())
+                .then((data) => {
+                    this.displayConfig = data.displays || [];
+                    // Initialize displayTexts with empty strings for each display
+                    this.displayTexts = {};
+                    this.displayConfig.forEach((disp) => {
+                        this.displayTexts[`dis${disp.index + 1}`] = "";
+                    });
+                })
+                .catch(() =>
+                    this.showDialog(
+                        "Failed to load display configuration",
+                        "error",
+                        true,
+                    ),
+                )
+                .finally(() => {
+                    this.loading.displayConfig = false;
                 });
         },
 
@@ -123,6 +335,36 @@ document.addEventListener("alpine:init", () => {
                         "error",
                     );
                 }
+            }
+
+            if (this.settings.mode === 7) {
+                // Per-display text mode
+                fetch("/api/displays", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        ...this.displayTexts,
+                        center: this.centerDisplayText,
+                    }),
+                })
+                    .then((res) => res.json())
+                    .then((res) => {
+                        if (res.success) {
+                            this.showDialog(
+                                "Displays updated successfully!",
+                                "success",
+                            );
+                        } else {
+                            this.showDialog(
+                                res.error || "Failed to update displays",
+                                "error",
+                            );
+                        }
+                    })
+                    .catch((err) =>
+                        this.showDialog("Error: " + err.message, "error"),
+                    );
+                return;
             }
 
             fetch("/settings", {

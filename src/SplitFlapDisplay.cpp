@@ -309,88 +309,83 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
     int startStopDelay = 200; // time to wait to let motor realign itself to
     // magnetic field on stop and start
 
-    bool resetLatches[numModules] = {}; // Initialize to false //start with latch on to prevent case where the
-    // motion starts with the magnet over the sensor
-    bool needsStepping[numModules] = {};             // Initialize to false; //modules that still require moving
-    unsigned long lastStepTimes[numModules] = {};    // Initialize to false; //track when each module was last stepped
-    unsigned long lastSensorCheckTime = currentTime; // track when we last read all the hall effect sensors
+    // Build list of modules that actually need to move
+    int activeModules[numModules];
+    int numActive = 0;
+    
+    bool resetLatches[numModules] = {};
+    unsigned long lastStepTimes[numModules] = {};
+    unsigned long lastSensorCheckTime = currentTime;
 
     for (int i = 0; i < numModules; i++) {
-        targetPositions[i] = constrain(
-            targetPositions[i],
-            0,
-            stepsPerRot - 1
-        ); // Constrain to avoid errors with incorrect inputs
-        resetLatches[i] = true;
+        targetPositions[i] = constrain(targetPositions[i], 0, stepsPerRot - 1);
         lastStepTimes[i] = currentTime;
+        
         if (modules[i].getPosition() != targetPositions[i]) {
-            needsStepping[i] = true;
-        } else {
-            needsStepping[i] = false;
+            activeModules[numActive++] = i;  // Add to active list
+            resetLatches[i] = true;
         }
     }
+    
+    if (numActive == 0) return;  // Nothing to do
+    
+    // Start only the motors that need to move
+    for (int j = 0; j < numActive; j++) {
+        int i = activeModules[j];
+        selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+        modules[i].start();
+    }
+    delay(startStopDelay);
 
-    startMotors(); // not sure if this helps or not, likely that it does not based
-    // on testing
-    delay(startStopDelay); // give the motor time to align to magnetic field
-
-    bool isFinished = checkAllFalse(needsStepping, numModules);
-    while (! isFinished) {
+    // Main stepping loop - only process active modules
+    while (numActive > 0) {
         currentTime = micros();
         
-        // Step motors - select channel only when it changes
-        for (int i = 0; i < numModules; i++) {
-            if (((currentTime - lastStepTimes[i]) > timePerStep) && needsStepping[i]) {
+        // Step motors that are ready
+        for (int j = 0; j < numActive; j++) {
+            int i = activeModules[j];
+            if ((currentTime - lastStepTimes[i]) > timePerStep) {
                 selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
                 modules[i].step();
                 lastStepTimes[i] = micros();
-                if (modules[i].getPosition() == targetPositions[i]) { // this module is not in the correct position,
-                    // requires stepping
-                    needsStepping[i] = false;
+                
+                if (modules[i].getPosition() == targetPositions[i]) {
+                    // Remove from active list by swapping with last
+                    activeModules[j] = activeModules[numActive - 1];
+                    numActive--;
+                    j--;  // Re-check this position since we swapped
                 }
             }
         }
 
-        if ((currentTime - lastSensorCheckTime) > checkIntervalUs) { // check hall effect sensor every checkIntervalMs
-            // check every modules sensor - select channel only when it changes
-            for (int i = 0; i < numModules; i++) {
-                if (needsStepping[i]) {
-                    selectMuxChannel(moduleMuxes[i], moduleChannels[i]);  // Select channel before reading sensor
-                    if (modules[i].readHallEffectSensor() == true) { // only check sensors where the module is still moving
-                        if (! resetLatches[i]) {
-                            // UNCOMMENTING THIS WILL PROBBALY MAKE THE MOTORS INACCURATE, DUE
-                            // TO TIME TAKEN TO PRINT
-                            //  Serial.print("Module: ");
-                            //  Serial.print(i);
-                            //  Serial.print(" Magnet Position: ");
-                            //  Serial.print(modules[i].getMagnetPosition());
-                            //  Serial.print(" Actual Position: ");
-                            //  Serial.print(modules[i].getPosition());
-                            //  Serial.print(" Error: ");
-                            //  Serial.println((modules[i].getMagnetPosition() -
-                            //  modules[i].getPosition()));
-                            modules[i].magnetDetected(); // update position to the modules
-                            // magnet position
-                            resetLatches[i] = true;
-                        }
-                    } else if (resetLatches[i] == true) {
-                        resetLatches[i] = false;
+        // Check sensors periodically
+        if ((currentTime - lastSensorCheckTime) > checkIntervalUs) {
+            for (int j = 0; j < numActive; j++) {
+                int i = activeModules[j];
+                selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+                
+                if (modules[i].readHallEffectSensor() == true) {
+                    if (!resetLatches[i]) {
+                        modules[i].magnetDetected();
+                        resetLatches[i] = true;
                     }
+                } else if (resetLatches[i] == true) {
+                    resetLatches[i] = false;
                 }
             }
-            isFinished = checkAllFalse(needsStepping, numModules);
-            lastSensorCheckTime = currentTime; // recall micros because for loop may
-            // take a moment to execute
+            lastSensorCheckTime = currentTime;
         }
-        
-        // TODO: Decide if this is necessary based on testing
-        // // Yield to prevent watchdog timeout during long motor movements
-        // yield();
-        // esp_task_wdt_reset();  // Reset watchdog timer
     }
+    
     if (releaseMotors) {
-        delay(startStopDelay); // allow all motors time to settle
-        stopMotors();
+        delay(startStopDelay);
+        // Only stop motors that were moving
+        for (int i = 0; i < numModules; i++) {
+            if (modules[i].getPosition() == targetPositions[i]) {
+                selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+                modules[i].stop();
+            }
+        }
     }
 }
 
@@ -440,17 +435,14 @@ void SplitFlapDisplay::selectMuxChannel(uint8_t muxIndex, uint8_t channel) {
         return;  // Already on the correct mux and channel
     }
     
-    // First, disable ALL muxes (including target) to ensure clean state
-    for (int i = 0; i < numMuxes; i++) {
-        Wire.beginTransmission(muxAddrs[i]);
-        Wire.write(0x00);  // Disable all channels
+    // If switching mux, disable the old mux. Otherwise just switch channel on same mux
+    if (muxIndex != lastMuxIndex && lastMuxIndex < numMuxes) {
+        Wire.beginTransmission(muxAddrs[lastMuxIndex]);
+        Wire.write(0x00);  // Disable previous mux
         Wire.endTransmission();
     }
     
-    // Small delay to let muxes settle
-    delayMicroseconds(10);
-    
-    // Now enable only the target channel on the target mux
+    // Enable the target channel on the target mux
     Wire.beginTransmission(muxAddr);
     Wire.write(1 << channel);  // Set bit for desired channel
     byte error = Wire.endTransmission();
@@ -697,12 +689,22 @@ void SplitFlapDisplay::homeAllChannels(float speed) {
     }
     startMotors();
     moveTo(targetPositions, speed, false);
-    delay(2000);
+    delay(1000);
     
     // Phase 2: Display labels on each configured display
     String* displayStrings = new String[numDisplays];
     for (int i = 0; i < numDisplays; i++) {
-        displayStrings[i] = "D" + String(i + 1);
+        int moduleCount = displayModuleCount[i];
+        if (moduleCount == 1) {
+            // Single module: just show the number
+            displayStrings[i] = String(i + 1);
+        } else if (moduleCount >= 4) {
+            // 4+ modules: show "DIS1", "DIS2", etc
+            displayStrings[i] = "DIS" + String(i + 1);
+        } else {
+            // 2-3 modules: show "D1", "D2", etc
+            displayStrings[i] = "D" + String(i + 1);
+        }
     }
     writeDisplays(displayStrings, speed, true);
     delete[] displayStrings;
