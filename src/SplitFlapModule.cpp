@@ -31,12 +31,12 @@ SplitFlapModule::SplitFlapModule(
     numChars = (charsetSize == 48) ? 48 : 37;
 }
 
-void SplitFlapModule::writeIO(uint16_t data) {
-    Wire.beginTransmission(address);
-    Wire.write(data & 0xFF);        // Send lower byte
-    Wire.write((data >> 8) & 0xFF); // Send upper byte
+void SplitFlapModule::writeIO(uint16_t data, TwoWire& wire) {
+    wire.beginTransmission(address);
+    wire.write(data & 0xFF);        // Send lower byte
+    wire.write((data >> 8) & 0xFF); // Send upper byte
 
-    byte error = Wire.endTransmission();
+    byte error = wire.endTransmission();
 
     if (error > 0 && ! hasErrored) {
         hasErrored = true; // Set the error flag
@@ -53,7 +53,7 @@ void SplitFlapModule::writeIO(uint16_t data) {
 }
 
 // Init Module, Setup IO Board
-void SplitFlapModule::init() {
+void SplitFlapModule::init(TwoWire& wire) {
     float stepSize = (float) stepsPerRot / (float) numChars;
     float currentPosition = 0;
     for (int i = 0; i < numChars; i++) {
@@ -62,23 +62,23 @@ void SplitFlapModule::init() {
     }
 
     uint16_t initState = 0b1111111111100001; // Pin 15 (17) as INPUT, Pins 1-4 as OUTPUT
-    writeIO(initState);
+    writeIO(initState, wire);
 
-    stop();                                  // Write all motor coil inputs LOW
+    stop(wire);                              // Write all motor coil inputs LOW
 
     int initDelay = 100;
 
     delay(initDelay);
-    step();
+    step(true, wire);
     delay(initDelay);
-    step();
+    step(true, wire);
     delay(initDelay);
-    step();
+    step(true, wire);
     delay(initDelay);
-    step();
+    step(true, wire);
     delay(initDelay);
 
-    stop();
+    stop(wire);
 }
 
 int SplitFlapModule::getCharPosition(char inputChar) {
@@ -91,34 +91,34 @@ int SplitFlapModule::getCharPosition(char inputChar) {
     return 0; // Character not found, return blank
 }
 
-void SplitFlapModule::stop() {
+void SplitFlapModule::stop(TwoWire& wire) {
     uint16_t stepState = 0b1111111111100001;
-    writeIO(stepState);
+    writeIO(stepState, wire);
 }
 
-void SplitFlapModule::start() {
+void SplitFlapModule::start(TwoWire& wire) {
     stepNumber = (stepNumber + 3) % 4; // effectively take one off stepNumber
-    step(false);                       // write the "previous" step high again, in case turned off
+    step(false, wire);                 // write the "previous" step high again, in case turned off
 }
 
-void SplitFlapModule::step(bool updatePosition) {
+void SplitFlapModule::step(bool updatePosition, TwoWire& wire) {
     uint16_t stepState;
     switch (stepNumber) {
         case 0:
             stepState = 0b1111111111100111;
-            writeIO(stepState);
+            writeIO(stepState, wire);
             break;
         case 1:
             stepState = 0b1111111111110011;
-            writeIO(stepState);
+            writeIO(stepState, wire);
             break;
         case 2:
             stepState = 0b1111111111111001;
-            writeIO(stepState);
+            writeIO(stepState, wire);
             break;
         case 3:
             stepState = 0b1111111111101101;
-            writeIO(stepState);
+            writeIO(stepState, wire);
             break;
     }
     if (updatePosition) {
@@ -127,20 +127,20 @@ void SplitFlapModule::step(bool updatePosition) {
     }
 }
 
-bool SplitFlapModule::readHallEffectSensor() {
+bool SplitFlapModule::readHallEffectSensor(TwoWire& wire) {
     if (hasErrored) {
         return false;
     }
 
     uint8_t requestBytes = 2;
-    Wire.requestFrom(address, requestBytes);
+    wire.requestFrom(address, requestBytes);
     // Make sure the data is available
-    if (Wire.available() == 2) {
+    if (wire.available() == 2) {
         uint16_t inputState = 0;
 
         // Read the two bytes and combine them into a 16-bit value
-        inputState = Wire.read();             // Read the lower byte
-        inputState |= (Wire.read() << 8);     // Read the upper byte and shift it left
+        inputState = wire.read();             // Read the lower byte
+        inputState |= (wire.read() << 8);     // Read the upper byte and shift it left
 
         return (inputState & (1 << 15)) != 0; // If bit is 15, return HIGH, else LOW
     }

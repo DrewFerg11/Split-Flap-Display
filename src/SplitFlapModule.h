@@ -10,18 +10,18 @@ class SplitFlapModule {
     // SplitFlapDisplay class
     SplitFlapModule(uint8_t I2Caddress, int stepsPerFullRotation, int stepOffset, int magnetPos, int charSetSize);
 
-    void init();
+    void init(TwoWire& wire = Wire);
 
-    void step(bool updatePosition = true);                   // step motor
-    void stop();                                             // write all motor input pins to low
-    void start();                                            // re-energize coils to last position, not stepping motor
+    void step(bool updatePosition = true, TwoWire& wire = Wire);  // step motor
+    void stop(TwoWire& wire = Wire);                              // write all motor input pins to low
+    void start(TwoWire& wire = Wire);                             // re-energize coils to last position, not stepping motor
 
-    int getMagnetPosition() const { return magnetPosition; } // position where magnet is detected
-    int getCharPosition(char inputChar);                     // get integer position given single character
-    int getPosition() const { return position; }             // get integer position
-    int getCharsetSize() const { return numChars; }          // getter for charset size
+    int getMagnetPosition() const { return magnetPosition; }      // position where magnet is detected
+    int getCharPosition(char inputChar);                          // get integer position given single character
+    int getPosition() const { return position; }                  // get integer position
+    int getCharsetSize() const { return numChars; }               // getter for charset size
 
-    bool readHallEffectSensor();                             // return the value read by the hall effect
+    bool readHallEffectSensor(TwoWire& wire = Wire);              // return the value read by the hall effect
     // sensor
     void magnetDetected() {
         position = magnetPosition;
@@ -36,7 +36,7 @@ class SplitFlapModule {
     int stepsPerRot;                // number of steps per rotation
     bool hasErrored = false;        // flag to indicate if an error has occurred
 
-    void writeIO(uint16_t data);    // write to motor in pins
+    void writeIO(uint16_t data, TwoWire& wire);    // write to motor in pins
 
     int magnetPosition;             // altered by offsets
     static const int motorPins[];   // Array of motor pins
