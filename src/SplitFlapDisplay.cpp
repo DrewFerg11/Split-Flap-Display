@@ -14,26 +14,43 @@ void SplitFlapDisplay::init() {
     maxVel = settings.getFloat("maxVel");
     charSetSize = settings.getInt("charset");
 
-    // Configure modules based on settings
+    // Configure modules based on settings (parses wire0/wire1 configs)
     configureI2cModules();
 
-    // Initialize I2C bus
-    SDAPin = settings.getInt("sdaPin");
-    SCLPin = settings.getInt("sclPin");
+    // Initialize primary I2C bus (Wire)
+    SDAPin = settings.getInt("wire0SdaPin");
+    SCLPin = settings.getInt("wire0SclPin");
     Wire.begin(SDAPin, SCLPin);
     Wire.setClock(400000);
+    DEBUG_PRINTF("[INIT] Wire initialized: SDA=%d, SCL=%d @ 400kHz\n", SDAPin, SCLPin);
+    
+    // Initialize secondary I2C bus (Wire1) if dual bus mode is enabled
+    if (useDualBus) {
+        SDA1Pin = settings.getInt("wire1Sda1Pin");
+        SCL1Pin = settings.getInt("wire1Scl1Pin");
+        Wire1.begin(SDA1Pin, SCL1Pin);
+        Wire1.setClock(400000);
+        DEBUG_PRINTF("[INIT] Wire1 initialized: SDA=%d, SCL=%d @ 400kHz\n", SDA1Pin, SCL1Pin);
+    }
     
     // Scan modules to confirm connectivity
     scanI2cModules();
 
     // Create and initialize all module objects
     for (uint8_t i = 0; i < numModules; i++) {
+        uint8_t muxIdx = moduleMuxes[i];
+        uint8_t busNum = muxBus[muxIdx];
+        TwoWire &bus = (busNum == 0) ? Wire : Wire1;
+        
         modules[i] = SplitFlapModule(
-            moduleAddresses[i], stepsPerRot, moduleOffsets[i] + displayOffset, magnetPosition, charSetSize
+            moduleAddresses[i], stepsPerRot, moduleOffsets[i] + displayOffset, magnetPosition, charSetSize, bus
         );
         selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
         modules[i].init();
     }
+    
+    // Initialize threading for parallel dual-bus execution
+    initParallelExecution();
 }
 
 void SplitFlapDisplay::testAll() {
@@ -298,94 +315,44 @@ void SplitFlapDisplay::writeDisplays(String displayTexts[], float speed, bool ce
 }
 
 void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMotors) {
-    speed = constrain(speed, 2, maxVel);
-    float stepsPerSecond = (speed / 60) * stepsPerRot;
-    float timePerStep = 1000000 / stepsPerSecond;
-
-    unsigned long currentTime = micros();
-
-    int checkIntervalUs = 20 * 1000; // How often to check each modules hall effect sensor, less
-    // than 20ms causes issues with bouncing
-    int startStopDelay = 200; // time to wait to let motor realign itself to
-    // magnetic field on stop and start
-
-    // Build list of modules that actually need to move
-    int activeModules[numModules];
-    int numActive = 0;
+    // Copy target positions for bus 0
+    if (xSemaphoreTake(bus0Mutex, portMAX_DELAY)) {
+        memcpy(bus0Movement.targetPositions, targetPositions, sizeof(int) * numModules);
+        bus0Movement.speed = speed;
+        bus0Movement.releaseMotors = releaseMotors;
+        bus0Movement.active = true;
+        bus0Movement.complete = false;
+        xSemaphoreGive(bus0Mutex);
+    }
     
-    bool resetLatches[numModules] = {};
-    unsigned long lastStepTimes[numModules] = {};
-    unsigned long lastSensorCheckTime = currentTime;
-
-    for (int i = 0; i < numModules; i++) {
-        targetPositions[i] = constrain(targetPositions[i], 0, stepsPerRot - 1);
-        lastStepTimes[i] = currentTime;
+    // Copy target positions for bus 1 if dual bus is enabled
+    if (useDualBus) {
+        if (xSemaphoreTake(bus1Mutex, portMAX_DELAY)) {
+            memcpy(bus1Movement.targetPositions, targetPositions, sizeof(int) * numModules);
+            bus1Movement.speed = speed;
+            bus1Movement.releaseMotors = releaseMotors;
+            bus1Movement.active = true;
+            bus1Movement.complete = false;
+            xSemaphoreGive(bus1Mutex);
+        }
+    }
+    
+    // Wait for both buses to complete
+    bool bus0Done = false;
+    bool bus1Done = !useDualBus; // If not using dual bus, bus1 is always "done"
+    
+    while (!bus0Done || !bus1Done) {
+        if (!bus0Done && xSemaphoreTake(bus0Mutex, 10 / portTICK_PERIOD_MS)) {
+            bus0Done = bus0Movement.complete;
+            xSemaphoreGive(bus0Mutex);
+        }
         
-        if (modules[i].getPosition() != targetPositions[i]) {
-            activeModules[numActive++] = i;  // Add to active list
-            resetLatches[i] = true;
+        if (!bus1Done && xSemaphoreTake(bus1Mutex, 10 / portTICK_PERIOD_MS)) {
+            bus1Done = bus1Movement.complete;
+            xSemaphoreGive(bus1Mutex);
         }
-    }
-    
-    if (numActive == 0) return;  // Nothing to do
-    
-    // Start only the motors that need to move
-    for (int j = 0; j < numActive; j++) {
-        int i = activeModules[j];
-        selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
-        modules[i].start();
-    }
-    delay(startStopDelay);
-
-    // Main stepping loop - only process active modules
-    while (numActive > 0) {
-        currentTime = micros();
         
-        // Step motors that are ready
-        for (int j = 0; j < numActive; j++) {
-            int i = activeModules[j];
-            if ((currentTime - lastStepTimes[i]) > timePerStep) {
-                selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
-                modules[i].step();
-                lastStepTimes[i] = micros();
-                
-                if (modules[i].getPosition() == targetPositions[i]) {
-                    // Remove from active list by swapping with last
-                    activeModules[j] = activeModules[numActive - 1];
-                    numActive--;
-                    j--;  // Re-check this position since we swapped
-                }
-            }
-        }
-
-        // Check sensors periodically
-        if ((currentTime - lastSensorCheckTime) > checkIntervalUs) {
-            for (int j = 0; j < numActive; j++) {
-                int i = activeModules[j];
-                selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
-                
-                if (modules[i].readHallEffectSensor() == true) {
-                    if (!resetLatches[i]) {
-                        modules[i].magnetDetected();
-                        resetLatches[i] = true;
-                    }
-                } else if (resetLatches[i] == true) {
-                    resetLatches[i] = false;
-                }
-            }
-            lastSensorCheckTime = currentTime;
-        }
-    }
-    
-    if (releaseMotors) {
-        delay(startStopDelay);
-        // Only stop motors that were moving
-        for (int i = 0; i < numModules; i++) {
-            if (modules[i].getPosition() == targetPositions[i]) {
-                selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
-                modules[i].stop();
-            }
-        }
+        vTaskDelay(1); // Small delay to avoid busy-waiting
     }
 }
 
@@ -426,26 +393,32 @@ void SplitFlapDisplay::selectMuxChannel(uint8_t muxIndex, uint8_t channel) {
     }
     
     uint8_t muxAddr = muxAddrs[muxIndex];
+    uint8_t busNum = muxBus[muxIndex];
+    TwoWire &bus = (busNum == 0) ? Wire : Wire1;
     
-    static uint8_t lastMuxIndex = 255;
-    static uint8_t lastChannel = 255;
+    // Track last mux/channel per bus (not shared across buses)
+    static uint8_t lastMuxIndex[2] = {255, 255};  // One for Wire, one for Wire1
+    static uint8_t lastChannel[2] = {255, 255};
     
     // Only switch if needed (optimization to avoid excessive I2C traffic)
-    if (muxIndex == lastMuxIndex && channel == lastChannel) {
-        return;  // Already on the correct mux and channel
+    if (muxIndex == lastMuxIndex[busNum] && channel == lastChannel[busNum]) {
+        return;  // Already on the correct mux and channel for this bus
     }
     
-    // If switching mux, disable the old mux. Otherwise just switch channel on same mux
-    if (muxIndex != lastMuxIndex && lastMuxIndex < numMuxes) {
-        Wire.beginTransmission(muxAddrs[lastMuxIndex]);
-        Wire.write(0x00);  // Disable previous mux
-        Wire.endTransmission();
+    // If switching mux on this bus, disable the old mux
+    if (muxIndex != lastMuxIndex[busNum] && lastMuxIndex[busNum] < numMuxes) {
+        // Only disable if the old mux was on the same bus
+        if (muxBus[lastMuxIndex[busNum]] == busNum) {
+            bus.beginTransmission(muxAddrs[lastMuxIndex[busNum]]);
+            bus.write(0x00);  // Disable previous mux
+            bus.endTransmission();
+        }
     }
     
     // Enable the target channel on the target mux
-    Wire.beginTransmission(muxAddr);
-    Wire.write(1 << channel);  // Set bit for desired channel
-    byte error = Wire.endTransmission();
+    bus.beginTransmission(muxAddr);
+    bus.write(1 << channel);  // Set bit for desired channel
+    byte error = bus.endTransmission();
     if (error != 0) {
         Serial.printf("[ERROR] MUX 0x%02X channel select failed: error %d\n", muxAddr, error);
     }
@@ -453,32 +426,62 @@ void SplitFlapDisplay::selectMuxChannel(uint8_t muxIndex, uint8_t channel) {
     // Small delay to let the mux channel activate
     delayMicroseconds(10);
     
-    lastMuxIndex = muxIndex;
-    lastChannel = channel;
+    lastMuxIndex[busNum] = muxIndex;
+    lastChannel[busNum] = channel;
 }
 
 void SplitFlapDisplay::configureI2cModules() {
-    // Parse multiplexer addresses (e.g., "112,113" -> 0x70,0x71)
-    String muxAddrsStr = settings.getString("muxAddrs");
+    // Check if dual bus mode is enabled
+    useDualBus = settings.getInt("useDualBus") != 0;
+    DEBUG_PRINTF("[CONFIG] Dual bus mode: %s\n", useDualBus ? "ENABLED" : "DISABLED");
+    
+    // Parse multiplexer addresses for Wire (bus 0)
+    String wire0MuxAddrsStr = settings.getString("wire0MuxAddrs");
     numMuxes = 0;
     memset(muxAddrs, 0, sizeof(muxAddrs));
+    memset(muxBus, 0, sizeof(muxBus));
     
+    // Parse Wire0 mux addresses
     int start = 0;
-    for (int i = 0; muxAddrsStr.length() > 0 && i <= muxAddrsStr.length() && numMuxes < 8; i++) {
-        if (i == muxAddrsStr.length() || muxAddrsStr[i] == ',') {
-            String addrStr = muxAddrsStr.substring(start, i);
+    for (int i = 0; wire0MuxAddrsStr.length() > 0 && i <= wire0MuxAddrsStr.length() && numMuxes < 8; i++) {
+        if (i == wire0MuxAddrsStr.length() || wire0MuxAddrsStr[i] == ',') {
+            String addrStr = wire0MuxAddrsStr.substring(start, i);
             addrStr.trim();
             if (addrStr.length() > 0) {
-                muxAddrs[numMuxes++] = (uint8_t)addrStr.toInt();
+                muxAddrs[numMuxes] = (uint8_t)addrStr.toInt();
+                muxBus[numMuxes] = 0;  // Wire (primary bus)
+                DEBUG_PRINTF("[CONFIG] Mux%d: 0x%02X on Wire (bus 0)\n", numMuxes, muxAddrs[numMuxes]);
+                numMuxes++;
             }
             start = i + 1;
         }
     }
     
-    // Default to single mux at 0x70 if not configured
+    // Parse Wire1 mux addresses if dual bus is enabled
+    if (useDualBus) {
+        String wire1MuxAddrsStr = settings.getString("wire1MuxAddrs");
+        start = 0;
+        for (int i = 0; wire1MuxAddrsStr.length() > 0 && i <= wire1MuxAddrsStr.length() && numMuxes < 8; i++) {
+            if (i == wire1MuxAddrsStr.length() || wire1MuxAddrsStr[i] == ',') {
+                String addrStr = wire1MuxAddrsStr.substring(start, i);
+                addrStr.trim();
+                if (addrStr.length() > 0) {
+                    muxAddrs[numMuxes] = (uint8_t)addrStr.toInt();
+                    muxBus[numMuxes] = 1;  // Wire1 (secondary bus)
+                    DEBUG_PRINTF("[CONFIG] Mux%d: 0x%02X on Wire1 (bus 1)\n", numMuxes, muxAddrs[numMuxes]);
+                    numMuxes++;
+                }
+                start = i + 1;
+            }
+        }
+    }
+    
+    // Default to single mux at 0x70 on Wire if not configured
     if (numMuxes == 0) {
         muxAddrs[0] = 0x70;
+        muxBus[0] = 0;
         numMuxes = 1;
+        DEBUG_PRINTLN("[CONFIG] Using default: Mux0 at 0x70 on Wire");
     }
     
     // Load module configuration from per-mux settings
@@ -496,8 +499,12 @@ void SplitFlapDisplay::configureI2cModules() {
     
     // Process each configured multiplexer
     for (int muxIdx = 0; muxIdx < numMuxes; muxIdx++) {
-        String addrsKey = "chModAddrs" + String(muxAddrs[muxIdx]);
+        // Determine which bus this mux is on and build the config key
+        String busPrefix = (muxBus[muxIdx] == 0) ? "wire0" : "wire1";
+        String addrsKey = busPrefix + "ChModAddrs" + String(muxAddrs[muxIdx]);
         String moduleAddrStr = settings.getString(addrsKey.c_str());
+        
+        DEBUG_PRINTF("[CONFIG] Loading %s for Mux%d\n", addrsKey.c_str(), muxIdx);
         
         if (moduleAddrStr.length() == 0) {
             Serial.printf("[WARN] Missing chModAddrs%d config\n", muxAddrs[muxIdx]);
@@ -545,7 +552,7 @@ void SplitFlapDisplay::configureI2cModules() {
     }
 
     // Print I2C configuration summary
-    Serial.printf("\n=== I2C Configurations ===\n");
+    Serial.printf("\n=== I2C Configuration ===\n");
     for (int muxIdx = 0; muxIdx < numMuxes; muxIdx++) {
         bool muxHasModules = false;
         for (int i = 0; i < numModules; i++) {
@@ -556,7 +563,10 @@ void SplitFlapDisplay::configureI2cModules() {
         }
         
         if (muxHasModules) {
-            Serial.printf("Mux%d (0x%02X): ", muxIdx, muxAddrs[muxIdx]);
+            const char* busName = (muxBus[muxIdx] == 0) ? "Wire" : "Wire1";
+            char muxName[16];
+            snprintf(muxName, sizeof(muxName), "%s_Mux%d", busName, muxAddrs[muxIdx] - 0x70);
+            Serial.printf("%-10s (0x%02X): ", muxName, muxAddrs[muxIdx]);
             for (int ch = 0; ch < 8; ch++) {
                 bool first = true;
                 for (int i = 0; i < numModules; i++) {
@@ -575,113 +585,165 @@ void SplitFlapDisplay::configureI2cModules() {
             Serial.println();
         }
     }
-    Serial.println("==========================");
+    Serial.println("=========================");
 }
 
 void SplitFlapDisplay::scanI2cModules() {
     Serial.println("\n=== I2C Scanner ===");
     
-    // Scan all 8 possible TCA9548A addresses
-    for (uint8_t addr = 0x70; addr <= 0x77; addr++) {
-        Wire.beginTransmission(addr);
-        if (Wire.endTransmission() == 0) {
-            // Check if this is a configured mux
-            bool isConfigured = false;
-            uint8_t configIdx = 0;
-            for (uint8_t i = 0; i < numMuxes; i++) {
-                if (muxAddrs[i] == addr) {
-                    isConfigured = true;
-                    configIdx = i;
-                    break;
-                }
-            }
-            
-            // Print in same format as config output
-            Serial.printf("Mux%d (0x%02X)", configIdx, addr);
-            if (!isConfigured) {
-                Serial.print(" (found)");
-            }
-            Serial.print(": ");
-            
-            // Scan all channels and print inline
-            bool foundAny = false;
-            for (uint8_t channel = 0; channel < 8; channel++) {
-                // Disable ALL multiplexers first to prevent crosstalk
-                for (uint8_t a = 0x70; a <= 0x77; a++) {
-                    Wire.beginTransmission(a);
-                    Wire.write(0x00);
-                    Wire.endTransmission();
-                }
-                delay(10);
-                
-                // Enable only the target channel on the target mux
-                Wire.beginTransmission(addr);
-                Wire.write(1 << channel);
-                Wire.endTransmission();
-                delay(10);
-                
-                // Check if this channel is configured for this mux
-                bool channelConfigured = false;
-                if (isConfigured) {
-                    for (int i = 0; i < numModules; i++) {
-                        if (moduleMuxes[i] == configIdx && moduleChannels[i] == channel) {
-                            channelConfigured = true;
-                            break;
-                        }
+    // Scan each bus separately
+    for (int busNum = 0; busNum < 2; busNum++) {
+        // Skip Wire1 if dual bus is not enabled
+        if (busNum == 1 && !useDualBus) continue;
+        
+        TwoWire &bus = (busNum == 0) ? Wire : Wire1;
+        const char* busName = (busNum == 0) ? "Wire" : "Wire1";
+        
+        // Scan all 8 possible TCA9548A addresses on this bus
+        for (uint8_t addr = 0x70; addr <= 0x77; addr++) {
+            bus.beginTransmission(addr);
+            if (bus.endTransmission() == 0) {
+                // Check if this is a configured mux on this bus
+                bool isConfigured = false;
+                uint8_t configIdx = 0;
+                for (uint8_t i = 0; i < numMuxes; i++) {
+                    if (muxAddrs[i] == addr && muxBus[i] == busNum) {
+                        isConfigured = true;
+                        configIdx = i;
+                        break;
                     }
                 }
                 
-                // Scan for devices on this channel
-                bool foundOnChannel = false;
-                for (uint8_t devAddr = 0x08; devAddr <= 0x77; devAddr++) {
-                    // Skip mux addresses
-                    bool isMuxAddr = false;
-                    for (uint8_t i = 0; i < numMuxes; i++) {
-                        if (devAddr == muxAddrs[i]) {
-                            isMuxAddr = true;
-                            break;
-                        }
+                // Print in same format as config output
+                char muxName[16];
+                snprintf(muxName, sizeof(muxName), "%s_Mux%d", busName, addr - 0x70);
+                Serial.printf("%-10s (0x%02X)", muxName, addr);
+                if (!isConfigured) {
+                    Serial.print(" (found)");
+                }
+                Serial.print(": ");
+                
+                // Scan all channels and print inline
+                bool foundAny = false;
+                for (uint8_t channel = 0; channel < 8; channel++) {
+                    // Disable ALL multiplexers on this bus first to prevent crosstalk
+                    for (uint8_t a = 0x70; a <= 0x77; a++) {
+                        bus.beginTransmission(a);
+                        bus.write(0x00);
+                        bus.endTransmission();
                     }
-                    if (isMuxAddr) continue;
+                    delay(10);
                     
-                    Wire.beginTransmission(devAddr);
-                    if (Wire.endTransmission() == 0) {
-                        if (!foundOnChannel) {
-                            if (foundAny) Serial.print(" ");
-                            Serial.printf("Ch%d[", channel);
-                            foundOnChannel = true;
-                            foundAny = true;
-                        } else {
-                            Serial.print(",");
+                    // Enable only the target channel on the target mux
+                    bus.beginTransmission(addr);
+                    bus.write(1 << channel);
+                    bus.endTransmission();
+                    delay(10);
+                    
+                    // Check if this channel is configured for this mux
+                    bool channelConfigured = false;
+                    if (isConfigured) {
+                        for (int i = 0; i < numModules; i++) {
+                            if (moduleMuxes[i] == configIdx && moduleChannels[i] == channel) {
+                                channelConfigured = true;
+                                break;
+                            }
                         }
-                        Serial.printf("0x%02X", devAddr);
+                    }
+                    
+                    // Scan for devices on this channel
+                    bool foundOnChannel = false;
+                    for (uint8_t devAddr = 0x08; devAddr <= 0x77; devAddr++) {
+                        // Skip mux addresses
+                        bool isMuxAddr = false;
+                        for (uint8_t i = 0; i < numMuxes; i++) {
+                            if (devAddr == muxAddrs[i]) {
+                                isMuxAddr = true;
+                                break;
+                            }
+                        }
+                        if (isMuxAddr) continue;
+                        
+                        bus.beginTransmission(devAddr);
+                        if (bus.endTransmission() == 0) {
+                            if (!foundOnChannel) {
+                                if (foundAny) Serial.print(" ");
+                                Serial.printf("Ch%d[", channel);
+                                foundOnChannel = true;
+                                foundAny = true;
+                            } else {
+                                Serial.print(",");
+                            }
+                            Serial.printf("0x%02X", devAddr);
+                        }
+                    }
+                    
+                    if (foundOnChannel) {
+                        Serial.print("]");
+                        if (!channelConfigured) {
+                            Serial.print(" (found)");
+                        }
                     }
                 }
                 
-                if (foundOnChannel) {
-                    Serial.print("]");
-                    if (!channelConfigured) {
-                        Serial.print(" (found)");
-                    }
+                // Disable all multiplexers on this bus after scan
+                for (uint8_t a = 0x70; a <= 0x77; a++) {
+                    bus.beginTransmission(a);
+                    bus.write(0x00);
+                    bus.endTransmission();
                 }
+                
+                Serial.println();
             }
-            
-            // Disable all multiplexers after scan
-            for (uint8_t a = 0x70; a <= 0x77; a++) {
-                Wire.beginTransmission(a);
-                Wire.write(0x00);
-                Wire.endTransmission();
-            }
-            
-            Serial.println();
         }
     }
     
     Serial.println("===================\n");
 }
 
+// Initialize FreeRTOS tasks for parallel dual-bus execution
+void SplitFlapDisplay::initParallelExecution() {
+    // Initialize movement structs
+    bus0Movement.active = false;
+    bus0Movement.complete = true;
+    bus1Movement.active = false;
+    bus1Movement.complete = true;
+    
+    // Create mutexes for thread-safe access
+    bus0Mutex = xSemaphoreCreateMutex();
+    bus1Mutex = xSemaphoreCreateMutex();
+    
+    // Create bus 0 task on core 0
+    xTaskCreatePinnedToCore(
+        bus0TaskFunction,
+        "Bus0Task",
+        4096,
+        this,
+        1,
+        &bus0TaskHandle,
+        0  // Core 0
+    );
+    DEBUG_PRINTLN("[INIT] Bus0Task created on Core 0");
+    
+    // Create bus 1 task on core 1 if dual bus is enabled
+    if (useDualBus) {
+        xTaskCreatePinnedToCore(
+            bus1TaskFunction,
+            "Bus1Task",
+            4096,
+            this,
+            1,
+            &bus1TaskHandle,
+            1  // Core 1
+        );
+        DEBUG_PRINTLN("[INIT] Bus1Task created on Core 1");
+    }
+    
+    DEBUG_PRINTLN("[INIT] Parallel execution initialized");
+}
+
 // Home all active displays in parallel
-void SplitFlapDisplay::homeAllChannels(float speed) {
+void SplitFlapDisplay::homeAllChannels(float speed, bool quickHome) {
     // Phase 1: Trigger homing for all modules
     int targetPositions[numModules];
     for (int i = 0; i < numModules; i++) {
@@ -690,6 +752,11 @@ void SplitFlapDisplay::homeAllChannels(float speed) {
     startMotors();
     moveTo(targetPositions, speed, false);
     delay(1000);
+    
+    // Skip phases 2 and 3 if quickHome is enabled
+    if (quickHome) {
+        return;
+    }
     
     // Phase 2: Display labels on each configured display
     String* displayStrings = new String[numDisplays];
@@ -715,4 +782,150 @@ void SplitFlapDisplay::homeAllChannels(float speed) {
         targetPositions[i] = modules[i].getCharPosition(' ');
     }
     moveTo(targetPositions, speed, true);
+}
+
+// Generic FreeRTOS task for I2C bus (handles both Wire and Wire1)
+void SplitFlapDisplay::busTaskFunction(void* parameter, uint8_t busNum) {
+    SplitFlapDisplay* display = static_cast<SplitFlapDisplay*>(parameter);
+    
+    // Select the correct mutex and movement struct based on bus number
+    SemaphoreHandle_t &busMutex = (busNum == 0) ? display->bus0Mutex : display->bus1Mutex;
+    BusMovement &busMovement = (busNum == 0) ? display->bus0Movement : display->bus1Movement;
+    
+    while (true) {
+        bool shouldMove = false;
+        
+        // Check if there's work to do
+        if (xSemaphoreTake(busMutex, 10 / portTICK_PERIOD_MS)) {
+            shouldMove = busMovement.active;
+            xSemaphoreGive(busMutex);
+        }
+        
+        if (shouldMove) {
+            // Get movement parameters
+            int targetPositions[MAX_MODULES];
+            float speed;
+            bool releaseMotors;
+            
+            if (xSemaphoreTake(busMutex, portMAX_DELAY)) {
+                memcpy(targetPositions, busMovement.targetPositions, sizeof(targetPositions));
+                speed = busMovement.speed;
+                releaseMotors = busMovement.releaseMotors;
+                busMovement.active = false;
+                xSemaphoreGive(busMutex);
+            }
+            
+            // Execute movement on this bus
+            display->moveToOnBus(busNum, targetPositions, speed, releaseMotors);
+            
+            // Mark complete
+            if (xSemaphoreTake(busMutex, portMAX_DELAY)) {
+                busMovement.complete = true;
+                xSemaphoreGive(busMutex);
+            }
+        }
+        
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
+}
+
+// Wrapper functions for FreeRTOS task creation
+void SplitFlapDisplay::bus0TaskFunction(void* parameter) {
+    busTaskFunction(parameter, 0);
+}
+
+void SplitFlapDisplay::bus1TaskFunction(void* parameter) {
+    busTaskFunction(parameter, 1);
+}
+
+// Execute movement on a specific bus
+void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float speed, bool releaseMotors) {
+    speed = constrain(speed, 2, maxVel);
+    float stepsPerSecond = (speed / 60) * stepsPerRot;
+    float timePerStep = 1000000 / stepsPerSecond;
+
+    unsigned long currentTime = micros();
+
+    int checkIntervalUs = 20 * 1000;
+    int startStopDelay = 200;
+
+    // Build list of modules on this bus that need to move
+    int activeModules[numModules];
+    int numActive = 0;
+    
+    bool resetLatches[numModules] = {};
+    unsigned long lastStepTimes[numModules] = {};
+    unsigned long lastSensorCheckTime = currentTime;
+
+    for (int i = 0; i < numModules; i++) {
+        // Only process modules on the current bus
+        if (muxBus[moduleMuxes[i]] != busNum) continue;
+        
+        targetPositions[i] = constrain(targetPositions[i], 0, stepsPerRot - 1);
+        lastStepTimes[i] = currentTime;
+        
+        if (modules[i].getPosition() != targetPositions[i]) {
+            activeModules[numActive++] = i;
+            resetLatches[i] = true;
+        }
+    }
+    
+    if (numActive == 0) return;
+    
+    // Start motors
+    for (int j = 0; j < numActive; j++) {
+        int i = activeModules[j];
+        selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+        modules[i].start();
+    }
+    delay(startStopDelay);
+
+    // Main stepping loop
+    while (numActive > 0) {
+        currentTime = micros();
+        
+        // Step motors
+        for (int j = 0; j < numActive; j++) {
+            int i = activeModules[j];
+            if ((currentTime - lastStepTimes[i]) > timePerStep) {
+                selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+                modules[i].step();
+                lastStepTimes[i] = micros();
+                
+                if (modules[i].getPosition() == targetPositions[i]) {
+                    activeModules[j] = activeModules[numActive - 1];
+                    numActive--;
+                    j--;
+                }
+            }
+        }
+
+        // Check sensors
+        if ((currentTime - lastSensorCheckTime) > checkIntervalUs) {
+            for (int j = 0; j < numActive; j++) {
+                int i = activeModules[j];
+                selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+                
+                if (modules[i].readHallEffectSensor() == true) {
+                    if (!resetLatches[i]) {
+                        modules[i].magnetDetected();
+                        resetLatches[i] = true;
+                    }
+                } else if (resetLatches[i] == true) {
+                    resetLatches[i] = false;
+                }
+            }
+            lastSensorCheckTime = currentTime;
+        }
+    }
+    
+    if (releaseMotors) {
+        delay(startStopDelay);
+        for (int i = 0; i < numModules; i++) {
+            if (muxBus[moduleMuxes[i]] == busNum && modules[i].getPosition() == targetPositions[i]) {
+                selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+                modules[i].stop();
+            }
+        }
+    }
 }

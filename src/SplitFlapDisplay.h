@@ -5,6 +5,13 @@
 
 #include <Arduino.h>
 
+// Debug logging control - set via JSON config "debugLogging"
+extern JsonSettings settings;
+
+#define DEBUG_PRINT(x) if (settings.getInt("debugLogging") != 0) Serial.print(x)
+#define DEBUG_PRINTLN(x) if (settings.getInt("debugLogging") != 0) Serial.println(x)
+#define DEBUG_PRINTF(...) if (settings.getInt("debugLogging") != 0) Serial.printf(__VA_ARGS__)
+
 #define MAX_MODULES 64 // Realistic limit: 8 muxes × 8 channels × 1 address typical
 #define MAX_RPM 15.0f
 
@@ -17,7 +24,7 @@ class SplitFlapDisplay {
     void init();
     
     // Multi-mux display methods (preferred)
-    void homeAllChannels(float speed = MAX_RPM);  // Home all active channels in parallel
+    void homeAllChannels(float speed = MAX_RPM, bool quickHome = false);  // Home all active channels in parallel
     void writeDisplays(
         String displayTexts[8],
         float speed = MAX_RPM,
@@ -70,6 +77,7 @@ class SplitFlapDisplay {
     void selectMuxChannel(uint8_t muxAddr, uint8_t channel);
     void configureI2cModules();
     void scanI2cModules();
+    void initParallelExecution();
 
     int numModules;
     int moduleCountPerChannel[8];  // Per-channel module counts
@@ -90,6 +98,10 @@ class SplitFlapDisplay {
     
     uint8_t muxAddrs[8];  // TCA9548A I2C multiplexer addresses (up to 8)
     uint8_t numMuxes;     // Number of configured multiplexers
+    uint8_t muxBus[8];    // Which I2C bus each mux is on (0=Wire, 1=Wire1)
+    bool useDualBus;      // Whether to use dual I2C bus configuration
+    int SDA1Pin;          // Secondary bus SDA pin
+    int SCL1Pin;          // Secondary bus SCL pin
     
     // Display tracking (ordered by mux address, then channel)
     int numDisplays;           // Number of configured displays
@@ -98,4 +110,25 @@ class SplitFlapDisplay {
     uint8_t displayModuleCount[64]; // Number of modules per display
 
     SplitFlapMqtt *mqtt = nullptr;
+    
+    // Threading for parallel dual-bus execution
+    struct BusMovement {
+        int targetPositions[MAX_MODULES];
+        float speed;
+        bool releaseMotors;
+        bool active;
+        bool complete;
+    };
+    
+    BusMovement bus0Movement;
+    BusMovement bus1Movement;
+    TaskHandle_t bus0TaskHandle;
+    TaskHandle_t bus1TaskHandle;
+    SemaphoreHandle_t bus0Mutex;
+    SemaphoreHandle_t bus1Mutex;
+    
+    static void busTaskFunction(void* parameter, uint8_t busNum);
+    static void bus0TaskFunction(void* parameter);
+    static void bus1TaskFunction(void* parameter);
+    void moveToOnBus(uint8_t busNum, int targetPositions[], float speed, bool releaseMotors);
 };

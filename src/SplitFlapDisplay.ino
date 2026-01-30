@@ -31,18 +31,28 @@ JsonSettings settings = JsonSettings("config", {
     {"mqtt_pass", JsonSetting("")},
     // Hardware Settings
     // I2C addresses of multiplexers (comma-separated) (112 - 120)
-    {"muxAddrs", JsonSetting("112")},  
+    {"wire0MuxAddrs", JsonSetting("112")},
     // Channels and module I2C addresses per mux (semicolon-separated channels, comma-separated addresses, NO SPACES)
-    {"chModAddrs112", JsonSetting("32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;;")},
-    // {"chModAddrs113", JsonSetting("32;32,33,34,35,36;;;;;;;")}, 
-    // {"chModAddrs112", JsonSetting("32;;;;;;;;")},
+    {"wire0ChModAddrs112", JsonSetting(";;32,33,34,35,36;32,33;;;;;")},
+    // I2C addresses of multiplexers (comma-separated) (112 - 120)
+    {"wire1MuxAddrs", JsonSetting("112")},
+    // Channels and module I2C addresses per mux (semicolon-separated channels, comma-separated addresses, NO SPACES)
+    {"wire1ChModAddrs112", JsonSetting(";;32,33,34,35,36;32,33,34,35,36;;;;;")},
     {"magnetPosition", JsonSetting(730)},
     {"displayOffset", JsonSetting(0)},
-    {"sdaPin", JsonSetting(SDA_PIN)},
-    {"sclPin", JsonSetting(SCL_PIN)},
+    {"useDualBus", JsonSetting(true)},
+    // Primary I2C bus (Wire)
+    {"wire0SdaPin", JsonSetting(SDA_PIN)},
+    {"wire0SclPin", JsonSetting(SCL_PIN)},
+    // Secondary I2C bus (Wire1) - only used if useDualBus=true
+    {"wire1Sda1Pin", JsonSetting(SDA1_PIN)},
+    {"wire1Scl1Pin", JsonSetting(SCL1_PIN)},
     {"stepsPerRot", JsonSetting(2048)},
     {"maxVel", JsonSetting(15.0f)},
     {"charset", JsonSetting(37)},
+    // Operational Settings
+    {"debugLogging", JsonSetting(false)},
+    {"quickHome", JsonSetting(true)},
     // Operational States
     {"mode", JsonSetting(0)}
 });
@@ -73,7 +83,7 @@ void setup() {
         webServer.setDisplay(&display);  // Pass display reference to web server
         webServer.startWebServer();
 
-        display.homeAllChannels();
+        display.homeAllChannels(MAX_RPM, settings.getInt("quickHome") != 0);
 
         if (display.getNumModules() == 8) {
             display.writeString("Wifi Err");
@@ -92,7 +102,7 @@ void setup() {
         splitflapMqtt.setDisplay(&display);
         display.setMqtt(&splitflapMqtt);
 
-        display.homeAllChannels();
+        display.homeAllChannels(MAX_RPM, settings.getInt("quickHome") != 0);
     }
 }
 

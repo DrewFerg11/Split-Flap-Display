@@ -16,15 +16,15 @@ bool hasErrored = false;
 
 // Default Constructor
 SplitFlapModule::SplitFlapModule()
-    : address(0), position(0), stepNumber(0), stepsPerRot(0), chars(StandardChars), numChars(37), charSetSize(37) {
+    : address(0), position(0), stepNumber(0), stepsPerRot(0), chars(StandardChars), numChars(37), charSetSize(37), wire(&Wire) {
     magnetPosition = 710;
 }
 
 // Constructor implementation
 SplitFlapModule::SplitFlapModule(
-    uint8_t I2Caddress, int stepsPerFullRotation, int stepOffset, int magnetPos, int charsetSize
+    uint8_t I2Caddress, int stepsPerFullRotation, int stepOffset, int magnetPos, int charsetSize, TwoWire &wireInstance
 )
-    : address(I2Caddress), position(0), stepNumber(0), stepsPerRot(stepsPerFullRotation), charSetSize(charsetSize) {
+    : address(I2Caddress), position(0), stepNumber(0), stepsPerRot(stepsPerFullRotation), charSetSize(charsetSize), wire(&wireInstance) {
     magnetPosition = magnetPos + stepOffset;
 
     chars = (charsetSize == 48) ? ExtendedChars : StandardChars;
@@ -32,11 +32,11 @@ SplitFlapModule::SplitFlapModule(
 }
 
 void SplitFlapModule::writeIO(uint16_t data) {
-    Wire.beginTransmission(address);
-    Wire.write(data & 0xFF);        // Send lower byte
-    Wire.write((data >> 8) & 0xFF); // Send upper byte
+    wire->beginTransmission(address);
+    wire->write(data & 0xFF);        // Send lower byte
+    wire->write((data >> 8) & 0xFF); // Send upper byte
 
-    byte error = Wire.endTransmission();
+    byte error = wire->endTransmission();
 
     if (error > 0 && ! hasErrored) {
         hasErrored = true; // Set the error flag
@@ -133,14 +133,14 @@ bool SplitFlapModule::readHallEffectSensor() {
     }
 
     uint8_t requestBytes = 2;
-    Wire.requestFrom(address, requestBytes);
+    wire->requestFrom(address, requestBytes);
     // Make sure the data is available
-    if (Wire.available() == 2) {
+    if (wire->available() == 2) {
         uint16_t inputState = 0;
 
         // Read the two bytes and combine them into a 16-bit value
-        inputState = Wire.read();             // Read the lower byte
-        inputState |= (Wire.read() << 8);     // Read the upper byte and shift it left
+        inputState = wire->read();             // Read the lower byte
+        inputState |= (wire->read() << 8);     // Read the upper byte and shift it left
 
         return (inputState & (1 << 15)) != 0; // If bit is 15, return HIGH, else LOW
     }
