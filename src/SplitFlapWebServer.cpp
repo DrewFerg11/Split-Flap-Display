@@ -434,6 +434,68 @@ void SplitFlapWebServer::startWebServer() {
         }
     ));
 
+    // GET /api/test-mode - Return current test mode status
+    server.on("/api/test-mode", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        JsonDocument response;
+
+        response["mode"] = getMode();
+        response["delayMs"] = testModeDelay;
+        response["skip"] = testModeSkip;
+        response["charIndex"] = testModeCharIndex;
+        response["currentChar"] = String(testModeCurrentChar);
+        response["cycleCount"] = testModeCycleCount;
+        response["lastChange"] = lastTestModeTime;
+
+        request->send(200, "application/json", response.as<String>());
+    });
+
+    // POST /api/test-mode - Start all display test mode (Mode 8)
+    server.addHandler(new AsyncCallbackJsonWebHandler(
+        "/api/test-mode",
+        [this](AsyncWebServerRequest *request, JsonVariant &json) {
+            JsonDocument response;
+            
+            if (!json.is<JsonObject>()) {
+                response["error"] = "Invalid JSON format";
+                request->send(400, "application/json", response.as<String>());
+                return;
+            }
+            
+            JsonObject obj = json.as<JsonObject>();
+            
+            // Parse delay (in seconds, convert to ms), default 5 seconds
+            if (obj["delay"].is<int>()) {
+                testModeDelay = obj["delay"].as<int>() * 1000;
+            } else {
+                testModeDelay = 5000;
+            }
+            
+            // Parse skip count, default 1
+            if (obj["skip"].is<int>()) {
+                testModeSkip = constrain(obj["skip"].as<int>(), 1, 36);
+            } else {
+                testModeSkip = 1;
+            }
+            
+            bool alreadyInTestMode = (getMode() == 8);
+
+            // Set mode to 8 (all display test mode)
+            setMode(8);
+
+            // Reset only when entering test mode for the first time
+            if (!alreadyInTestMode) {
+                testModeCharIndex = 0;
+                lastTestModeTime = 0;
+                testModeCurrentChar = ' ';
+                testModeCycleCount = 0;
+            }
+            
+            response["success"] = true;
+            response["message"] = "Test mode started";
+            request->send(200, "application/json", response.as<String>());
+        }
+    ));
+
     server.addHandler(new AsyncCallbackJsonWebHandler(
         "/settings",
         [this](AsyncWebServerRequest *request, JsonVariant &json) {

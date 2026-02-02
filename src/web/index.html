@@ -34,11 +34,12 @@
                 x-model.number="settings.mode"
             >
                 <!-- <option value="2">Date</option>
-                <option value="3">Time</option> -->
-                <!--        <option value="4">Count</option>-->
-                <!-- <option value="6">Custom Text</option>
+                <option value="3">Time</option>
+                <option value="4">Count</option>
+                <option value="6">Custom Text</option>
                 <option value="5">Random</option> -->
                 <option value="7">Per-Display Text</option>
+                <option value="8">All Display Test</option>
             </select>
 
             <template x-if="settings.mode == 6">
@@ -225,6 +226,73 @@
                                     />
                                 </div>
                             </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="settings.mode == 8">
+                <div class="w-full">
+                    <p class="text-sm text-gray-400 mb-4">
+                        Cycles through all characters (space, A-Z, 0-9) on all
+                        displays simultaneously.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label
+                                for="testModeDelay"
+                                class="block text-sm mb-1"
+                            >
+                                Delay (seconds)
+                            </label>
+                            <input
+                                type="number"
+                                id="testModeDelay"
+                                x-model.number="testModeDelay"
+                                min="1"
+                                max="60"
+                                placeholder="5"
+                                class="w-full p-2 text-sm border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label
+                                for="testModeSkip"
+                                class="block text-sm mb-1"
+                            >
+                                Skip Characters
+                            </label>
+                            <input
+                                type="number"
+                                id="testModeSkip"
+                                x-model.number="testModeSkip"
+                                min="1"
+                                max="36"
+                                placeholder="1"
+                                class="w-full p-2 text-sm border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                            />
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">
+                        Skip=1 shows every character. Skip=2 shows every other
+                        character, etc.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="p-3 rounded-md bg-neutral-700 text-center">
+                            <div class="text-xs text-gray-400">
+                                Current Character
+                            </div>
+                            <div
+                                class="text-3xl font-bold"
+                                x-text="testModeCurrentChar || ' '"
+                            ></div>
+                        </div>
+                        <div class="p-3 rounded-md bg-neutral-700 text-center">
+                            <div class="text-xs text-gray-400">Cycle Count</div>
+                            <div
+                                class="text-3xl font-bold"
+                                x-text="testModeCycleCount"
+                            ></div>
                         </div>
                     </div>
                 </div>

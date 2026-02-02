@@ -120,6 +120,7 @@ void loop() {
         // case 4: break;
         // case 5: randomTest(); break;
         case 7: perDisplayMode(); break;
+        case 8: allDisplayTestMode(); break;
         default: break;
     }
 
@@ -203,6 +204,36 @@ void perDisplayMode() {
         display.writeDisplays(displayTexts, MAX_RPM, webServer.getDisplayCentering());
         delete[] displayTexts;
         webServer.clearDisplayTextsUpdated();
+    }
+}
+
+// Mode 8: All Display Test - cycles through all characters on all modules
+void allDisplayTestMode() {
+    // Character set in drum order: space, A-Z, 0-9
+    static const char testChars[37] = {
+        ' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+        'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+    };
+    const int numChars = 37;
+    
+    if (millis() - webServer.getLastTestModeTime() > webServer.getTestModeDelay()) {
+        int charIndex = webServer.getTestModeCharIndex();
+        char currentChar = testChars[charIndex];
+        
+        Serial.printf("[TEST MODE] Displaying character: '%c' (index %d)\n", currentChar, charIndex);
+        display.writeChar(currentChar, MAX_RPM);
+        webServer.setTestModeCurrentChar(currentChar);
+        
+        // Advance to next character with skip
+        int skip = webServer.getTestModeSkip();
+        int nextIndex = (charIndex + skip) % numChars;
+        if (charIndex + skip >= numChars) {
+            webServer.setTestModeCycleCount(webServer.getTestModeCycleCount() + 1);
+        }
+        charIndex = nextIndex;
+        webServer.setTestModeCharIndex(charIndex);
+        webServer.setLastTestModeTime(millis());
     }
 }
 

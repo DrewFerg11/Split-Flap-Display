@@ -77,6 +77,20 @@ class SplitFlapWebServer {
     void clearDisplayTextsUpdated() { displayTextsUpdated = false; }
     bool getDisplayCentering() const { return displayCentering; }
 
+    // Mode 8, All Display Test
+    unsigned long getTestModeDelay() const { return testModeDelay; }
+    void setTestModeDelay(unsigned long delay) { testModeDelay = delay; }
+    int getTestModeSkip() const { return testModeSkip; }
+    void setTestModeSkip(int skip) { testModeSkip = skip; }
+    unsigned long getLastTestModeTime() const { return lastTestModeTime; }
+    void setLastTestModeTime(unsigned long time) { lastTestModeTime = time; }
+    int getTestModeCharIndex() const { return testModeCharIndex; }
+    void setTestModeCharIndex(int index) { testModeCharIndex = index; }
+    char getTestModeCurrentChar() const { return testModeCurrentChar; }
+    void setTestModeCurrentChar(char input) { testModeCurrentChar = input; }
+    unsigned long getTestModeCycleCount() const { return testModeCycleCount; }
+    void setTestModeCycleCount(unsigned long count) { testModeCycleCount = count; }
+
     int getCentering() { return centering; }
 
   private:
@@ -109,6 +123,14 @@ class SplitFlapWebServer {
     bool displayTextsUpdated; // Flag to indicate new display texts
     bool displayCentering;    // Whether to center text in per-display mode
     
+    // Mode 8: All Display Test
+    unsigned long testModeDelay = 5000;   // Delay between characters (ms)
+    int testModeSkip = 1;                 // Characters to skip each cycle
+    unsigned long lastTestModeTime = 0;   // Last character change time
+    int testModeCharIndex = 0;            // Current character index
+    char testModeCurrentChar = ' ';       // Current character being displayed
+    unsigned long testModeCycleCount = 0; // Number of full character cycles
+
     int currentMode;         // Cached current mode (avoids constant Preferences reads)
 
     bool rebootRequired;

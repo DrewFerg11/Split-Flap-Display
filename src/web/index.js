@@ -37,6 +37,13 @@ document.addEventListener("alpine:init", () => {
         centerDisplayText: false, // Center text for per-display mode
         displayTexts: {}, // Will be dynamically populated based on displayConfig
 
+        // Mode 8: All Display Test
+        testModeDelay: 5, // seconds between characters
+        testModeSkip: 1, // characters to skip each cycle
+        testModeCurrentChar: " ",
+        testModeCycleCount: 0,
+        testModePollIntervalId: null,
+
         get processing() {
             return (
                 this.saving ||
@@ -255,6 +262,7 @@ document.addEventListener("alpine:init", () => {
             }
             if (type === "Control") {
                 this.loadDisplayConfig();
+                this.startTestModePolling();
             }
         },
 
@@ -263,8 +271,12 @@ document.addEventListener("alpine:init", () => {
                 .then((res) => res.json())
                 .then((data) => {
                     Object.assign(this.settings, data);
-                    // Force mode 7 since it's the only available mode
-                    this.settings.mode = 7;
+                    if (typeof data.mode === "number") {
+                        this.settings.mode = data.mode;
+                    }
+                    if (this.settings.mode === 8) {
+                        this.fetchTestModeStatus();
+                    }
                 })
                 .catch(() =>
                     this.showDialog("Failed to load settings", "error", true),
@@ -313,6 +325,31 @@ document.addEventListener("alpine:init", () => {
                 .finally(() => (this.loading.timezones = false));
         },
 
+        startTestModePolling() {
+            if (this.testModePollIntervalId) {
+                clearInterval(this.testModePollIntervalId);
+            }
+            this.testModePollIntervalId = setInterval(() => {
+                if (this.settings.mode === 8) {
+                    this.fetchTestModeStatus();
+                }
+            }, 1000);
+        },
+
+        fetchTestModeStatus() {
+            fetch("/api/test-mode")
+                .then((res) => res.json())
+                .then((data) => {
+                    if (typeof data.currentChar === "string") {
+                        this.testModeCurrentChar = data.currentChar;
+                    }
+                    if (typeof data.cycleCount === "number") {
+                        this.testModeCycleCount = data.cycleCount;
+                    }
+                })
+                .catch(() => {});
+        },
+
         updateDisplay() {
             if (this.settings.mode === 6) {
                 if (this.delay < 1) {
@@ -357,6 +394,34 @@ document.addEventListener("alpine:init", () => {
                         } else {
                             this.showDialog(
                                 res.error || "Failed to update displays",
+                                "error",
+                            );
+                        }
+                    })
+                    .catch((err) =>
+                        this.showDialog("Error: " + err.message, "error"),
+                    );
+                return;
+            }
+
+            if (this.settings.mode === 8) {
+                // All Display Test mode
+                fetch("/api/test-mode", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        delay: this.testModeDelay,
+                        skip: this.testModeSkip,
+                    }),
+                })
+                    .then((res) => res.json())
+                    .then((res) => {
+                        if (res.success) {
+                            this.showDialog("Test mode started!", "success");
+                            this.fetchTestModeStatus();
+                        } else {
+                            this.showDialog(
+                                res.error || "Failed to start test mode",
                                 "error",
                             );
                         }
