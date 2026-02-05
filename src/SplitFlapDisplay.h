@@ -12,6 +12,10 @@ extern JsonSettings settings;
 #define DEBUG_PRINTLN(x) if (settings.getInt("debugLogging") != 0) Serial.println(x)
 #define DEBUG_PRINTF(...) if (settings.getInt("debugLogging") != 0) Serial.printf(__VA_ARGS__)
 
+#define PERF_PRINT(x) if (settings.getInt("perfLogging") != 0) Serial.print(x)
+#define PERF_PRINTLN(x) if (settings.getInt("perfLogging") != 0) Serial.println(x)
+#define PERF_PRINTF(...) if (settings.getInt("perfLogging") != 0) Serial.printf(__VA_ARGS__)
+
 #define MAX_MODULES 64 // Realistic limit: 8 muxes × 8 channels × 1 address typical
 #define MAX_RPM 15.0f
 

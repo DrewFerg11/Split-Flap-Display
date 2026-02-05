@@ -33,7 +33,7 @@ JsonSettings settings = JsonSettings("config", {
     // I2C addresses of multiplexers (comma-separated) (112 - 120)
     {"wire0MuxAddrs", JsonSetting("112")},
     // Channels and module I2C addresses per mux (semicolon-separated channels, comma-separated addresses, NO SPACES)
-    {"wire0ChModAddrs112", JsonSetting(";;32,33,34,35,36;32,33;;;;;")},
+    {"wire0ChModAddrs112", JsonSetting(";;32,33,34,35,36;32,33,34,35,36;;;;;")},
     // I2C addresses of multiplexers (comma-separated) (112 - 120)
     {"wire1MuxAddrs", JsonSetting("112")},
     // Channels and module I2C addresses per mux (semicolon-separated channels, comma-separated addresses, NO SPACES)
@@ -52,6 +52,8 @@ JsonSettings settings = JsonSettings("config", {
     {"charset", JsonSetting(37)},
     // Operational Settings
     {"debugLogging", JsonSetting(false)},
+    {"perfLogging", JsonSetting(false)},        // Enable I2C bus performance metrics logging
+    {"i2cTransactionTime", JsonSetting(65)},   // Estimated microseconds per I2C transaction (for util % calc)
     {"quickHome", JsonSetting(true)},
     // Operational States
     {"mode", JsonSetting(0)}

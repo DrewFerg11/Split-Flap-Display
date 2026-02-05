@@ -844,7 +844,15 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
     float stepsPerSecond = (speed / 60) * stepsPerRot;
     float timePerStep = 1000000 / stepsPerSecond;
 
-    unsigned long currentTime = micros();
+    unsigned long moveStartTime = micros();
+    unsigned long currentTime = moveStartTime;
+    
+    // Performance metrics (only tracked if perfLogging enabled)
+    bool perfEnabled = settings.getInt("perfLogging") != 0;
+    int perfStepCount = 0;
+    int perfMuxSelects = 0;
+    int perfSensorReads = 0;
+    int perfTotalModulesOnBus = 0;
 
     int checkIntervalUs = 20 * 1000;
     int startStopDelay = 200;
@@ -861,6 +869,8 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
         // Only process modules on the current bus
         if (muxBus[moduleMuxes[i]] != busNum) continue;
         
+        if (perfEnabled) perfTotalModulesOnBus++;
+        
         targetPositions[i] = constrain(targetPositions[i], 0, stepsPerRot - 1);
         lastStepTimes[i] = currentTime;
         
@@ -870,12 +880,15 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
         }
     }
     
+    int perfActiveModules = numActive;  // Save initial count before loop decrements it
+    
     if (numActive == 0) return;
     
     // Start motors
     for (int j = 0; j < numActive; j++) {
         int i = activeModules[j];
         selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+        if (perfEnabled) perfMuxSelects++;
         modules[i].start();
     }
     delay(startStopDelay);
@@ -889,7 +902,9 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
             int i = activeModules[j];
             if ((currentTime - lastStepTimes[i]) > timePerStep) {
                 selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+                if (perfEnabled) perfMuxSelects++;
                 modules[i].step();
+                if (perfEnabled) perfStepCount++;
                 lastStepTimes[i] = micros();
                 
                 if (modules[i].getPosition() == targetPositions[i]) {
@@ -905,6 +920,8 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
             for (int j = 0; j < numActive; j++) {
                 int i = activeModules[j];
                 selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+                if (perfEnabled) perfMuxSelects++;
+                if (perfEnabled) perfSensorReads++;
                 
                 if (modules[i].readHallEffectSensor() == true) {
                     if (!resetLatches[i]) {
@@ -924,8 +941,35 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
         for (int i = 0; i < numModules; i++) {
             if (muxBus[moduleMuxes[i]] == busNum && modules[i].getPosition() == targetPositions[i]) {
                 selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+                if (perfEnabled) perfMuxSelects++;
                 modules[i].stop();
             }
         }
+    }
+    
+    // Performance logging (skip all calculations if disabled)
+    if (perfEnabled) {
+        unsigned long moveEndTime = micros();
+        unsigned long wallTimeUs = moveEndTime - moveStartTime;
+        int totalI2cOps = perfStepCount + perfMuxSelects + perfSensorReads;
+        int i2cTransactionTimeUs = settings.getInt("i2cTransactionTime");
+        unsigned long estimatedI2cTimeUs = totalI2cOps * i2cTransactionTimeUs;
+        float utilizationPct = (wallTimeUs > 0) ? (estimatedI2cTimeUs * 100.0f / wallTimeUs) : 0.0f;
+        
+        // Calculate average steps per module (for parallel execution)
+        int avgStepsPerModule = (perfActiveModules > 0) ? (perfStepCount / perfActiveModules) : 0;
+        
+        // Calculate achieved speed per module (accounting for parallel execution)
+        float avgStepsPerSecPerModule = (wallTimeUs > 0 && perfActiveModules > 0) ? 
+            (perfStepCount * 1000000.0f / (wallTimeUs * perfActiveModules)) : 0.0f;
+        float avgRPMPerModule = (avgStepsPerSecPerModule / stepsPerRot) * 60.0f;
+        float speedPct = (speed > 0) ? (avgRPMPerModule / speed * 100.0f) : 0.0f;
+        
+        // Calculate I2C throughput
+        int opsPerSec = (wallTimeUs > 0) ? (totalI2cOps * 1000000 / wallTimeUs) : 0;
+        
+        Serial.printf("[PERF Bus%d] mods=%d/%d steps=%d(~%d/mod) i2c=%d dur=%lums rpm=%.1f(%.0f%%) ops=%d/s util=%.1f%%\n",
+            busNum, perfActiveModules, perfTotalModulesOnBus, perfStepCount, avgStepsPerModule, totalI2cOps, 
+            wallTimeUs / 1000, avgRPMPerModule, speedPct, opsPerSec, utilizationPct);
     }
 }
