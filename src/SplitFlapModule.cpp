@@ -52,6 +52,34 @@ void SplitFlapModule::writeIO(uint16_t data) {
     }
 }
 
+bool SplitFlapModule::writeIOWithRetry(uint16_t data, int retryCount) {
+    int attempts = 0;
+    int maxAttempts = (retryCount > 0) ? (retryCount + 1) : 1;
+    
+    while (attempts < maxAttempts) {
+        wire->beginTransmission(address);
+        wire->write(data & 0xFF);
+        wire->write((data >> 8) & 0xFF);
+        byte error = wire->endTransmission();
+        
+        if (error == 0) {
+            return true;  // Success
+        }
+        
+        attempts++;
+        if (attempts < maxAttempts) {
+            delayMicroseconds(50);  // Brief delay before retry
+        }
+    }
+    
+    // All attempts failed
+    if (!hasErrored) {
+        hasErrored = true;
+        Serial.printf("[ACC] Module 0x%02X: I2C write failed after %d attempts\n", address, maxAttempts);
+    }
+    return false;
+}
+
 // Init Module, Setup IO Board
 void SplitFlapModule::init() {
     float stepSize = (float) stepsPerRot / (float) numChars;
@@ -102,25 +130,40 @@ void SplitFlapModule::start() {
 }
 
 void SplitFlapModule::step(bool updatePosition) {
+    // Basic step without accuracy features - delegate to full method
+    step(0, 0, updatePosition);
+}
+
+void SplitFlapModule::step(int settleUs, int retryCount, bool updatePosition) {
     uint16_t stepState;
     switch (stepNumber) {
         case 0:
             stepState = 0b1111111111100111;
-            writeIO(stepState);
             break;
         case 1:
             stepState = 0b1111111111110011;
-            writeIO(stepState);
             break;
         case 2:
             stepState = 0b1111111111111001;
-            writeIO(stepState);
             break;
         case 3:
             stepState = 0b1111111111101101;
-            writeIO(stepState);
             break;
     }
+    
+    // Use retry logic if enabled, otherwise basic write
+    if (retryCount > 0) {
+        lastStepSuccess = writeIOWithRetry(stepState, retryCount);
+    } else {
+        writeIO(stepState);
+        lastStepSuccess = true;  // Basic write doesn't track success
+    }
+    
+    // Apply settle delay if configured (allows motor coils to stabilize)
+    if (settleUs > 0) {
+        delayMicroseconds(settleUs);
+    }
+    
     if (updatePosition) {
         position = (position + 1) % stepsPerRot;
         stepNumber = (stepNumber + 1) % 4;
@@ -145,4 +188,16 @@ bool SplitFlapModule::readHallEffectSensor() {
         return (inputState & (1 << 15)) != 0; // If bit is 15, return HIGH, else LOW
     }
     return false;
+}
+
+// Priority 2: Position Error Statistics - Record correction for diagnostics
+void SplitFlapModule::recordPositionError(int error) {
+    accuracyStats.totalCorrections++;
+    accuracyStats.maxError = max(accuracyStats.maxError, abs(error));
+    
+    // Update rolling average (exponential smoothing, alpha = 0.1)
+    float alpha = 0.1f;
+    accuracyStats.avgError = alpha * abs(error) + (1.0f - alpha) * accuracyStats.avgError;
+    
+    accuracyStats.lastCorrectionTime = millis();
 }

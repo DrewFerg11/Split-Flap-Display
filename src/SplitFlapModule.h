@@ -12,7 +12,8 @@ class SplitFlapModule {
 
     void init();
 
-    void step(bool updatePosition = true);                   // step motor
+    void step(bool updatePosition = true);                   // step motor (basic)
+    void step(int settleUs, int retryCount, bool updatePosition = true);  // step motor with accuracy features
     void stop();                                             // write all motor input pins to low
     void start();                                            // re-energize coils to last position, not stepping motor
 
@@ -29,6 +30,34 @@ class SplitFlapModule {
 
     bool getHasErrored() const { return hasErrored; }
 
+    // Accuracy tracking (Priority 1: Missed Magnet Detection)
+    void resetMagnetCrossings(int expected) {
+        expectedMagnetCrossings = expected;
+        actualMagnetCrossings = 0;
+    }
+    void incrementMagnetCrossings() { actualMagnetCrossings++; }
+    bool hasMissedMagnetCrossings() const {
+        return (expectedMagnetCrossings > 0) && (actualMagnetCrossings < expectedMagnetCrossings);
+    }
+    int getExpectedCrossings() const { return expectedMagnetCrossings; }
+    int getActualCrossings() const { return actualMagnetCrossings; }
+
+    // Accuracy tracking (Priority 2: Position Error Statistics)
+    struct AccuracyStats {
+        int totalCorrections = 0;
+        int maxError = 0;
+        float avgError = 0.0f;
+        unsigned long lastCorrectionTime = 0;
+    };
+    void recordPositionError(int error);
+    const AccuracyStats& getAccuracyStats() const { return accuracyStats; }
+    void resetAccuracyStats() {
+        accuracyStats.totalCorrections = 0;
+        accuracyStats.maxError = 0;
+        accuracyStats.avgError = 0.0f;
+        accuracyStats.lastCorrectionTime = 0;
+    }
+
   private:
     uint8_t address;                // i2c address of module
     int position;                   // character drum position
@@ -37,7 +66,9 @@ class SplitFlapModule {
     bool hasErrored = false;        // flag to indicate if an error has occurred
     TwoWire *wire;                  // pointer to I2C bus instance
 
-    void writeIO(uint16_t data);    // write to motor in pins
+    void writeIO(uint16_t data);                    // write to motor in pins (basic)
+    bool writeIOWithRetry(uint16_t data, int retryCount);  // write with retry, returns success
+    bool lastStepSuccess = true;    // track if last step I2C write succeeded
 
     int magnetPosition;             // altered by offsets
     static const int motorPins[];   // Array of motor pins
@@ -45,6 +76,11 @@ class SplitFlapModule {
 
     const char *chars;              // pointer to active character set
     int charPositions[48];          // support up to 48 characters
+
+    // Accuracy tracking variables
+    int expectedMagnetCrossings = 0;
+    int actualMagnetCrossings = 0;
+    AccuracyStats accuracyStats;
     int numChars;                   // current number of characters
     int charSetSize;
 

@@ -51,10 +51,18 @@ JsonSettings settings = JsonSettings("config", {
     {"maxVel", JsonSetting(15.0f)},
     {"charset", JsonSetting(37)},
     // Operational Settings
-    {"debugLogging", JsonSetting(false)},
-    {"perfLogging", JsonSetting(false)},        // Enable I2C bus performance metrics logging
-    {"i2cTransactionTime", JsonSetting(65)},   // Estimated microseconds per I2C transaction (for util % calc)
-    {"quickHome", JsonSetting(true)},
+    {"debugLogging", JsonSetting(true)},         // Enable general debug output (init, config, commands)
+    {"perfLogging", JsonSetting(false)},         // Enable I2C bus performance metrics logging
+    {"i2cTransactionTime", JsonSetting(65)},     // Estimated microseconds per I2C transaction (for util % calc)
+    {"quickHome", JsonSetting(true)},            // Skip label/blank phases during home (faster)
+    // Accuracy Settings
+    {"accuracyLogging", JsonSetting(false)},     // Enable detailed accuracy/calibration debug output
+    {"stepSettleUs", JsonSetting(75)},           // Microseconds to wait after each step for motor settling (0=disabled)
+    {"sensorDebounceCount", JsonSetting(1)},     // Consecutive sensor reads required before triggering (1=no debounce)
+    {"sensorDebugMs", JsonSetting(0)},           // Log hall sensor transitions for N ms after first move (0=disabled)
+    {"retryFailedSteps", JsonSetting(3)},        // I2C retry attempts on step failure (0=disabled)
+    {"missedMagnetRecovery", JsonSetting(true)}, // Auto-home modules that miss magnet crossings (false=disabled)
+    {"errorStatsTracking", JsonSetting(true)},   // Track position error statistics per module (false=disabled)
     // Operational States
     {"mode", JsonSetting(0)}
 });

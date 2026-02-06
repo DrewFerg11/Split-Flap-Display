@@ -16,6 +16,10 @@ extern JsonSettings settings;
 #define PERF_PRINTLN(x) if (settings.getInt("perfLogging") != 0) Serial.println(x)
 #define PERF_PRINTF(...) if (settings.getInt("perfLogging") != 0) Serial.printf(__VA_ARGS__)
 
+#define ACC_PRINT(x) if (settings.getInt("accuracyLogging") != 0) Serial.print(x)
+#define ACC_PRINTLN(x) if (settings.getInt("accuracyLogging") != 0) Serial.println(x)
+#define ACC_PRINTF(...) if (settings.getInt("accuracyLogging") != 0) Serial.printf(__VA_ARGS__)
+
 #define MAX_MODULES 64 // Realistic limit: 8 muxes × 8 channels × 1 address typical
 #define MAX_RPM 15.0f
 
@@ -86,7 +90,7 @@ class SplitFlapDisplay {
     int numModules;
     int moduleCountPerChannel[8];  // Per-channel module counts
     SplitFlapModule modules[MAX_MODULES];
-    int moduleOffsets[MAX_MODULES];
+
     uint8_t moduleMuxes[MAX_MODULES];     // Stores which mux index (0-7) each individual module is connected to
     uint8_t moduleChannels[MAX_MODULES];  // Stores which channel (0-7) each individual module is on
     uint8_t moduleAddresses[MAX_MODULES]; // Stores which I2C address (0-7) of each individual module
