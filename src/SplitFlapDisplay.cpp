@@ -870,6 +870,7 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
     int stepSettleUs = settings.getInt("stepSettleUs");
     int sensorDebounceCount = settings.getInt("sensorDebounceCount");
     int sensorDebugMs = settings.getInt("sensorDebugMs");
+    int sensorCheckSteps = settings.getInt("sensorCheckSteps");
     int retryFailedSteps = settings.getInt("retryFailedSteps");
     bool missedMagnetRecovery = settings.getInt("missedMagnetRecovery") != 0;
     bool errorStatsTracking = settings.getInt("errorStatsTracking") != 0;
@@ -884,6 +885,7 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
     int accMagnetCorrections = 0;
 
     int checkIntervalUs = 20 * 1000;
+    bool useStepBasedSensorChecks = sensorCheckSteps > 0;
     int startStopDelay = 200;
 
     // Build list of modules on this bus that need to move
@@ -893,6 +895,7 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
     bool resetLatches[numModules] = {};
     unsigned long lastStepTimes[numModules] = {};
     unsigned long lastSensorCheckTime = currentTime;
+    int stepsSinceSensorCheck[numModules] = {};
     
     // Sensor debounce tracking (per-module consecutive read counts)
     int sensorDebounceHigh[numModules] = {};  // Consecutive HIGH reads
@@ -912,6 +915,7 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
         if (modules[i].getPosition() != targetPositions[i]) {
             activeModules[numActive++] = i;
             resetLatches[i] = true;
+            stepsSinceSensorCheck[i] = 0;
             
             // Priority 1: Calculate expected magnet crossings for this movement
             if (missedMagnetRecovery) {
@@ -936,6 +940,98 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
     }
     delay(startStopDelay);
 
+    auto processSensorCheck = [&](int i, bool ensureMuxSelected) {
+        if (ensureMuxSelected) {
+            selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
+            if (perfEnabled) perfMuxSelects++;
+        }
+        if (perfEnabled) perfSensorReads++;
+
+        bool sensorHigh = modules[i].readHallEffectSensor();
+
+        bool sensorDebugActive = (sensorDebugMs > 0) &&
+            (millis() - sensorDebugStartMs < (unsigned long)sensorDebugMs);
+        if (sensorDebugActive) {
+            if (!lastSensorStateInit[i]) {
+                lastSensorState[i] = sensorHigh;
+                lastSensorStateInit[i] = true;
+            } else if (sensorHigh != lastSensorState[i]) {
+                Serial.printf("[SENSOR Bus%d] Mod%d: %s at pos=%d\n",
+                    busNum, i, sensorHigh ? "HIGH" : "LOW", modules[i].getPosition());
+                lastSensorState[i] = sensorHigh;
+            }
+        }
+
+        // Debounce logic: require consecutive consistent reads
+        if (sensorDebounceCount > 1) {
+            if (sensorHigh) {
+                sensorDebounceHigh[i]++;
+                sensorDebounceLow[i] = 0;
+            } else {
+                sensorDebounceLow[i]++;
+                sensorDebounceHigh[i] = 0;
+            }
+
+            // Only trigger on debounced transitions
+            bool debouncedHigh = (sensorDebounceHigh[i] >= sensorDebounceCount);
+            bool debouncedLow = (sensorDebounceLow[i] >= sensorDebounceCount);
+
+            if (debouncedHigh && !resetLatches[i]) {
+                // Magnet detected (debounced rising edge)
+                int oldPos = modules[i].getPosition();
+                modules[i].magnetDetected();
+
+                // Priority 1: Increment actual magnet crossings
+                if (missedMagnetRecovery) {
+                    modules[i].incrementMagnetCrossings();
+                }
+
+                // Priority 2: Record position error statistics
+                if (errorStatsTracking && oldPos != modules[i].getPosition()) {
+                    int error = oldPos - modules[i].getPosition();
+                    modules[i].recordPositionError(error);
+                }
+
+                if (accEnabled && oldPos != modules[i].getPosition()) {
+                    accMagnetCorrections++;
+                    ACC_PRINTF("[ACC Bus%d] Mod%d magnet correction: %d -> %d\n",
+                        busNum, i, oldPos, modules[i].getPosition());
+                }
+                resetLatches[i] = true;
+            } else if (debouncedLow && resetLatches[i]) {
+                resetLatches[i] = false;
+            }
+        } else {
+            // No debounce - original behavior
+            if (sensorHigh) {
+                if (!resetLatches[i]) {
+                    int oldPos = modules[i].getPosition();
+                    modules[i].magnetDetected();
+
+                    // Priority 1: Increment actual magnet crossings
+                    if (missedMagnetRecovery) {
+                        modules[i].incrementMagnetCrossings();
+                    }
+
+                    // Priority 2: Record position error statistics
+                    if (errorStatsTracking && oldPos != modules[i].getPosition()) {
+                        int error = oldPos - modules[i].getPosition();
+                        modules[i].recordPositionError(error);
+                    }
+
+                    if (accEnabled && oldPos != modules[i].getPosition()) {
+                        accMagnetCorrections++;
+                        ACC_PRINTF("[ACC Bus%d] Mod%d magnet correction: %d -> %d\n",
+                            busNum, i, oldPos, modules[i].getPosition());
+                    }
+                    resetLatches[i] = true;
+                }
+            } else if (resetLatches[i]) {
+                resetLatches[i] = false;
+            }
+        }
+    };
+
     // Main stepping loop
     while (numActive > 0) {
         currentTime = micros();
@@ -955,7 +1051,15 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
                 }
                 if (perfEnabled) perfStepCount++;
                 lastStepTimes[i] = micros();
-                
+
+                if (useStepBasedSensorChecks) {
+                    stepsSinceSensorCheck[i]++;
+                    if (stepsSinceSensorCheck[i] >= sensorCheckSteps) {
+                        processSensorCheck(i, false);
+                        stepsSinceSensorCheck[i] = 0;
+                    }
+                }
+
                 if (modules[i].getPosition() == targetPositions[i]) {
                     if (accEnabled) {
                         ACC_PRINTF("[ACC Bus%d] Mod%d arrived at pos=%d (target=%d)\n",
@@ -969,96 +1073,10 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
         }
 
         // Check sensors
-        if ((currentTime - lastSensorCheckTime) > checkIntervalUs) {
+        if (!useStepBasedSensorChecks && (currentTime - lastSensorCheckTime) > checkIntervalUs) {
             for (int j = 0; j < numActive; j++) {
                 int i = activeModules[j];
-                selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
-                if (perfEnabled) perfMuxSelects++;
-                if (perfEnabled) perfSensorReads++;
-                
-                bool sensorHigh = modules[i].readHallEffectSensor();
-
-                bool sensorDebugActive = (sensorDebugMs > 0) &&
-                    (millis() - sensorDebugStartMs < (unsigned long)sensorDebugMs);
-                if (sensorDebugActive) {
-                    if (!lastSensorStateInit[i]) {
-                        lastSensorState[i] = sensorHigh;
-                        lastSensorStateInit[i] = true;
-                    } else if (sensorHigh != lastSensorState[i]) {
-                        Serial.printf("[SENSOR Bus%d] Mod%d: %s at pos=%d\n",
-                            busNum, i, sensorHigh ? "HIGH" : "LOW", modules[i].getPosition());
-                        lastSensorState[i] = sensorHigh;
-                    }
-                }
-                
-                // Debounce logic: require consecutive consistent reads
-                if (sensorDebounceCount > 1) {
-                    if (sensorHigh) {
-                        sensorDebounceHigh[i]++;
-                        sensorDebounceLow[i] = 0;
-                    } else {
-                        sensorDebounceLow[i]++;
-                        sensorDebounceHigh[i] = 0;
-                    }
-                    
-                    // Only trigger on debounced transitions
-                    bool debouncedHigh = (sensorDebounceHigh[i] >= sensorDebounceCount);
-                    bool debouncedLow = (sensorDebounceLow[i] >= sensorDebounceCount);
-                    
-                    if (debouncedHigh && !resetLatches[i]) {
-                        // Magnet detected (debounced rising edge)
-                        int oldPos = modules[i].getPosition();
-                        modules[i].magnetDetected();
-                        
-                        // Priority 1: Increment actual magnet crossings
-                        if (missedMagnetRecovery) {
-                            modules[i].incrementMagnetCrossings();
-                        }
-                        
-                        // Priority 2: Record position error statistics
-                        if (errorStatsTracking && oldPos != modules[i].getPosition()) {
-                            int error = oldPos - modules[i].getPosition();
-                            modules[i].recordPositionError(error);
-                        }
-                        
-                        if (accEnabled && oldPos != modules[i].getPosition()) {
-                            accMagnetCorrections++;
-                            ACC_PRINTF("[ACC Bus%d] Mod%d magnet correction: %d -> %d\n",
-                                busNum, i, oldPos, modules[i].getPosition());
-                        }
-                        resetLatches[i] = true;
-                    } else if (debouncedLow && resetLatches[i]) {
-                        resetLatches[i] = false;
-                    }
-                } else {
-                    // No debounce - original behavior
-                    if (sensorHigh) {
-                        if (!resetLatches[i]) {
-                            int oldPos = modules[i].getPosition();
-                            modules[i].magnetDetected();
-                            
-                            // Priority 1: Increment actual magnet crossings
-                            if (missedMagnetRecovery) {
-                                modules[i].incrementMagnetCrossings();
-                            }
-                            
-                            // Priority 2: Record position error statistics
-                            if (errorStatsTracking && oldPos != modules[i].getPosition()) {
-                                int error = oldPos - modules[i].getPosition();
-                                modules[i].recordPositionError(error);
-                            }
-                            
-                            if (accEnabled && oldPos != modules[i].getPosition()) {
-                                accMagnetCorrections++;
-                                ACC_PRINTF("[ACC Bus%d] Mod%d magnet correction: %d -> %d\n",
-                                    busNum, i, oldPos, modules[i].getPosition());
-                            }
-                            resetLatches[i] = true;
-                        }
-                    } else if (resetLatches[i]) {
-                        resetLatches[i] = false;
-                    }
-                }
+                processSensorCheck(i, true);
             }
             lastSensorCheckTime = currentTime;
         }

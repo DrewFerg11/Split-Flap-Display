@@ -57,9 +57,10 @@ JsonSettings settings = JsonSettings("config", {
     {"quickHome", JsonSetting(true)},            // Skip label/blank phases during home (faster)
     // Accuracy Settings
     {"accuracyLogging", JsonSetting(false)},     // Enable detailed accuracy/calibration debug output
-    {"stepSettleUs", JsonSetting(75)},           // Microseconds to wait after each step for motor settling (0=disabled)
+    {"stepSettleUs", JsonSetting(100)},          // Microseconds to wait after each step for motor settling (0=disabled)
     {"sensorDebounceCount", JsonSetting(1)},     // Consecutive sensor reads required before triggering (1=no debounce)
     {"sensorDebugMs", JsonSetting(0)},           // Log hall sensor transitions for N ms after first move (0=disabled)
+    {"sensorCheckSteps", JsonSetting(10)},       // Steps between sensor reads (0=use time-based 20ms polling)
     {"retryFailedSteps", JsonSetting(3)},        // I2C retry attempts on step failure (0=disabled)
     {"missedMagnetRecovery", JsonSetting(true)}, // Auto-home modules that miss magnet crossings (false=disabled)
     {"errorStatsTracking", JsonSetting(true)},   // Track position error statistics per module (false=disabled)
