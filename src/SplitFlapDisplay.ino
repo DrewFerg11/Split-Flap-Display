@@ -11,6 +11,7 @@
 
 #include <Arduino.h>
 #include <WiFiClient.h>
+#include <Preferences.h>
 
 // clang-format off
 JsonSettings settings = JsonSettings("config", {
@@ -33,7 +34,7 @@ JsonSettings settings = JsonSettings("config", {
     // I2C addresses of multiplexers (comma-separated) (112 - 120)
     {"wire0MuxAddrs", JsonSetting("112")},
     // Channels and module I2C addresses per mux (semicolon-separated channels, comma-separated addresses, NO SPACES)
-    {"wire0ChModAddrs112", JsonSetting(";;32,33,34,35,36;32,33,34,35,36;;;;;")},
+    {"wire0ChModAddrs112", JsonSetting(";;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;;;;")},
     // I2C addresses of multiplexers (comma-separated) (112 - 120)
     {"wire1MuxAddrs", JsonSetting("112")},
     // Channels and module I2C addresses per mux (semicolon-separated channels, comma-separated addresses, NO SPACES)
@@ -48,19 +49,20 @@ JsonSettings settings = JsonSettings("config", {
     {"wire1Sda1Pin", JsonSetting(SDA1_PIN)},
     {"wire1Scl1Pin", JsonSetting(SCL1_PIN)},
     {"stepsPerRot", JsonSetting(2048)},
-    {"maxVel", JsonSetting(15.0f)},
     {"charset", JsonSetting(37)},
     // Operational Settings
-    {"debugLogging", JsonSetting(true)},         // Enable general debug output (init, config, commands)
+    {"debugLogging", JsonSetting(false)},        // Enable general debug output (init, config, commands)
     {"perfLogging", JsonSetting(false)},         // Enable I2C bus performance metrics logging
     {"i2cTransactionTime", JsonSetting(65)},     // Estimated microseconds per I2C transaction (for util % calc)
     {"quickHome", JsonSetting(true)},            // Skip label/blank phases during home (faster)
+    {"halfStepping", JsonSetting(false)},        // Use 8-phase half-stepping for 4096 steps/rot (double resolution)
+    {"maxVel", JsonSetting(12.0f)},              // Motor datasheet: 15 RPM | Practical max (I2C): ~10 RPM | Typical achieved: 8-11 RPM
     // Accuracy Settings
     {"accuracyLogging", JsonSetting(false)},     // Enable detailed accuracy/calibration debug output
-    {"stepSettleUs", JsonSetting(100)},          // Microseconds to wait after each step for motor settling (0=disabled)
+    {"stepSettleUs", JsonSetting(75)},           // Microseconds to wait after each step for motor settling (0=max speed, 100-200=recommended)
     {"sensorDebounceCount", JsonSetting(1)},     // Consecutive sensor reads required before triggering (1=no debounce)
     {"sensorDebugMs", JsonSetting(0)},           // Log hall sensor transitions for N ms after first move (0=disabled)
-    {"sensorCheckSteps", JsonSetting(10)},       // Steps between sensor reads (0=use time-based 20ms polling)
+    {"sensorCheckSteps", JsonSetting(20)},       // Steps between sensor reads (0=use time-based 20ms polling)
     {"retryFailedSteps", JsonSetting(3)},        // I2C retry attempts on step failure (0=disabled)
     {"missedMagnetRecovery", JsonSetting(true)}, // Auto-home modules that miss magnet crossings (false=disabled)
     {"errorStatsTracking", JsonSetting(true)},   // Track position error statistics per module (false=disabled)
@@ -81,6 +83,19 @@ void setup() {
 #ifdef STARTUP_DELAY
     delay(STARTUP_DELAY);
 #endif
+
+    // TODO: Why do I need this all of a sudden?
+    // // Initialize NVS with defaults if config is missing.
+    // Preferences prefs;
+    // prefs.begin("config", true);
+    // bool nvsIsEmpty = !prefs.isKey("stepsPerRot");
+    // prefs.end();
+
+    // if (nvsIsEmpty) {
+    //     Serial.println("[SETUP] Fresh NVS detected - saving defaults...");
+    //     settings.reset();
+    //     Serial.println("[SETUP] Defaults saved successfully");
+    // }
 
     Serial.println("Init Web Server");
     webServer.init();

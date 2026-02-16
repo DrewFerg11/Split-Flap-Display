@@ -22,9 +22,10 @@ SplitFlapModule::SplitFlapModule()
 
 // Constructor implementation
 SplitFlapModule::SplitFlapModule(
-    uint8_t I2Caddress, int stepsPerFullRotation, int stepOffset, int magnetPos, int charsetSize, TwoWire &wireInstance
+    uint8_t I2Caddress, int stepsPerFullRotation, int stepOffset, int magnetPos, int charsetSize, bool halfStep, TwoWire &wireInstance
 )
-    : address(I2Caddress), position(0), stepNumber(0), stepsPerRot(stepsPerFullRotation), charSetSize(charsetSize), wire(&wireInstance) {
+    : address(I2Caddress), position(0), stepNumber(0), stepsPerRot(stepsPerFullRotation), halfStepping(halfStep),
+      maxStepNumber(halfStep ? 8 : 4), charSetSize(charsetSize), wire(&wireInstance) {
     magnetPosition = magnetPos + stepOffset;
 
     chars = (charsetSize == 48) ? ExtendedChars : StandardChars;
@@ -85,7 +86,7 @@ void SplitFlapModule::init() {
     float stepSize = (float) stepsPerRot / (float) numChars;
     float currentPosition = 0;
     for (int i = 0; i < numChars; i++) {
-        charPositions[i] = (int) currentPosition;
+        charPositions[i] = (int) round(currentPosition);  // Use round() instead of truncation for better accuracy
         currentPosition += stepSize;
     }
 
@@ -125,7 +126,7 @@ void SplitFlapModule::stop() {
 }
 
 void SplitFlapModule::start() {
-    stepNumber = (stepNumber + 3) % 4; // effectively take one off stepNumber
+    stepNumber = (stepNumber + maxStepNumber - 1) % maxStepNumber; // effectively take one off stepNumber
     step(false);                       // write the "previous" step high again, in case turned off
 }
 
@@ -136,19 +137,27 @@ void SplitFlapModule::step(bool updatePosition) {
 
 void SplitFlapModule::step(int settleUs, int retryCount, bool updatePosition) {
     uint16_t stepState;
-    switch (stepNumber) {
-        case 0:
-            stepState = 0b1111111111100111;
-            break;
-        case 1:
-            stepState = 0b1111111111110011;
-            break;
-        case 2:
-            stepState = 0b1111111111111001;
-            break;
-        case 3:
-            stepState = 0b1111111111101101;
-            break;
+    
+    if (halfStepping) {
+        // 8-phase half-stepping sequence (alternates dual-coil and single-coil excitation)
+        switch (stepNumber) {
+            case 0: stepState = 0b1111111111100111; break; // Coils 1+2 (dual)
+            case 1: stepState = 0b1111111111110011; break; // Coil 2 (single)
+            case 2: stepState = 0b1111111111111011; break; // Coils 2+3 (dual)
+            case 3: stepState = 0b1111111111111001; break; // Coil 3 (single)
+            case 4: stepState = 0b1111111111111101; break; // Coils 3+4 (dual)
+            case 5: stepState = 0b1111111111101101; break; // Coil 4 (single)
+            case 6: stepState = 0b1111111111100101; break; // Coils 4+1 (dual)
+            case 7: stepState = 0b1111111111100111; break; // Coil 1 (single)
+        }
+    } else {
+        // 4-phase full-stepping sequence (original)
+        switch (stepNumber) {
+            case 0: stepState = 0b1111111111100111; break;
+            case 1: stepState = 0b1111111111110011; break;
+            case 2: stepState = 0b1111111111111001; break;
+            case 3: stepState = 0b1111111111101101; break;
+        }
     }
     
     // Use retry logic if enabled, otherwise basic write
@@ -166,7 +175,7 @@ void SplitFlapModule::step(int settleUs, int retryCount, bool updatePosition) {
     
     if (updatePosition) {
         position = (position + 1) % stepsPerRot;
-        stepNumber = (stepNumber + 1) % 4;
+        stepNumber = (stepNumber + 1) % maxStepNumber;
     }
 }
 

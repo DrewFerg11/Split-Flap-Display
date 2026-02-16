@@ -13,6 +13,28 @@ void SplitFlapDisplay::init() {
     magnetPosition = settings.getInt("magnetPosition");
     maxVel = settings.getFloat("maxVel");
     charSetSize = settings.getInt("charset");
+    bool halfStepping = settings.getInt("halfStepping") != 0;
+    
+    // Double steps and magnet position for half-stepping mode
+    if (halfStepping) {
+        int origStepsPerRot = stepsPerRot;
+        int origMagnetPosition = magnetPosition;
+        int origDisplayOffset = displayOffset;
+        
+        stepsPerRot *= 2;      // 2048 → 4096
+        magnetPosition *= 2;   // 730 → 1460
+        displayOffset *= 2;    // Also double displayOffset
+        
+        DEBUG_PRINTF("[INIT] Half-stepping ENABLED (8-phase)\n");
+        DEBUG_PRINTF("[INIT]   stepsPerRot: %d → %d\n", origStepsPerRot, stepsPerRot);
+        DEBUG_PRINTF("[INIT]   magnetPosition: %d → %d\n", origMagnetPosition, magnetPosition);
+        DEBUG_PRINTF("[INIT]   displayOffset: %d → %d\n", origDisplayOffset, displayOffset);
+    } else {
+        DEBUG_PRINTF("[INIT] Half-stepping DISABLED (4-phase)\n");
+        DEBUG_PRINTF("[INIT]   stepsPerRot: %d\n", stepsPerRot);
+        DEBUG_PRINTF("[INIT]   magnetPosition: %d\n", magnetPosition);
+        DEBUG_PRINTF("[INIT]   displayOffset: %d\n", displayOffset);
+    }
 
     // Configure modules based on settings (parses wire0/wire1 configs)
     configureI2cModules();
@@ -43,11 +65,16 @@ void SplitFlapDisplay::init() {
         TwoWire &bus = (busNum == 0) ? Wire : Wire1;
         
         modules[i] = SplitFlapModule(
-            moduleAddresses[i], stepsPerRot, displayOffset, magnetPosition, charSetSize, bus
+            moduleAddresses[i], stepsPerRot, displayOffset, magnetPosition, charSetSize, halfStepping, bus
         );
         selectMuxChannel(moduleMuxes[i], moduleChannels[i]);
         modules[i].init();
     }
+    
+    // Summary logging
+    float stepsPerChar = (float)stepsPerRot / (float)charSetSize;
+    DEBUG_PRINTF("[INIT] Initialized %d modules: %.1f steps/char (%d phases)\n", 
+        numModules, stepsPerChar, halfStepping ? 8 : 4);
     
     // Initialize threading for parallel dual-bus execution
     initParallelExecution();
@@ -1171,14 +1198,17 @@ void SplitFlapDisplay::moveToOnBus(uint8_t busNum, int targetPositions[], float 
         unsigned long estimatedI2cTimeUs = totalI2cOps * i2cTransactionTimeUs;
         float utilizationPct = (wallTimeUs > 0) ? (estimatedI2cTimeUs * 100.0f / wallTimeUs) : 0.0f;
         
-        // Calculate average steps per module (for parallel execution)
+        // Calculate average steps per module
         int avgStepsPerModule = (perfActiveModules > 0) ? (perfStepCount / perfActiveModules) : 0;
         
-        // Calculate achieved speed per module (accounting for parallel execution)
+        // Calculate achieved speed per module
         float avgStepsPerSecPerModule = (wallTimeUs > 0 && perfActiveModules > 0) ? 
             (perfStepCount * 1000000.0f / (wallTimeUs * perfActiveModules)) : 0.0f;
         float avgRPMPerModule = (avgStepsPerSecPerModule / stepsPerRot) * 60.0f;
-        float speedPct = (speed > 0) ? (avgRPMPerModule / speed * 100.0f) : 0.0f;
+        
+        // Calculate percentage of max configured speed achieved
+        float maxVel = settings.getFloat("maxVel");
+        float speedPct = (maxVel > 0) ? (avgRPMPerModule / maxVel * 100.0f) : 0.0f;
         
         // Calculate I2C throughput
         int opsPerSec = (wallTimeUs > 0) ? (totalI2cOps * 1000000 / wallTimeUs) : 0;

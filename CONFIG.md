@@ -1,13 +1,18 @@
 # Split Flap Display - Configuration Reference
 
+> **Note:** All settings below are configurable via the web UI under Settings → Advanced Settings. Changes take effect immediately after saving (no reboot required unless noted).
+
 ## Operational Settings
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `debugLogging` | bool | `true` | Enable general debug output (init, config, commands) |
-| `perfLogging` | bool | `true` | Enable I2C bus performance metrics logging per movement |
+| `perfLogging` | bool | `false` | Enable I2C bus performance metrics logging per movement |
 | `i2cTransactionTime` | int | `65` | Estimated microseconds per I2C transaction (used for utilization % calculation) |
 | `quickHome` | bool | `true` | Skip label/blank phases during home sequence (faster startup) |
+| `halfStepping` | bool | `true` | Use 8-phase half-stepping for 4096 steps/rot (double resolution, better accuracy) |
+| `maxVel` | float | `12.0` | Maximum motor velocity in RPM (practical max: ~10 RPM with I2C overhead) |
+| `useDualBus` | bool | `true` | Enable dual I2C bus mode for parallel operation (requires Wire1 configured) |
 
 ---
 
@@ -15,11 +20,11 @@
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `accuracyLogging` | bool | `true` | Enable detailed accuracy/calibration debug output |
-| `stepSettleUs` | int | `100` | Microseconds to wait after each step for motor coil settling (0=disabled) |
+| `accuracyLogging` | bool | `false` | Enable detailed accuracy/calibration debug output |
+| `stepSettleUs` | int | `100` | Microseconds to wait after each step for motor coil settling (0=max speed, 100-200=recommended). Physical settling time; not adjusted for half-stepping. |
 | `sensorDebounceCount` | int | `1` | Consecutive sensor reads required before triggering magnet detection (1=no debounce, increase for noisy sensors) |
 | `sensorDebugMs` | int | `0` | Log hall sensor HIGH/LOW transitions for N ms after first move (0=disabled, useful for debugging sensor behavior) |
-| `sensorCheckSteps` | int | `10` | Steps between sensor reads (0=use time-based 20ms polling, 10-15 recommended for reliable magnet detection) |
+| `sensorCheckSteps` | int | `10` | Steps between sensor reads (0=time-based 20ms polling, >0=step-based). Step-based is more reliable and performant for single-magnet drums. |
 | `retryFailedSteps` | int | `3` | I2C retry attempts on step failure (0=disabled, helps overcome temporary I2C glitches) |
 | `missedMagnetRecovery` | bool | `true` | Auto-home modules that miss magnet crossings during movement (automatic error recovery) |
 | `errorStatsTracking` | bool | `true` | Track position error statistics per module (max error, avg error, correction count) |
@@ -76,21 +81,32 @@
 
 ## Quick Tuning Tips
 
-**For Maximum Accuracy (100% target):**
-- `stepSettleUs = 200-300` (increase from 100 to ensure coils stabilize)
-- `retryFailedSteps = 3` (enables automatic I2C retries)
-- `missedMagnetRecovery = true` (auto-homes if magnet is missed)
-- `errorStatsTracking = true` (monitor error trends)
-- `sensorCheckSteps = 10` (check magnet more frequently)
+**For Maximum Accuracy:**
+- `halfStepping = true` (double resolution to 4096 steps/rot)
+- `stepSettleUs = 200` (increase motor settling time)
+- `sensorCheckSteps = 10` (check magnet frequently)
+- `retryFailedSteps = 3` (automatic I2C retries)
+- `missedMagnetRecovery = true` (auto-home on errors)
+- `errorStatsTracking = true` (monitor accuracy trends)
 
-**For Performance (faster movements, acceptable ~95% accuracy):**
-- `stepSettleUs = 0` (disable coil settling delay)
-- `sensorCheckSteps = 25-50` (reduce sensor check frequency)
+**For Maximum Performance:**
+- `halfStepping = false` (faster movements with 2048 steps/rot)
+- `stepSettleUs = 0` (disable settling delay)
+- `sensorCheckSteps = 20` (reduce sensor check frequency)
+- `debugLogging = false` (reduce serial output overhead)
+- `perfLogging = false` (disable performance metrics)
 - `accuracyLogging = false` (disable accuracy logs)
-- `perfLogging = false` (disable performance logs)
 
 **For Debugging Issues:**
-- `accuracyLogging = true` (see all magnet corrections)
-- `sensorDebugMs = 5000` (log hall sensor transitions for 5 seconds after movement starts)
+- `accuracyLogging = true` (see magnet corrections and arrivals)
+- `sensorDebugMs = 5000` (log hall sensor transitions for 5 seconds)
 - `perfLogging = true` (see I2C utilization and achieved RPM)
+- `debugLogging = true` (see init sequence and command logging)
 - `errorStatsTracking = true` (identify problematic modules)
+
+**About Half-Stepping:**
+- **Enabled (8-phase)**: 4096 steps/rot, 110.7 steps/char - better accuracy, smoother motion, better low-speed torque
+- **Disabled (4-phase)**: 2048 steps/rot, 55.35 steps/char - faster movements, simpler control
+- Half-stepping automatically doubles `stepsPerRot`, `magnetPosition`, and `displayOffset`
+- `stepSettleUs` is a physical settling time and should NOT be adjusted for half-stepping mode
+- Practical max speed: ~10 RPM with I2C overhead (60-66% of 15 RPM motor datasheet)

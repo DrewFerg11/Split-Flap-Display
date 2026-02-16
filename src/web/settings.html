@@ -635,7 +635,7 @@
             ></a>
 
             <div x-show="showAdvanced" x-cloak>
-                <div class="grid grid-cols-3 gap-2 w-full">
+                <div class="grid grid-cols-4 gap-2 w-full">
                     <div>
                         <label
                             for="magnetPosition"
@@ -658,39 +658,85 @@
                         ></div>
                     </div>
                     <div>
-                        <label for="sdaPin" class="block text-left text-lg mt-4"
-                            >SDA Pin</label
+                        <label
+                            for="wire0SdaPin"
+                            class="block text-left text-lg mt-4"
+                            >Wire0 SDA Pin</label
                         >
                         <input
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
-                            id="sdaPin"
-                            x-model="settings.sdaPin"
-                            placeholder="Enter SDA pin"
+                            id="wire0SdaPin"
+                            x-model.number="settings.wire0SdaPin"
+                            placeholder="21"
                         />
                         <div
                             class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
                             x-cloak
-                            x-show="errors.key === 'sdaPin'"
+                            x-show="errors.key === 'wire0SdaPin'"
                             x-text="errors.message"
                         ></div>
                     </div>
 
                     <div>
-                        <label for="sclPin" class="block text-left text-lg mt-4"
-                            >SCL Pin</label
+                        <label
+                            for="wire0SclPin"
+                            class="block text-left text-lg mt-4"
+                            >Wire0 SCL Pin</label
                         >
                         <input
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
-                            id="sclPin"
-                            x-model="settings.sclPin"
-                            placeholder="Enter SCL pin"
+                            id="wire0SclPin"
+                            x-model.number="settings.wire0SclPin"
+                            placeholder="22"
                         />
                         <div
                             class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
                             x-cloak
-                            x-show="errors.key === 'sclPin'"
+                            x-show="errors.key === 'wire0SclPin'"
+                            x-text="errors.message"
+                        ></div>
+                    </div>
+
+                    <div>
+                        <label
+                            for="wire1Sda1Pin"
+                            class="block text-left text-lg mt-4"
+                            >Wire1 SDA Pin</label
+                        >
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="wire1Sda1Pin"
+                            x-model.number="settings.wire1Sda1Pin"
+                            placeholder="25"
+                        />
+                        <div
+                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
+                            x-cloak
+                            x-show="errors.key === 'wire1Sda1Pin'"
+                            x-text="errors.message"
+                        ></div>
+                    </div>
+
+                    <div>
+                        <label
+                            for="wire1Scl1Pin"
+                            class="block text-left text-lg mt-4"
+                            >Wire1 SCL Pin</label
+                        >
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="wire1Scl1Pin"
+                            x-model.number="settings.wire1Scl1Pin"
+                            placeholder="26"
+                        />
+                        <div
+                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
+                            x-cloak
+                            x-show="errors.key === 'wire1Scl1Pin'"
                             x-text="errors.message"
                         ></div>
                     </div>
@@ -756,6 +802,238 @@
                             x-text="errors.message"
                         ></div>
                     </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 w-full mt-4 mb-4">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="w-5 h-5 accent-orange-500 cursor-pointer"
+                            :checked="!!settings.halfStepping"
+                            @change="settings.halfStepping = $event.target.checked ? 1 : 0"
+                        />
+                        <span class="text-sm"
+                            >Half-Stepping (8-phase, doubles resolution)</span
+                        >
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="w-5 h-5 accent-orange-500 cursor-pointer"
+                            :checked="!!settings.useDualBus"
+                            @change="settings.useDualBus = $event.target.checked ? 1 : 0"
+                        />
+                        <span class="text-sm">Use Dual I2C Bus</span>
+                    </label>
+                </div>
+
+                <h3
+                    class="text-lg font-semibold text-left w-full border-b border-gray-600 pb-2 mt-8 mb-4"
+                >
+                    Logging
+                </h3>
+                <div class="grid grid-cols-3 gap-4 w-full mb-4">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="w-5 h-5 accent-orange-500 cursor-pointer"
+                            :checked="!!settings.debugLogging"
+                            @change="settings.debugLogging = $event.target.checked ? 1 : 0"
+                        />
+                        <span class="text-sm">Debug Logging</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="w-5 h-5 accent-orange-500 cursor-pointer"
+                            :checked="!!settings.perfLogging"
+                            @change="settings.perfLogging = $event.target.checked ? 1 : 0"
+                        />
+                        <span class="text-sm">Perf Logging</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="w-5 h-5 accent-orange-500 cursor-pointer"
+                            :checked="!!settings.accuracyLogging"
+                            @change="settings.accuracyLogging = $event.target.checked ? 1 : 0"
+                        />
+                        <span class="text-sm">Accuracy Logging</span>
+                    </label>
+                </div>
+                <div class="text-xs text-gray-400 mb-4">
+                    Toggle serial output categories. Changes take effect
+                    immediately after saving (no reboot needed).
+                </div>
+
+                <h3
+                    class="text-lg font-semibold text-left w-full border-b border-gray-600 pb-2 mt-8 mb-4"
+                >
+                    Operational Settings
+                </h3>
+                <div class="grid grid-cols-2 gap-4 w-full mb-4">
+                    <div>
+                        <label
+                            for="i2cTransactionTime"
+                            class="block text-left text-sm mb-2"
+                        >
+                            I2C Transaction Time (μs)
+                        </label>
+                        <input
+                            class="w-full p-3 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="i2cTransactionTime"
+                            x-model.number="settings.i2cTransactionTime"
+                            placeholder="65"
+                            min="0"
+                        />
+                    </div>
+                    <div class="flex items-end">
+                        <label
+                            class="flex items-center gap-3 cursor-pointer pb-3"
+                        >
+                            <input
+                                type="checkbox"
+                                class="w-5 h-5 accent-orange-500 cursor-pointer"
+                                :checked="!!settings.quickHome"
+                                @change="settings.quickHome = $event.target.checked ? 1 : 0"
+                            />
+                            <span class="text-sm">Quick Home Mode</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-400 mb-4">
+                    <strong>I2C Transaction Time:</strong> Estimated
+                    microseconds per I2C operation (affects performance
+                    calculations).<br />
+                    <strong>Quick Home:</strong> Skip intermediate positions
+                    during homing for faster startup.
+                </div>
+
+                <h3
+                    class="text-lg font-semibold text-left w-full border-b border-gray-600 pb-2 mt-8 mb-4"
+                >
+                    Accuracy Settings
+                </h3>
+                <div class="grid grid-cols-3 gap-4 w-full mb-4">
+                    <div>
+                        <label
+                            for="stepSettleUs"
+                            class="block text-left text-sm mb-2"
+                        >
+                            Step Settle Time (μs)
+                        </label>
+                        <input
+                            class="w-full p-3 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="stepSettleUs"
+                            x-model.number="settings.stepSettleUs"
+                            placeholder="100"
+                            min="0"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            for="sensorDebounceCount"
+                            class="block text-left text-sm mb-2"
+                        >
+                            Sensor Debounce Count
+                        </label>
+                        <input
+                            class="w-full p-3 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="sensorDebounceCount"
+                            x-model.number="settings.sensorDebounceCount"
+                            placeholder="1"
+                            min="1"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            for="sensorDebugMs"
+                            class="block text-left text-sm mb-2"
+                        >
+                            Sensor Debug Time (ms)
+                        </label>
+                        <input
+                            class="w-full p-3 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="sensorDebugMs"
+                            x-model.number="settings.sensorDebugMs"
+                            placeholder="0"
+                            min="0"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            for="sensorCheckSteps"
+                            class="block text-left text-sm mb-2"
+                        >
+                            Sensor Check Steps
+                        </label>
+                        <input
+                            class="w-full p-3 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="sensorCheckSteps"
+                            x-model.number="settings.sensorCheckSteps"
+                            placeholder="10"
+                            min="0"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            for="retryFailedSteps"
+                            class="block text-left text-sm mb-2"
+                        >
+                            Retry Failed Steps
+                        </label>
+                        <input
+                            class="w-full p-3 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="retryFailedSteps"
+                            x-model.number="settings.retryFailedSteps"
+                            placeholder="3"
+                            min="0"
+                        />
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 w-full mb-4">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="w-5 h-5 accent-orange-500 cursor-pointer"
+                            :checked="!!settings.missedMagnetRecovery"
+                            @change="settings.missedMagnetRecovery = $event.target.checked ? 1 : 0"
+                        />
+                        <span class="text-sm">Missed Magnet Recovery</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="w-5 h-5 accent-orange-500 cursor-pointer"
+                            :checked="!!settings.errorStatsTracking"
+                            @change="settings.errorStatsTracking = $event.target.checked ? 1 : 0"
+                        />
+                        <span class="text-sm">Error Stats Tracking</span>
+                    </label>
+                </div>
+                <div class="text-xs text-gray-400 mb-4">
+                    <strong>Step Settle Time:</strong> Microseconds to wait
+                    after each step for motor stabilization (0=max speed,
+                    100-200=recommended).<br />
+                    <strong>Sensor Debounce Count:</strong> Consecutive sensor
+                    reads required before triggering (1=no debounce).<br />
+                    <strong>Sensor Debug Time:</strong> Log hall sensor
+                    transitions for N milliseconds after first move
+                    (0=disabled).<br />
+                    <strong>Sensor Check Steps:</strong> Steps between sensor
+                    reads (0=use time-based 20ms polling).<br />
+                    <strong>Retry Failed Steps:</strong> I2C retry attempts on
+                    step failure (0=disabled).<br />
+                    <strong>Missed Magnet Recovery:</strong> Auto-home modules
+                    that miss magnet crossings.<br />
+                    <strong>Error Stats Tracking:</strong> Track position error
+                    statistics per module.
                 </div>
 
                 <button
