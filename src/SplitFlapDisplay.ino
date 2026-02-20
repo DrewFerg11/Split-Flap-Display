@@ -13,6 +13,40 @@
 #include <WiFiClient.h>
 #include <Preferences.h>
 
+// --- Build-time cluster config ---
+// Set ESP_CONFIG_FILE via build_flags to pick a config from src/config/.
+// Example: '-D ESP_CONFIG_FILE="config/esp_1.h"' in platformio.ini
+// To build and flash a specific ESP: pio run -e esp_1 -t upload  (or esp_2, esp_3, esp_4)
+#ifdef ESP_CONFIG_FILE
+#include ESP_CONFIG_FILE
+#endif
+
+// Fallback defaults when no config header is included (standalone / esp32_wroom env):
+#ifndef CLUSTER_ROLE
+#define CLUSTER_ROLE "standalone"
+#endif
+#ifndef CLUSTER_ID
+#define CLUSTER_ID "1"
+#endif
+#ifndef CLUSTER_OFFSET
+#define CLUSTER_OFFSET 0
+#endif
+#ifndef CLUSTER_DISPLAY_COUNT
+#define CLUSTER_DISPLAY_COUNT 5
+#endif
+#ifndef WIRE0_MUX_ADDRS
+#define WIRE0_MUX_ADDRS "112"
+#endif
+#ifndef WIRE0_CH_MOD_ADDRS_112
+#define WIRE0_CH_MOD_ADDRS_112 "32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;;;"
+#endif
+#ifndef WIRE1_MUX_ADDRS
+#define WIRE1_MUX_ADDRS "112"
+#endif
+#ifndef WIRE1_CH_MOD_ADDRS_112
+#define WIRE1_CH_MOD_ADDRS_112 ";;;;;;;;"
+#endif
+
 // clang-format off
 JsonSettings settings = JsonSettings("config", {
     // General Settings
@@ -32,13 +66,13 @@ JsonSettings settings = JsonSettings("config", {
     {"mqtt_pass", JsonSetting("")},
     // Hardware Settings
     // I2C addresses of multiplexers (comma-separated) (112 - 120)
-    {"wire0MuxAddrs", JsonSetting("112")},
+    {"wire0MuxAddrs", JsonSetting(WIRE0_MUX_ADDRS)},
     // Channels and module I2C addresses per mux (semicolon-separated channels, comma-separated addresses, NO SPACES)
-    {"wire0ChModAddrs112", JsonSetting(";;32,33,34,35,36;32,33,34,35,36;32,33,34,35,36;;;;")},
+    {"wire0ChModAddrs112", JsonSetting(WIRE0_CH_MOD_ADDRS_112)},
     // I2C addresses of multiplexers (comma-separated) (112 - 120)
-    {"wire1MuxAddrs", JsonSetting("112")},
+    {"wire1MuxAddrs", JsonSetting(WIRE1_MUX_ADDRS)},
     // Channels and module I2C addresses per mux (semicolon-separated channels, comma-separated addresses, NO SPACES)
-    {"wire1ChModAddrs112", JsonSetting(";;32,33,34,35,36;32,33,34,35,36;;;;;")},
+    {"wire1ChModAddrs112", JsonSetting(WIRE1_CH_MOD_ADDRS_112)},
     {"magnetPosition", JsonSetting(730)},
     {"displayOffset", JsonSetting(0)},
     {"useDualBus", JsonSetting(true)},
@@ -66,6 +100,11 @@ JsonSettings settings = JsonSettings("config", {
     {"retryFailedSteps", JsonSetting(3)},        // I2C retry attempts on step failure (0=disabled)
     {"missedMagnetRecovery", JsonSetting(true)}, // Auto-home modules that miss magnet crossings (false=disabled)
     {"errorStatsTracking", JsonSetting(true)},   // Track position error statistics per module (false=disabled)
+    // Cluster Settings (set via build-time config header, see config/ folder)
+    {"clusterRole", JsonSetting(CLUSTER_ROLE)},                  // "standalone", "main", or "worker"
+    {"clusterId", JsonSetting(CLUSTER_ID)},                      // Unique ID for this ESP in the cluster ("1", "2", etc.)
+    {"clusterOffset", JsonSetting(CLUSTER_OFFSET)},              // First logical display index owned by this ESP
+    {"clusterDisplayCount", JsonSetting(CLUSTER_DISPLAY_COUNT)}, // Number of displays this ESP controls
     // Operational States
     {"mode", JsonSetting(0)}
 });
