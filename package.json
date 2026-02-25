@@ -10,7 +10,19 @@
         "pio": "npm run pio:firmware && sleep 2 && npm run pio:filesystem",
         "pio:firmware": "pio run -t upload",
         "pio:filesystem": "pio run -t uploadfs",
-        "pio:monitor": "pio device monitor"
+        "pio:monitor": "pio device monitor",
+        "build:esp1": "npm run format && npm run assets && pio run -e esp_1 -t upload && pio run -e esp_1 -t uploadfs",
+        "build:esp2": "npm run format && npm run assets && pio run -e esp_2 -t upload && pio run -e esp_2 -t uploadfs",
+        "build:esp3": "npm run format && npm run assets && pio run -e esp_3 -t upload && pio run -e esp_3 -t uploadfs",
+        "build:esp4": "npm run format && npm run assets && pio run -e esp_4 -t upload && pio run -e esp_4 -t uploadfs",
+        "monitor:esp1": "pio device monitor -e esp_1 -b 115200",
+        "monitor:esp2": "pio device monitor -e esp_2 -b 115200",
+        "monitor:esp3": "pio device monitor -e esp_3 -b 115200",
+        "monitor:esp4": "pio device monitor -e esp_4 -b 115200",
+        "build-monitor:esp1": "npm run build:esp1 && npm run monitor:esp1",
+        "build-monitor:esp2": "npm run build:esp2 && npm run monitor:esp2",
+        "build-monitor:esp3": "npm run build:esp3 && npm run monitor:esp3",
+        "build-monitor:esp4": "npm run build:esp4 && npm run monitor:esp4"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.17",

@@ -5,6 +5,7 @@
 // Logical displays: CLUSTER_OFFSET to (CLUSTER_OFFSET + CLUSTER_DISPLAY_COUNT - 1)
 // =============================================================================
 
+#define DISPLAY_NAME          "esp3"
 #define CLUSTER_ROLE          "worker"
 #define CLUSTER_ID            "3"
 #define CLUSTER_OFFSET        10   // First logical display index owned by this ESP

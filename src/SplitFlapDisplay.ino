@@ -22,6 +22,9 @@
 #endif
 
 // Fallback defaults when no config header is included (standalone / esp32_wroom env):
+#ifndef DISPLAY_NAME
+#define DISPLAY_NAME "My Display"
+#endif
 #ifndef CLUSTER_ROLE
 #define CLUSTER_ROLE "standalone"
 #endif
@@ -50,7 +53,7 @@
 // clang-format off
 JsonSettings settings = JsonSettings("config", {
     // General Settings
-    {"name", JsonSetting("My Display")},
+    {"name", JsonSetting(DISPLAY_NAME)},
     {"mdns", JsonSetting("splitflap")},
     {"otaPass", JsonSetting("")},
     {"timezone", JsonSetting("UTC0")},
