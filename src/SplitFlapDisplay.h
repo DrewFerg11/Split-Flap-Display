@@ -20,6 +20,10 @@ extern JsonSettings settings;
 #define ACC_PRINTLN(x) if (settings.getInt("accuracyLogging") != 0) Serial.println(x)
 #define ACC_PRINTF(...) if (settings.getInt("accuracyLogging") != 0) Serial.printf(__VA_ARGS__)
 
+#define CLUSTER_PRINT(x) if (settings.getInt("clusterLogging") != 0) Serial.print(x)
+#define CLUSTER_PRINTLN(x) if (settings.getInt("clusterLogging") != 0) Serial.println(x)
+#define CLUSTER_PRINTF(...) if (settings.getInt("clusterLogging") != 0) Serial.printf(__VA_ARGS__)
+
 #define MAX_MODULES 64 // Realistic limit: 8 muxes × 8 channels × 1 address typical
 #define MAX_RPM 15.0f
 

@@ -257,14 +257,14 @@ When the user sends "HELLO WORLD SPLIT FLAP" via the web UI or MQTT, the main ES
 - [x] Verified: `esp_1`, `esp_2`, and `esp32_wroom` all build successfully
 
 ### Phase 1: UART Communication Layer
-- [ ] Init UART2 on GPIO 16 (RX) / GPIO 17 (TX) at 460800 baud
-- [ ] Implement JSON line protocol: `sendLine(json)`, `readLine()` with newline delimiter
-- [ ] Add CRC8 checksum to each JSON line for integrity at 6ft wire length
-- [ ] Main: broadcast on TX, poll responses on RX
-- [ ] Worker: listen on RX, respond on TX only when addressed
-- [ ] Add `ping`/`pong` heartbeat (main pings every 5s, workers respond with status)
-- [ ] Startup handshake: main waits for all expected workers to pong before accepting commands
-- [ ] Tolerate late-joining workers (main retries pings, worker catches up on next command)
+- [x] Init UART2 on GPIO 16 (RX) / GPIO 17 (TX) at 460800 baud
+- [x] Implement JSON line protocol: `sendLine(json)`, `pollLine()` with newline delimiter
+- [x] Add CRC8 checksum to each JSON line for integrity at 6ft wire length
+- [x] Main: broadcast on TX, poll responses on RX
+- [x] Worker: listen on RX, respond on TX only when addressed
+- [x] Add `ping`/`pong` heartbeat (main pings every 5s, workers respond with status + module count)
+- [x] Startup handshake: main sends immediate ping on boot; tracks each worker's `lastSeenMs`
+- [x] Tolerate late-joining workers (isWorkerAlive() timeout; workers respond on any subsequent ping)
 
 ### Phase 2: Command Distribution
 - [ ] Main: Parse incoming text and split across display map using `CLUSTER_OFFSET`/`CLUSTER_DISPLAY_COUNT`

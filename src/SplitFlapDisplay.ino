@@ -5,6 +5,7 @@
 
 // Enjoy :)
 #include "JsonSettings.h"
+#include "SplitFlapCluster.h"
 #include "SplitFlapDisplay.h"
 #include "SplitFlapMqtt.h"
 #include "SplitFlapWebServer.h"
@@ -108,6 +109,13 @@ JsonSettings settings = JsonSettings("config", {
     {"clusterId", JsonSetting(CLUSTER_ID)},                      // Unique ID for this ESP in the cluster ("1", "2", etc.)
     {"clusterOffset", JsonSetting(CLUSTER_OFFSET)},              // First logical display index owned by this ESP
     {"clusterDisplayCount", JsonSetting(CLUSTER_DISPLAY_COUNT)}, // Number of displays this ESP controls
+    {"clusterLogging", JsonSetting(true)},                       // Enable cluster UART communication logging
+    {"clusterPingIntervalMs", JsonSetting(5000)},                // How often main broadcasts ping to workers (ms)
+    {"clusterWorkerTimeoutMs", JsonSetting(15000)},              // Worker considered offline after N ms without pong
+    {"clusterMaxWorkers", JsonSetting(4)},                       // Number of worker ESPs in the cluster (excludes main)
+    {"clusterUartBaud", JsonSetting(460800)},                    // UART2 baud rate (must match on all ESPs)
+    {"clusterUartRxPin", JsonSetting(16)},                       // UART2 RX GPIO (GPIO 16 = default UART2 on ESP32-WROOM)
+    {"clusterUartTxPin", JsonSetting(17)},                       // UART2 TX GPIO (GPIO 17 = default UART2 on ESP32-WROOM)
     // Operational States
     {"mode", JsonSetting(0)}
 });
@@ -117,6 +125,7 @@ WiFiClient wifiClient;
 SplitFlapDisplay display(settings);
 SplitFlapWebServer webServer(settings);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
+SplitFlapCluster cluster(settings);
 
 void setup() {
     // put your setup code here, to run once:
@@ -141,6 +150,7 @@ void setup() {
 
     Serial.println("Init Web Server");
     webServer.init();
+    cluster.begin();
 
     if (! webServer.connectToWifi()) {
         webServer.startAccessPoint();
@@ -149,6 +159,7 @@ void setup() {
 
         display.init();
         webServer.setDisplay(&display);  // Pass display reference to web server
+        cluster.setDisplay(&display);
         webServer.startWebServer();
 
         display.homeAllChannels(MAX_RPM, settings.getInt("quickHome") != 0);
@@ -164,6 +175,7 @@ void setup() {
 
         display.init();
         webServer.setDisplay(&display);  // Pass display reference to web server
+        cluster.setDisplay(&display);
         webServer.startWebServer();
 
         splitflapMqtt.setup();
@@ -176,6 +188,7 @@ void setup() {
 
 void loop() {
     splitflapMqtt.loop();
+    cluster.loop();
 
     // check what mode the display is in, this value is updated by the web server
     int mode = webServer.getMode();
