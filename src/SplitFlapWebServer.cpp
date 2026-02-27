@@ -109,12 +109,13 @@ String SplitFlapWebServer::getDayPrefix(int n) {
         return "Err"; // Return error if time not available
     }
 
-    // Get full weekday name
+    // Get full weekday name (longest = "Wednesday" = 9 chars)
     char fullDay[10]; // Buffer for full day name
     strftime(fullDay, sizeof(fullDay), "%A", &timeinfo);
 
-    // Extract first n characters
-    char dayPrefix[n + 1];
+    // Clamp n to safe bounds and use a fixed-size buffer
+    n = constrain(n, 0, 9);
+    char dayPrefix[10];
     strncpy(dayPrefix, fullDay, n);
     dayPrefix[n] = '\0'; // Null-terminate the string
 
@@ -128,12 +129,13 @@ String SplitFlapWebServer::getMonthPrefix(int n) {
         return "Err"; // Return error if time not available
     }
 
-    // Get full month name
+    // Get full month name (longest = "September" = 9 chars)
     char fullMonth[10]; // Buffer for full month name
     strftime(fullMonth, sizeof(fullMonth), "%B", &timeinfo);
 
-    // Extract first n characters
-    char monthPrefix[n + 1];
+    // Clamp n to safe bounds and use a fixed-size buffer
+    n = constrain(n, 0, 9);
+    char monthPrefix[10];
     strncpy(monthPrefix, fullMonth, n);
     monthPrefix[n] = '\0'; // Null-terminate the string
 
@@ -339,7 +341,15 @@ void SplitFlapWebServer::startWebServer() {
     }
 
     server.on("/settings", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        request->send(200, "application/json", settings.toJson().as<String>());
+        JsonDocument doc = settings.toJson();
+        // Mask sensitive credential fields before sending to the browser
+        static const char *sensitiveKeys[] = {"password", "mqtt_pass", "otaPass"};
+        for (const char *key : sensitiveKeys) {
+            if (doc[key].is<String>() && doc[key].as<String>().length() > 0) {
+                doc[key] = "********";
+            }
+        }
+        request->send(200, "application/json", doc.as<String>());
     });
 
     server.on("/settings/reset", HTTP_POST, [this](AsyncWebServerRequest *request) {
@@ -463,9 +473,9 @@ void SplitFlapWebServer::startWebServer() {
             
             JsonObject obj = json.as<JsonObject>();
             
-            // Parse delay (in seconds, convert to ms), default 5 seconds
+            // Parse delay (in seconds, convert to ms), default 5 seconds, max 3600 seconds
             if (obj["delay"].is<int>()) {
-                testModeDelay = obj["delay"].as<int>() * 1000;
+                testModeDelay = (unsigned long)constrain(obj["delay"].as<int>(), 1, 3600) * 1000;
             } else {
                 testModeDelay = 5000;
             }
@@ -504,7 +514,6 @@ void SplitFlapWebServer::startWebServer() {
         }
 
         Serial.println("Received settings update request");
-        Serial.println(json.as<String>());
 
         bool rebootRequired = false;
         bool reconnect = false;
@@ -526,10 +535,23 @@ void SplitFlapWebServer::startWebServer() {
 
         if (json["mdns"].is<String>() && json["mdns"].as<String>() != settings.getString("mdns")) {
             reconnect = true;
-            response["message"] =
-                "Settings updated successfully, mDNS name has changed, " "automatically redirecting to http://" +
-                json["mdns"].as<String>() + ".local...";
-            response["redirect"] = "http://" + json["mdns"].as<String>() + ".local/settings.html";
+            String newMdns = json["mdns"].as<String>();
+            // Validate mDNS hostname: only alphanumeric and hyphens allowed (RFC 1123)
+            bool mdnsValid = newMdns.length() > 0;
+            for (unsigned int i = 0; i < newMdns.length() && mdnsValid; i++) {
+                char c = newMdns[i];
+                if (!isalnum(c) && c != '-') {
+                    mdnsValid = false;
+                }
+            }
+            if (mdnsValid) {
+                response["message"] =
+                    "Settings updated successfully, mDNS name has changed, " "automatically redirecting to http://" +
+                    newMdns + ".local...";
+                response["redirect"] = "http://" + newMdns + ".local/settings.html";
+            } else {
+                response["message"] = "Settings updated successfully, mDNS name has changed.";
+            }
         }
 
         if ((json["mqtt_server"].is<String>() && json["mqtt_server"].as<String>() != settings.getString("mqtt_server")

@@ -1,5 +1,23 @@
 #include "SplitFlapMqtt.h"
 
+// Escape special characters in a string for use inside a JSON string value
+static String jsonEscape(const String &s) {
+    String out;
+    out.reserve(s.length() * 2);
+    for (unsigned int i = 0; i < s.length(); i++) {
+        char c = s[i];
+        switch (c) {
+            case '"':  out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\n': out += "\\n";  break;
+            case '\r': out += "\\r";  break;
+            case '\t': out += "\\t";  break;
+            default:   out += c;      break;
+        }
+    }
+    return out;
+}
+
 SplitFlapMqtt::SplitFlapMqtt(JsonSettings &settings, WiFiClient &wifiClient)
     : settings(settings), wifiClient(wifiClient), mqttClient(wifiClient), display(nullptr) {}
 
@@ -49,15 +67,18 @@ void SplitFlapMqtt::connectToMqtt() {
         if (mqttClient.connected()) {
             Serial.println("[MQTT] Connected to broker");
 
+            String safeMdns = jsonEscape(mdns);
+            String safeName = jsonEscape(name);
+
             // clang-format off
             String payload_text = "{"
                 "\"name\":\"Display\","
-                "\"unique_id\":\"text_" + mdns + "\","
+                "\"unique_id\":\"text_" + safeMdns + "\","
                 "\"command_topic\":\"" + topic_command + "\","
                 "\"availability_topic\":\"" + topic_avail + "\","
                 "\"device\":{"
-                    "\"identifiers\":[\"splitflap_" + mdns + "\"],"
-                    "\"name\":\"" + name + "\","
+                    "\"identifiers\":[\"splitflap_" + safeMdns + "\"],"
+                    "\"name\":\"" + safeName + "\","
                     "\"manufacturer\":\"SplitFlap\","
                     "\"model\":\"SplitFlap Display\","
                     "\"sw_version\":\"1.0.0\""
@@ -66,13 +87,13 @@ void SplitFlapMqtt::connectToMqtt() {
 
             String payload_sensor = "{"
                 "\"name\":\"Currently Displayed\","
-                "\"unique_id\":\"sensor_" + mdns + "\","
+                "\"unique_id\":\"sensor_" + safeMdns + "\","
                 "\"state_topic\":\"" + topic_state + "\","
                 "\"availability_topic\":\"" + topic_avail + "\","
                 "\"entity_category\":\"diagnostic\","
                 "\"device\":{"
-                    "\"identifiers\":[\"splitflap_" + mdns + "\"],"
-                    "\"name\":\"" + name + "\","
+                    "\"identifiers\":[\"splitflap_" + safeMdns + "\"],"
+                    "\"name\":\"" + safeName + "\","
                     "\"manufacturer\":\"SplitFlap\","
                     "\"model\":\"SplitFlap Display\","
                     "\"sw_version\":\"1.0.0\""

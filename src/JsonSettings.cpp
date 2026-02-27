@@ -103,11 +103,18 @@ bool JsonSettings::fromJson(JsonDocument settings) {
 
     for (JsonPair kv : settings.as<JsonObject>()) {
         const char *key = kv.key().c_str();
-        JsonSetting setting = this->find(key);
+
+        // Skip unknown keys gracefully instead of throwing
+        auto it = this->map.find(key);
+        if (it == this->map.end()) {
+            continue;
+        }
+        JsonSetting setting = it->second;
 
         if (! setting.validate(kv.value().as<String>())) {
             lastValidationError = setting.getLastValidationError();
             lastValidationKey = String(key);
+            preferences.end();
             return false;
         }
 
