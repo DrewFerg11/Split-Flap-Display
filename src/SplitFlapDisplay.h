@@ -25,6 +25,8 @@ extern JsonSettings settings;
 #define CLUSTER_PRINTF(...) if (settings.getInt("clusterLogging") != 0) Serial.printf(__VA_ARGS__)
 
 #define MAX_MODULES 64 // Realistic limit: 8 muxes × 8 channels × 1 address typical
+// Sentinel meaning "full speed" — moveTo() clamps this to settings "maxVel" at runtime.
+// Used only as a default parameter value where a compile-time constant is required.
 #define MAX_RPM 15.0f
 
 class SplitFlapMqtt;

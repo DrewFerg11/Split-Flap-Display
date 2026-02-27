@@ -267,13 +267,19 @@ When the user sends "HELLO WORLD SPLIT FLAP" via the web UI or MQTT, the main ES
 - [x] Tolerate late-joining workers (isWorkerAlive() timeout; workers respond on any subsequent ping)
 
 ### Phase 2: Command Distribution
-- [ ] Main: Parse incoming text and split across display map using `CLUSTER_OFFSET`/`CLUSTER_DISPLAY_COUNT`
-- [ ] Main: Send PREPARE with per-ESP display assignments
-- [ ] Worker: Receive PREPARE command, map to local bus/mux/channel, calculate target positions
-- [ ] Worker: Send READY response with prep time
-- [ ] Main: Send GO signal, execute locally simultaneously
-- [ ] Worker: Execute on GO signal
-- [ ] Main: Send HOME command (broadcast, all ESPs home their modules)
+- [x] Main: Parse incoming text and split across display map using `CLUSTER_OFFSET`/`CLUSTER_DISPLAY_COUNT`
+- [x] Main: Send PREPARE with per-ESP display assignments
+- [x] Worker: Receive PREPARE command, map to local bus/mux/channel, calculate target positions
+- [x] Worker: Send READY response with prep time
+- [x] Main: Send GO signal, execute locally simultaneously
+- [x] Worker: Execute on GO signal
+- [x] Main: Send HOME command (broadcast, all ESPs home their modules)
+
+### Phase 2.5: Web UI Cluster Control
+- [ ] Web server: Add `/api/displays` endpoint that returns total display count from `cluster.getTotalDisplayCount()` and per-display metadata (offset, modules)
+- [ ] Web UI: Mode 7 (per-display) dynamically renders input boxes for all logical displays across the cluster — not just the main's local displays
+- [ ] Web UI: Per-display submit routes through `cluster.distributeWrite()` (already wired in `.ino`, just needs the front-end to send the right count)
+- [ ] Worker web UI: Minimal read-only status page showing last received text, last command timestamp, and main alive/dead status
 
 ### Phase 3: Synchronized Execution
 - [ ] Implement two-phase commit with timeout (50ms for READY, proceed without stragglers)

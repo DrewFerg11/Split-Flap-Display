@@ -94,7 +94,7 @@ JsonSettings settings = JsonSettings("config", {
     {"i2cTransactionTime", JsonSetting(65)},     // Estimated microseconds per I2C transaction (for util % calc)
     {"quickHome", JsonSetting(true)},            // Skip label/blank phases during home (faster)
     {"halfStepping", JsonSetting(false)},        // Use 8-phase half-stepping for 4096 steps/rot (double resolution)
-    {"maxVel", JsonSetting(12.0f)},              // Motor datasheet: 15 RPM | Practical max (I2C): ~10 RPM | Typical achieved: 8-11 RPM
+    {"maxVel", JsonSetting(14.0f)},              // Motor datasheet: 15 RPM | Practical max (I2C): ~10 RPM | Typical achieved: 8-11 RPM
     // Accuracy Settings
     {"accuracyLogging", JsonSetting(false)},     // Enable detailed accuracy/calibration debug output
     {"stepSettleUs", JsonSetting(75)},           // Microseconds to wait after each step for motor settling (0=max speed, 100-200=recommended)
@@ -162,7 +162,7 @@ void setup() {
         cluster.setDisplay(&display);
         webServer.startWebServer();
 
-        display.homeAllChannels(MAX_RPM, settings.getInt("quickHome") != 0);
+        cluster.distributeHome(MAX_RPM, settings.getInt("quickHome") != 0);
 
         if (display.getNumModules() == 8) {
             display.writeString("Wifi Err");
@@ -182,7 +182,7 @@ void setup() {
         splitflapMqtt.setDisplay(&display);
         display.setMqtt(&splitflapMqtt);
 
-        display.homeAllChannels(MAX_RPM, settings.getInt("quickHome") != 0);
+        cluster.distributeHome(MAX_RPM, settings.getInt("quickHome") != 0);
     }
 }
 
@@ -277,13 +277,29 @@ void randomTest() {
 
 void perDisplayMode() {
     if (webServer.hasDisplayTextsUpdated()) {
-        int numDisplays = display.getNumDisplays();
-        String* displayTexts = new String[numDisplays];
-        for (int i = 0; i < numDisplays; i++) {
-            displayTexts[i] = webServer.getDisplayText(i);
+        if (cluster.isWorker()) {
+            // Workers receive display commands from main via PREPARE/GO,
+            // not from their local web UI.
+            webServer.clearDisplayTextsUpdated();
+            return;
         }
-        display.writeDisplays(displayTexts, MAX_RPM, webServer.getDisplayCentering());
-        delete[] displayTexts;
+
+        // Build texts array indexed by logical display (0-based global).
+        // In standalone mode numTexts == local display count.
+        // In main cluster mode numTexts == full cluster display count
+        // (grows as workers check in via pong).
+        int numTexts = cluster.isStandalone()
+                           ? display.getNumDisplays()
+                           : cluster.getTotalDisplayCount();
+        numTexts = max(numTexts, 1);  // guard against zero before workers pong
+
+        String* texts = new String[numTexts];
+        for (int i = 0; i < numTexts; i++) {
+            texts[i] = (i < 8) ? webServer.getDisplayText(i) : String("");
+        }
+
+        cluster.distributeWrite(texts, numTexts, MAX_RPM, webServer.getDisplayCentering());
+        delete[] texts;
         webServer.clearDisplayTextsUpdated();
     }
 }
