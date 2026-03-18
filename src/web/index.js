@@ -11,6 +11,7 @@ document.addEventListener("alpine:init", () => {
             settings: true,
             timezones: true,
             displayConfig: true,
+            clusterStatus: true,
         },
         saving: false,
         dialog: {
@@ -26,6 +27,18 @@ document.addEventListener("alpine:init", () => {
         errors: {},
         timezones: {},
         displayConfig: [], // Will be populated from /api/display-config
+        clusterStatus: {
+            role: "standalone",
+            id: "1",
+            totalDisplays: 0,
+            aliveWorkers: 0,
+            workers: [],
+            mainAlive: false,
+            lastCmdAgoSecs: -1,
+            lastTexts: [],
+            localModules: 0,
+        },
+        clusterStatusPollId: null,
 
         // Control page specific
         singleMode: true,
@@ -51,6 +64,14 @@ document.addEventListener("alpine:init", () => {
                 this.loading.timezones ||
                 this.loading.displayConfig
             );
+        },
+
+        get isWorker() {
+            return this.clusterStatus.role === "worker";
+        },
+
+        get isMainCluster() {
+            return this.clusterStatus.role === "main";
         },
 
         get addressArray() {
@@ -257,12 +278,14 @@ document.addEventListener("alpine:init", () => {
 
         init() {
             this.loadSettings();
+            this.loadClusterStatus();
             if (type === "Settings") {
                 this.loadTimezones();
             }
             if (type === "Control") {
                 this.loadDisplayConfig();
                 this.startTestModePolling();
+                this.startClusterStatusPolling();
             }
         },
 
@@ -290,11 +313,35 @@ document.addEventListener("alpine:init", () => {
             fetch("/api/display-config")
                 .then((res) => res.json())
                 .then((data) => {
-                    this.displayConfig = data.displays || [];
-                    // Initialize displayTexts with empty strings for each display
-                    this.displayTexts = {};
-                    this.displayConfig.forEach((disp) => {
-                        this.displayTexts[`dis${disp.index + 1}`] = "";
+                    // Sort by index so worker displays appear in global order
+                    // and deduplicate by index (guards against stale NVS offsets
+                    // on a freshly-flashed worker reporting the same range as main)
+                    const seen = new Set();
+                    const sorted = (data.displays || [])
+                        .slice()
+                        .sort((a, b) => a.index - b.index)
+                        .filter((d) => {
+                            if (seen.has(d.index)) return false;
+                            seen.add(d.index);
+                            return true;
+                        });
+                    this.displayConfig = sorted;
+                    // Only replace the array when the set of indices actually changes.
+                    // Replacing the array reference forces Alpine to tear down and
+                    // rebuild every x-for input element, losing focus and in-progress text.
+                    const currentKeys = this.displayConfig
+                        .map((d) => d.index)
+                        .join(",");
+                    const newKeys = sorted.map((d) => d.index).join(",");
+                    if (newKeys !== currentKeys) {
+                        this.displayConfig = sorted;
+                    }
+                    // Merge: add keys for newly-seen displays, preserve existing values
+                    sorted.forEach((disp) => {
+                        const key = `dis${disp.index + 1}`;
+                        if (!(key in this.displayTexts)) {
+                            this.displayTexts[key] = "";
+                        }
                     });
                 })
                 .catch(() =>
@@ -323,6 +370,50 @@ document.addEventListener("alpine:init", () => {
                     ),
                 )
                 .finally(() => (this.loading.timezones = false));
+        },
+
+        loadClusterStatus() {
+            fetch("/api/cluster-status")
+                .then((res) => res.json())
+                .then((data) => {
+                    const prevAlive = this.clusterStatus.aliveWorkers || 0;
+                    this.clusterStatus = Object.assign(
+                        {
+                            role: "standalone",
+                            id: "1",
+                            totalDisplays: 0,
+                            aliveWorkers: 0,
+                            workers: [],
+                            mainAlive: false,
+                            lastCmdAgoSecs: -1,
+                            lastTexts: [],
+                            localModules: 0,
+                        },
+                        data,
+                    );
+                    // Only refresh display config when the alive worker count changes
+                    // (avoids wiping the form every 5s)
+                    if (
+                        type === "Control" &&
+                        this.isMainCluster &&
+                        this.clusterStatus.aliveWorkers !== prevAlive
+                    ) {
+                        this.loadDisplayConfig();
+                    }
+                })
+                .catch(() => {})
+                .finally(() => {
+                    this.loading.clusterStatus = false;
+                });
+        },
+
+        startClusterStatusPolling() {
+            if (this.clusterStatusPollId) {
+                clearInterval(this.clusterStatusPollId);
+            }
+            this.clusterStatusPollId = setInterval(() => {
+                this.loadClusterStatus();
+            }, 5000);
         },
 
         startTestModePolling() {

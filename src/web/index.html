@@ -21,6 +21,7 @@
             x-data="settings"
             class="flex flex-col items-center justify-center bg-neutral-800 shadow-[0_0_30px_10px_#222] p-6 m-6 rounded-lg max-w-lg w-11/12 text-center"
         >
+            <!-- Header -->
             <div class="relative flex items-center w-full mb-6">
                 <h1
                     class="relative text-7xl font-bold mx-auto px-4 line-through decoration-neutral-800 decoration-6px"
@@ -28,281 +29,417 @@
                 ></h1>
             </div>
 
-            <label class="block text-left text-lg mb-4">Select Mode:</label>
-            <select
-                class="w-full p-3 mb-6 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
-                x-model.number="settings.mode"
+            <!-- Cluster status panel (main role only) -->
+            <div
+                class="w-full mb-4 p-3 rounded-md bg-neutral-700 text-sm"
+                x-show="isMainCluster"
+                x-cloak
             >
-                <!-- <option value="2">Date</option>
-                <option value="3">Time</option>
-                <option value="4">Count</option>
-                <option value="6">Custom Text</option>
-                <option value="5">Random</option> -->
-                <option value="7">Per-Display Text</option>
-                <option value="8">All Display Test</option>
-            </select>
-
-            <template x-if="settings.mode == 6">
-                <div class="w-full">
-                    <div class="flex items-center justify-between gap-4 mb-4">
-                        <div class="flex items-center gap-4">
-                            <label
-                                class="text-lg font-medium"
-                                x-text="singleMode ? 'Single Word' : 'Multiple Words'"
-                            ></label>
-                            <label class="relative inline-block w-12 h-6">
-                                <input
-                                    type="checkbox"
-                                    x-model="singleMode"
-                                    class="hidden"
-                                />
-                                <span
-                                    class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
-                                ></span>
-                                <span
-                                    class="absolute left-1 top-1 w-4 h-4 bg-neutral-300 cursor-pointer rounded-full transition-transform duration-300"
-                                    :class="singleMode ? 'translate-x-0' : 'translate-x-6'"
-                                ></span>
-                            </label>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <label class="text-lg font-medium"
-                                >Center Text</label
-                            >
-                            <label class="relative inline-block w-12 h-6">
-                                <input
-                                    type="checkbox"
-                                    x-model="centerText"
-                                    class="hidden"
-                                />
-                                <span
-                                    class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
-                                ></span>
-                                <span
-                                    class="absolute left-1 top-1 w-4 h-4 cursor-pointer rounded-full transition-transform duration-300"
-                                    :class="centerText ? 'translate-x-6 bg-green-600' : 'translate-x-0 bg-neutral-300'"
-                                ></span>
-                            </label>
-                        </div>
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <span class="font-semibold text-green-400"
+                        >&#9646; Cluster Main</span
+                    >
+                    <span class="text-gray-400 text-xs">
+                        <span x-text="clusterStatus.totalDisplays"></span>
+                        displays &nbsp;&bull;&nbsp;
+                        <span x-text="clusterStatus.aliveWorkers"></span>/<span
+                            x-text="clusterStatus.workers ? clusterStatus.workers.length : 0"
+                        ></span>
+                        workers
+                    </span>
+                </div>
+                <div
+                    class="flex gap-2 mt-2 flex-wrap"
+                    x-show="clusterStatus.workers && clusterStatus.workers.length > 0"
+                    x-cloak
+                >
+                    <!-- Main ESP itself (always online — this is the device we're talking to) -->
+                    <div
+                        class="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-green-700 text-green-100"
+                    >
+                        <span class="text-green-300">●</span>
+                        <span x-text="`ESP ${clusterStatus.id}`"></span>
+                        <span class="opacity-75">(this device)</span>
                     </div>
-
-                    <div class="w-full" x-show="singleMode" x-cloak>
-                        <label for="singleWord" class="block text-left text-lg"
-                            >Custom Text:</label
-                        >
-                        <input
-                            type="text"
-                            x-model="singleWord"
-                            id="singleWord"
-                            placeholder="Enter a single word"
-                            class="w-full p-3 mt-2 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
-                        />
-                    </div>
-
-                    <div class="w-full mt-6" x-show="! singleMode" x-cloak>
-                        <label class="block text-left text-lg"
-                            >Word List:</label
-                        >
+                    <template
+                        x-for="w in (clusterStatus.workers || [])"
+                        :key="w.id"
+                    >
                         <div
-                            class="flex flex-wrap gap-2 p-3 rounded-lg min-h-[50px] items-center bg-neutral-700 transition-colors"
-                            :class="multiWords.length > 0 ? 'border-green-600 border-2' : 'border-transparent border-2'"
+                            class="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium"
+                            :class="w.alive ? 'bg-green-800 text-green-200' : 'bg-neutral-600 text-gray-400'"
                         >
-                            <template x-if="multiWords.length === 0">
-                                <span class="text-neutral-400 text-sm italic"
-                                    >No words added yet</span
-                                >
-                            </template>
-
-                            <template
-                                x-for="(word, index) in multiWords"
-                                :key="index"
-                            >
-                                <span
-                                    class="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-full text-sm"
-                                >
-                                    <span x-text="word"></span>
-                                    <button
-                                        class="font-bold text-white hover:text-neutral-200"
-                                        x-on:click="removeWord(index)"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            </template>
+                            <span
+                                :class="w.alive ? 'text-green-400' : 'text-gray-500'"
+                                x-text="w.alive ? '●' : '○'"
+                            ></span>
+                            <span x-text="`ESP ${w.id}`"></span>
+                            <span
+                                x-show="w.alive"
+                                class="opacity-75"
+                                x-text="`(${w.displayCount}d)`"
+                            ></span>
                         </div>
+                    </template>
+                </div>
+            </div>
 
-                        <div class="flex gap-4 items-center mt-4">
-                            <input
-                                class="flex-1 p-3 text-lg border border-neutral-600 rounded-md bg-neutral-700 text-white"
-                                type="text"
-                                placeholder="Type a word"
-                                x-model="multiWord"
-                            />
-                            <button
-                                class="p-3 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
-                                x-on:click="addWord"
-                            >
-                                Add
-                            </button>
-                        </div>
+            <!-- Worker status view (worker ESP only) -->
+            <div x-show="isWorker" x-cloak class="w-full">
+                <div class="mb-4 flex items-center gap-3 flex-wrap">
+                    <span
+                        class="px-3 py-1 rounded-full text-sm font-semibold bg-blue-700 text-blue-100"
+                    >
+                        Worker ESP <span x-text="clusterStatus.id"></span>
+                    </span>
+                    <span
+                        class="px-3 py-1 rounded-full text-sm font-semibold"
+                        :class="clusterStatus.mainAlive ? 'bg-green-700 text-green-100' : 'bg-red-900 text-red-300'"
+                        x-text="clusterStatus.mainAlive ? '● Main Connected' : '○ Main Offline'"
+                    ></span>
+                </div>
 
-                        <div class="mt-4">
-                            <label for="delay" class="block text-left text-lg"
-                                >Pause Between Words (seconds):</label
-                            >
-                            <input
-                                class="w-full p-3 mt-2 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
-                                type="number"
-                                id="delay"
-                                min="1"
-                                placeholder="Enter delay"
-                                x-model="delay"
-                            />
-                        </div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="p-3 rounded-md bg-neutral-700 text-center">
+                        <div class="text-xs text-gray-400">Local Modules</div>
+                        <div
+                            class="text-2xl font-bold"
+                            x-text="clusterStatus.localModules || 0"
+                        ></div>
+                    </div>
+                    <div class="p-3 rounded-md bg-neutral-700 text-center">
+                        <div class="text-xs text-gray-400">Last Command</div>
+                        <div
+                            class="text-sm font-semibold"
+                            x-text="clusterStatus.lastCmdAgoSecs >= 0 ? clusterStatus.lastCmdAgoSecs + 's ago' : 'None'"
+                        ></div>
                     </div>
                 </div>
-            </template>
 
-            <template x-if="settings.mode == 7">
-                <div class="w-full">
-                    <div
-                        class="text-center py-4 text-gray-400"
-                        x-show="loading.displayConfig"
-                        x-cloak
-                    >
-                        Loading display configuration...
+                <div
+                    class="mt-3 p-3 rounded-md bg-neutral-700"
+                    x-show="clusterStatus.lastTexts && clusterStatus.lastTexts.length > 0"
+                    x-cloak
+                >
+                    <div class="text-xs text-gray-400 mb-2">
+                        Last Received Text
                     </div>
-
-                    <div
-                        class="text-sm text-gray-400 text-center py-4"
-                        x-show="!loading.displayConfig && displayConfig.length === 0"
-                        x-cloak
-                    >
-                        No displays configured
+                    <div class="flex flex-wrap gap-2">
+                        <template
+                            x-for="(text, i) in (clusterStatus.lastTexts || [])"
+                            :key="i"
+                        >
+                            <span
+                                class="px-2 py-1 rounded bg-neutral-600 text-sm font-mono"
+                                x-text="text || '(empty)'"
+                            ></span>
+                        </template>
                     </div>
+                </div>
 
-                    <div
-                        x-show="!loading.displayConfig && displayConfig.length > 0"
-                        x-cloak
+                <p class="mt-4 text-xs text-gray-500 text-center">
+                    Status refreshes every 5 seconds.
+                    <a
+                        href="settings.html"
+                        class="text-amber-500 hover:text-amber-400"
+                        >Settings</a
                     >
-                        <div class="flex items-center gap-2 mb-4">
-                            <label class="text-sm font-medium"
-                                >Center Text</label
-                            >
-                            <label class="relative inline-block w-12 h-6">
-                                <input
-                                    type="checkbox"
-                                    id="centerDisplayText"
-                                    x-model="centerDisplayText"
-                                    class="hidden"
-                                />
-                                <span
-                                    class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
-                                ></span>
-                                <span
-                                    class="absolute left-1 top-1 w-4 h-4 cursor-pointer rounded-full transition-transform duration-300"
-                                    :class="centerDisplayText ? 'translate-x-6 bg-green-600' : 'translate-x-0 bg-neutral-300'"
-                                ></span>
-                            </label>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <template
-                                x-for="disp in displayConfig"
-                                :key="disp.index"
-                            >
-                                <div>
-                                    <label
-                                        :for="'dis' + (disp.index + 1)"
-                                        class="block text-sm mb-1 cursor-help"
-                                        :title="`Mux ${disp.mux}, Channel ${disp.channel}, Modules ${disp.modules}`"
-                                        x-text="`Display ${disp.index + 1}`"
-                                    ></label>
+                </p>
+            </div>
+
+            <!-- Normal control section (hidden for workers) -->
+            <div x-show="!isWorker" class="w-full">
+                <label class="block text-left text-lg mb-4">Select Mode:</label>
+                <select
+                    class="w-full p-3 mb-6 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                    x-model.number="settings.mode"
+                >
+                    <!-- <option value="2">Date</option>
+                    <option value="3">Time</option>
+                    <option value="4">Count</option>
+                    <option value="6">Custom Text</option>
+                    <option value="5">Random</option> -->
+                    <option value="7">Per-Display Text</option>
+                    <option value="8">All Display Test</option>
+                </select>
+
+                <template x-if="settings.mode == 6">
+                    <div class="w-full">
+                        <div
+                            class="flex items-center justify-between gap-4 mb-4"
+                        >
+                            <div class="flex items-center gap-4">
+                                <label
+                                    class="text-lg font-medium"
+                                    x-text="singleMode ? 'Single Word' : 'Multiple Words'"
+                                ></label>
+                                <label class="relative inline-block w-12 h-6">
                                     <input
-                                        type="text"
-                                        :id="'dis' + (disp.index + 1)"
-                                        x-model="displayTexts['dis' + (disp.index + 1)]"
-                                        :placeholder="'Text for display ' + (disp.index + 1)"
-                                        class="w-full p-2 text-sm border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                                        type="checkbox"
+                                        x-model="singleMode"
+                                        class="hidden"
                                     />
-                                </div>
-                            </template>
+                                    <span
+                                        class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                    ></span>
+                                    <span
+                                        class="absolute left-1 top-1 w-4 h-4 bg-neutral-300 cursor-pointer rounded-full transition-transform duration-300"
+                                        :class="singleMode ? 'translate-x-0' : 'translate-x-6'"
+                                    ></span>
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <label class="text-lg font-medium"
+                                    >Center Text</label
+                                >
+                                <label class="relative inline-block w-12 h-6">
+                                    <input
+                                        type="checkbox"
+                                        x-model="centerText"
+                                        class="hidden"
+                                    />
+                                    <span
+                                        class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                    ></span>
+                                    <span
+                                        class="absolute left-1 top-1 w-4 h-4 cursor-pointer rounded-full transition-transform duration-300"
+                                        :class="centerText ? 'translate-x-6 bg-green-600' : 'translate-x-0 bg-neutral-300'"
+                                    ></span>
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </template>
 
-            <template x-if="settings.mode == 8">
-                <div class="w-full">
-                    <p class="text-sm text-gray-400 mb-4">
-                        Cycles through all characters (space, A-Z, 0-9) on all
-                        displays simultaneously.
-                    </p>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
+                        <div class="w-full" x-show="singleMode" x-cloak>
                             <label
-                                for="testModeDelay"
-                                class="block text-sm mb-1"
+                                for="singleWord"
+                                class="block text-left text-lg"
+                                >Custom Text:</label
                             >
-                                Delay (seconds)
-                            </label>
                             <input
-                                type="number"
-                                id="testModeDelay"
-                                x-model.number="testModeDelay"
-                                min="1"
-                                max="60"
-                                placeholder="5"
-                                class="w-full p-2 text-sm border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                                type="text"
+                                x-model="singleWord"
+                                id="singleWord"
+                                placeholder="Enter a single word"
+                                class="w-full p-3 mt-2 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
                             />
                         </div>
-                        <div>
-                            <label
-                                for="testModeSkip"
-                                class="block text-sm mb-1"
+
+                        <div class="w-full mt-6" x-show="! singleMode" x-cloak>
+                            <label class="block text-left text-lg"
+                                >Word List:</label
                             >
-                                Skip Characters
-                            </label>
-                            <input
-                                type="number"
-                                id="testModeSkip"
-                                x-model.number="testModeSkip"
-                                min="1"
-                                max="36"
-                                placeholder="1"
-                                class="w-full p-2 text-sm border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
-                            />
+                            <div
+                                class="flex flex-wrap gap-2 p-3 rounded-lg min-h-[50px] items-center bg-neutral-700 transition-colors"
+                                :class="multiWords.length > 0 ? 'border-green-600 border-2' : 'border-transparent border-2'"
+                            >
+                                <template x-if="multiWords.length === 0">
+                                    <span
+                                        class="text-neutral-400 text-sm italic"
+                                        >No words added yet</span
+                                    >
+                                </template>
+                                <template
+                                    x-for="(word, index) in multiWords"
+                                    :key="index"
+                                >
+                                    <span
+                                        class="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-full text-sm"
+                                    >
+                                        <span x-text="word"></span>
+                                        <button
+                                            class="font-bold text-white hover:text-neutral-200"
+                                            x-on:click="removeWord(index)"
+                                        >
+                                            ×
+                                        </button>
+                                    </span>
+                                </template>
+                            </div>
+
+                            <div class="flex gap-4 items-center mt-4">
+                                <input
+                                    class="flex-1 p-3 text-lg border border-neutral-600 rounded-md bg-neutral-700 text-white"
+                                    type="text"
+                                    placeholder="Type a word"
+                                    x-model="multiWord"
+                                />
+                                <button
+                                    class="p-3 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
+                                    x-on:click="addWord"
+                                >
+                                    Add
+                                </button>
+                            </div>
+
+                            <div class="mt-4">
+                                <label
+                                    for="delay"
+                                    class="block text-left text-lg"
+                                    >Pause Between Words (seconds):</label
+                                >
+                                <input
+                                    class="w-full p-3 mt-2 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                                    type="number"
+                                    id="delay"
+                                    min="1"
+                                    placeholder="Enter delay"
+                                    x-model="delay"
+                                />
+                            </div>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2">
-                        Skip=1 shows every character. Skip=2 shows every other
-                        character, etc.
-                    </p>
-                    <div class="grid grid-cols-2 gap-4 mt-4">
-                        <div class="p-3 rounded-md bg-neutral-700 text-center">
-                            <div class="text-xs text-gray-400">
-                                Current Character
+                </template>
+
+                <template x-if="settings.mode == 7">
+                    <div class="w-full">
+                        <div
+                            class="text-center py-4 text-gray-400"
+                            x-show="loading.displayConfig || loading.clusterStatus"
+                            x-cloak
+                        >
+                            Loading display configuration...
+                        </div>
+
+                        <div
+                            class="text-sm text-gray-400 text-center py-4"
+                            x-show="!loading.displayConfig && !loading.clusterStatus && displayConfig.length === 0"
+                            x-cloak
+                        >
+                            No displays configured
+                        </div>
+
+                        <div
+                            x-show="!loading.displayConfig && !loading.clusterStatus && displayConfig.length > 0"
+                            x-cloak
+                        >
+                            <div class="flex items-center gap-2 mb-4">
+                                <label class="text-sm font-medium"
+                                    >Center Text</label
+                                >
+                                <label class="relative inline-block w-12 h-6">
+                                    <input
+                                        type="checkbox"
+                                        id="centerDisplayText"
+                                        x-model="centerDisplayText"
+                                        class="hidden"
+                                    />
+                                    <span
+                                        class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                    ></span>
+                                    <span
+                                        class="absolute left-1 top-1 w-4 h-4 cursor-pointer rounded-full transition-transform duration-300"
+                                        :class="centerDisplayText ? 'translate-x-6 bg-green-600' : 'translate-x-0 bg-neutral-300'"
+                                    ></span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <template
+                                    x-for="disp in displayConfig"
+                                    :key="disp.index"
+                                >
+                                    <div>
+                                        <label
+                                            :for="'dis' + (disp.index + 1)"
+                                            class="block text-sm mb-1 cursor-help"
+                                            :class="disp.local === false ? 'text-blue-300' : ''"
+                                            :title="disp.local === false ? `Worker ESP ${disp.worker}, Channel ${disp.channel}` : `Mux ${disp.mux}, Channel ${disp.channel}, Modules ${disp.modules}`"
+                                            x-text="disp.local === false ? `Display ${disp.index + 1} (ESP ${disp.worker})` : `Display ${disp.index + 1}`"
+                                        ></label>
+                                        <input
+                                            type="text"
+                                            :id="'dis' + (disp.index + 1)"
+                                            x-model="displayTexts['dis' + (disp.index + 1)]"
+                                            :placeholder="'Text for display ' + (disp.index + 1)"
+                                            class="w-full p-2 text-sm border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                                        />
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="settings.mode == 8">
+                    <div class="w-full">
+                        <p class="text-sm text-gray-400 mb-4">
+                            Cycles through all characters (space, A-Z, 0-9) on
+                            all displays simultaneously.
+                        </p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    for="testModeDelay"
+                                    class="block text-sm mb-1"
+                                >
+                                    Delay (seconds)
+                                </label>
+                                <input
+                                    type="number"
+                                    id="testModeDelay"
+                                    x-model.number="testModeDelay"
+                                    min="1"
+                                    max="60"
+                                    placeholder="5"
+                                    class="w-full p-2 text-sm border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    for="testModeSkip"
+                                    class="block text-sm mb-1"
+                                >
+                                    Skip Characters
+                                </label>
+                                <input
+                                    type="number"
+                                    id="testModeSkip"
+                                    x-model.number="testModeSkip"
+                                    min="1"
+                                    max="36"
+                                    placeholder="1"
+                                    class="w-full p-2 text-sm border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
+                                />
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Skip=1 shows every character. Skip=2 shows every
+                            other character, etc.
+                        </p>
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            <div
+                                class="p-3 rounded-md bg-neutral-700 text-center"
+                            >
+                                <div class="text-xs text-gray-400">
+                                    Current Character
+                                </div>
+                                <div
+                                    class="text-3xl font-bold"
+                                    x-text="testModeCurrentChar || ' '"
+                                ></div>
                             </div>
                             <div
-                                class="text-3xl font-bold"
-                                x-text="testModeCurrentChar || ' '"
-                            ></div>
-                        </div>
-                        <div class="p-3 rounded-md bg-neutral-700 text-center">
-                            <div class="text-xs text-gray-400">Cycle Count</div>
-                            <div
-                                class="text-3xl font-bold"
-                                x-text="testModeCycleCount"
-                            ></div>
+                                class="p-3 rounded-md bg-neutral-700 text-center"
+                            >
+                                <div class="text-xs text-gray-400">
+                                    Cycle Count
+                                </div>
+                                <div
+                                    class="text-3xl font-bold"
+                                    x-text="testModeCycleCount"
+                                ></div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </template>
-            <button
-                class="w-full p-3 mt-6 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
-                x-on:click="updateDisplay()"
-            >
-                Update Display
-            </button>
+                </template>
+
+                <button
+                    class="w-full p-3 mt-6 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
+                    x-on:click="updateDisplay()"
+                >
+                    Update Display
+                </button>
+            </div>
+            <!-- end normal control section -->
 
             <a
                 href="settings.html"

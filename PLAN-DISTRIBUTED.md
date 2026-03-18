@@ -276,10 +276,12 @@ When the user sends "HELLO WORLD SPLIT FLAP" via the web UI or MQTT, the main ES
 - [x] Main: Send HOME command (broadcast, all ESPs home their modules)
 
 ### Phase 2.5: Web UI Cluster Control
-- [ ] Web server: Add `/api/displays` endpoint that returns total display count from `cluster.getTotalDisplayCount()` and per-display metadata (offset, modules)
-- [ ] Web UI: Mode 7 (per-display) dynamically renders input boxes for all logical displays across the cluster — not just the main's local displays
-- [ ] Web UI: Per-display submit routes through `cluster.distributeWrite()` (already wired in `.ino`, just needs the front-end to send the right count)
-- [ ] Worker web UI: Minimal read-only status page showing last received text, last command timestamp, and main alive/dead status
+- [x] Web server: Add `/api/displays` endpoint that returns total display count from `cluster.getTotalDisplayCount()` and per-display metadata (offset, modules)
+- [x] Web server: Add `/api/cluster-status` endpoint (role, id, totalDisplays, alive workers with offset/count, worker last-executed text)
+- [x] Web UI: Mode 7 (per-display) dynamically renders input boxes for all logical displays across the cluster — not just the main's local displays; worker displays labeled with ESP number in blue
+- [x] Web UI: Per-display submit routes through `cluster.distributeWrite()` (already wired in `.ino`, display count now sourced from `cluster.getTotalDisplayCount()`)
+- [x] Web UI: Cluster status panel on main — shows total displays, alive worker count, per-worker ESP status badges
+- [x] Worker web UI: Minimal read-only status page showing Worker ESP id, Main alive/dead badge, local module count, last command age, and last received display texts; auto-refreshes every 5 seconds
 
 ### Phase 3: Synchronized Execution
 - [ ] Implement two-phase commit with timeout (50ms for READY, proceed without stragglers)

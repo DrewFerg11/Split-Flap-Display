@@ -12,12 +12,14 @@
 #include <time.h>
 
 class SplitFlapDisplay;
+class SplitFlapCluster;
 
 class SplitFlapWebServer {
   public:
     SplitFlapWebServer(JsonSettings &settings);
     void init();
     void setDisplay(SplitFlapDisplay *displayPtr);
+    void setCluster(SplitFlapCluster *clusterPtr);
     void setTimezone();
     void checkRebootRequired();
 
@@ -66,10 +68,15 @@ class SplitFlapWebServer {
     int getDateCheckInterval() { return checkDateInterval; }
 
     // Mode 7, Per-Display
-    String getDisplayText(int index) const { return displayTexts[index]; }
-    void setDisplayTexts(const String texts[8]) {
-        for (int i = 0; i < 8; i++) {
+    static const int MAX_DISPLAY_TEXTS = 32;
+    String getDisplayText(int index) const { return (index >= 0 && index < MAX_DISPLAY_TEXTS) ? displayTexts[index] : ""; }
+    void setDisplayTexts(const String* texts, int count) {
+        int n = min(count, MAX_DISPLAY_TEXTS);
+        for (int i = 0; i < n; i++) {
             displayTexts[i] = texts[i];
+        }
+        for (int i = n; i < MAX_DISPLAY_TEXTS; i++) {
+            displayTexts[i] = "";
         }
         displayTextsUpdated = true;
     }
@@ -96,6 +103,7 @@ class SplitFlapWebServer {
   private:
     JsonSettings &settings;
     SplitFlapDisplay *display;
+    SplitFlapCluster *cluster;
 
     String decodeURIComponent(String encodedString);
     void setInputString(String input) { inputString = input; }
@@ -119,7 +127,7 @@ class SplitFlapWebServer {
     String inputString;      // latest single input from user
     String writtenString;    // string for whatever is currently written to the display
 
-    String displayTexts[8];  // Mode 7: per-display texts (dis1-dis8)
+    String displayTexts[MAX_DISPLAY_TEXTS];  // Mode 7: per-display texts (dis1-dis32)
     bool displayTextsUpdated; // Flag to indicate new display texts
     bool displayCentering;    // Whether to center text in per-display mode
     

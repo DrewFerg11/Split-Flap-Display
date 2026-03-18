@@ -1,4 +1,5 @@
 #include "SplitFlapWebServer.h"
+#include "SplitFlapCluster.h"
 #include "SplitFlapDisplay.h"
 
 #include <ArduinoJson.h>
@@ -17,16 +18,20 @@
 SplitFlapWebServer::SplitFlapWebServer(JsonSettings &settings)
     : settings(settings), server(80), multiWordDelay(1000), rebootRequired(false), attemptReconnect(false),
       multiWordCurrentIndex(0), numMultiWords(0), wifiCheckInterval(1000), connectionMode(0), checkDateInterval(250),
-      centering(1), display(nullptr), displayTextsUpdated(false), displayCentering(true) {
+      centering(1), display(nullptr), cluster(nullptr), displayTextsUpdated(false), displayCentering(true) {
     lastSwitchMultiTime = millis();
     currentMode = settings.getInt("mode");  // Load mode from settings on startup
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < MAX_DISPLAY_TEXTS; i++) {
         displayTexts[i] = "";
     }
 }
 
 void SplitFlapWebServer::setDisplay(SplitFlapDisplay *displayPtr) {
     display = displayPtr;
+}
+
+void SplitFlapWebServer::setCluster(SplitFlapCluster *clusterPtr) {
+    cluster = clusterPtr;
 }
 
 void SplitFlapWebServer::init() {
@@ -356,24 +361,88 @@ void SplitFlapWebServer::startWebServer() {
 
     // GET /api/display-config - Return display configuration info
     server.on("/api/display-config", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        if (!display) {
-            request->send(500, "application/json", "{\"error\":\"Display not initialized\"}");
-            return;
-        }
-        
         JsonDocument response;
         JsonArray displays = response["displays"].to<JsonArray>();
-        
-        // Get display configuration from the display object
-        int numDisplays = display->getNumDisplays();
-        for (int i = 0; i < numDisplays; i++) {
+
+        // Local displays — offset by cluster offset so indices are globally consistent
+        int localOffset = settings.getInt("clusterOffset");
+        int numLocalDisplays = display ? display->getNumDisplays() : 0;
+        for (int i = 0; i < numLocalDisplays; i++) {
             JsonObject disp = displays.add<JsonObject>();
-            disp["index"] = i;
-            disp["mux"] = display->getDisplayMux(i);
+            disp["index"]   = localOffset + i;
+            disp["mux"]     = display->getDisplayMux(i);
             disp["channel"] = display->getDisplayChannel(i);
             disp["modules"] = display->getDisplayModuleCount(i);
+            disp["local"]   = true;
         }
-        
+
+        // Remote displays (worker ESPs) — only available when this ESP is the cluster main
+        if (cluster != nullptr && cluster->isMain()) {
+            int maxW = cluster->getMaxWorkers();
+            for (int w = 1; w <= maxW; w++) {
+                if (!cluster->isWorkerAlive(w)) continue;
+                int wOffset = cluster->getWorkerOffset(w);
+                int wCount  = cluster->getWorkerDisplayCount(w);
+                for (int d = 0; d < wCount; d++) {
+                    JsonObject disp = displays.add<JsonObject>();
+                    disp["index"]   = wOffset + d;
+                    disp["mux"]     = 0;
+                    disp["channel"] = d;
+                    disp["modules"] = 0;  // module detail not reported by workers
+                    disp["local"]   = false;
+                    disp["worker"]  = w;
+                }
+            }
+        }
+
+        request->send(200, "application/json", response.as<String>());
+    });
+
+    // GET /api/cluster-status - Return cluster health and worker status
+    server.on("/api/cluster-status", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        JsonDocument response;
+
+        String role = settings.getString("clusterRole");
+        response["role"] = role;
+        response["id"]   = settings.getString("clusterId");
+
+        if (display) {
+            response["localModules"] = display->getNumModules();
+        }
+
+        if (cluster != nullptr) {
+            response["totalDisplays"] = cluster->getTotalDisplayCount();
+
+            if (cluster->isMain()) {
+                response["aliveWorkers"] = cluster->aliveWorkerCount();
+                JsonArray workers = response["workers"].to<JsonArray>();
+                int maxW = cluster->getMaxWorkers();
+                int mainId = settings.getString("clusterId").toInt();
+                for (int w = 1; w <= maxW; w++) {
+                    if (w == mainId) continue;  // skip self — main never pongs itself
+                    JsonObject wObj = workers.add<JsonObject>();
+                    wObj["id"]           = w;
+                    wObj["alive"]        = cluster->isWorkerAlive(w);
+                    wObj["displayCount"] = cluster->getWorkerDisplayCount(w);
+                    wObj["offset"]       = cluster->getWorkerOffset(w);
+                }
+            } else if (cluster->isWorker()) {
+                response["mainAlive"] = cluster->isMainAlive();
+                unsigned long lastMs = cluster->getLastExecutedMs();
+                response["lastCmdAgoSecs"] = lastMs > 0 ? (long)((millis() - lastMs) / 1000) : -1;
+                if (lastMs > 0) {
+                    JsonArray lastTexts = response["lastTexts"].to<JsonArray>();
+                    for (int i = 0; i < cluster->getLastExecutedCount(); i++) {
+                        lastTexts.add(cluster->getLastExecutedText(i));
+                    }
+                }
+            }
+        } else {
+            // No cluster object (should not happen at runtime, but guard anyway)
+            response["totalDisplays"] = display ? display->getNumDisplays() : 0;
+            response["aliveWorkers"]  = 0;
+        }
+
         request->send(200, "application/json", response.as<String>());
     });
 
@@ -396,31 +465,30 @@ void SplitFlapWebServer::startWebServer() {
             }
             
             JsonObject obj = json.as<JsonObject>();
-            int numDisplays = display->getNumDisplays();
+
+            // Total displays = cluster count when main, local count otherwise
+            int numDisplays = 0;
+            if (cluster != nullptr && cluster->isMain()) {
+                numDisplays = cluster->getTotalDisplayCount();
+            } else {
+                numDisplays = display->getNumDisplays();
+            }
+            numDisplays = max(numDisplays, 1);
+            numDisplays = min(numDisplays, MAX_DISPLAY_TEXTS);
             
             // Parse centering preference (default to true)
             bool center = obj["center"].is<bool>() ? obj["center"].as<bool>() : true;
             displayCentering = center;
             
-            // Dynamically allocate display texts array
+            // Parse display texts for all displays
             String* texts = new String[numDisplays];
-            
-            // Parse display texts based on actual configured displays
             for (int i = 0; i < numDisplays; i++) {
                 String key = "dis" + String(i + 1);
-                if (obj[key].is<String>()) {
-                    texts[i] = obj[key].as<String>();
-                } else {
-                    texts[i] = "";
-                }
+                texts[i] = obj[key].is<String>() ? obj[key].as<String>() : "";
             }
             
-            // Store display texts and set update flag (WebServer stores copy)
-            String textsCopy[8] = {"", "", "", "", "", "", "", ""};
-            for (int i = 0; i < numDisplays && i < 8; i++) {
-                textsCopy[i] = texts[i];
-            }
-            setDisplayTexts(textsCopy);
+            // Store display texts (with dynamic count) and set update flag
+            setDisplayTexts(texts, numDisplays);
             
             // Set mode to 7 (per-display mode)
             setMode(7);

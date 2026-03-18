@@ -150,6 +150,14 @@ void setup() {
 
     Serial.println("Init Web Server");
     webServer.init();
+
+    // Always push build-time cluster identity into NVS so a reflash never
+    // inherits stale offset/count/role from a previous firmware build.
+    settings.putString("clusterRole",         CLUSTER_ROLE);
+    settings.putString("clusterId",           CLUSTER_ID);
+    settings.putInt("clusterOffset",          CLUSTER_OFFSET);
+    settings.putInt("clusterDisplayCount",    CLUSTER_DISPLAY_COUNT);
+
     cluster.begin();
 
     if (! webServer.connectToWifi()) {
@@ -159,6 +167,7 @@ void setup() {
 
         display.init();
         webServer.setDisplay(&display);  // Pass display reference to web server
+        webServer.setCluster(&cluster);  // Pass cluster reference for API endpoints
         cluster.setDisplay(&display);
         webServer.startWebServer();
 
@@ -175,6 +184,7 @@ void setup() {
 
         display.init();
         webServer.setDisplay(&display);  // Pass display reference to web server
+        webServer.setCluster(&cluster);  // Pass cluster reference for API endpoints
         cluster.setDisplay(&display);
         webServer.startWebServer();
 
@@ -291,11 +301,12 @@ void perDisplayMode() {
         int numTexts = cluster.isStandalone()
                            ? display.getNumDisplays()
                            : cluster.getTotalDisplayCount();
-        numTexts = max(numTexts, 1);  // guard against zero before workers pong
+        numTexts = max(numTexts, 1);   // guard against zero before workers pong
+        numTexts = min(numTexts, (int)SplitFlapWebServer::MAX_DISPLAY_TEXTS);
 
         String* texts = new String[numTexts];
         for (int i = 0; i < numTexts; i++) {
-            texts[i] = (i < 8) ? webServer.getDisplayText(i) : String("");
+            texts[i] = webServer.getDisplayText(i);
         }
 
         cluster.distributeWrite(texts, numTexts, MAX_RPM, webServer.getDisplayCentering());

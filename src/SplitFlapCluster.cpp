@@ -414,6 +414,13 @@ void SplitFlapCluster::executeGo() {
     unsigned long elapsed = millis() - t0;
     CLUSTER_PRINTF("[CLUSTER] GO complete  cmd=%d  elapsed=%lums\n", pendingCmdId, elapsed);
 
+    // Record last executed command for worker status page
+    lastExecutedMs    = millis();
+    lastExecutedCount = min(pendingNumTexts, 8);
+    for (int i = 0; i < lastExecutedCount; i++) {
+        lastExecutedTexts[i] = pendingTexts[i];
+    }
+
     sendDone(pendingCmdId);
     pendingCmdId = -1;  // clear so a stale GO cannot re-trigger
 }

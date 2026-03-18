@@ -55,6 +55,24 @@ class SplitFlapCluster {
     // the local physical display count.
     int getTotalDisplayCount() const;
 
+    // ---- Status getters for web API ------------------------------------
+    String getRole()     const { return role; }
+    String getClusterId() const { return clusterId; }
+    int    getMaxWorkers() const { return maxWorkers; }
+    int    getWorkerOffset(int id) const {
+        return (id >= 1 && id <= maxWorkers) ? workerOffset[id] : 0;
+    }
+    int    getWorkerDisplayCount(int id) const {
+        return (id >= 1 && id <= maxWorkers) ? workerDisplayCount[id] : 0;
+    }
+
+    // ---- Last-executed tracking (worker status page) -------------------
+    unsigned long getLastExecutedMs()    const { return lastExecutedMs; }
+    int           getLastExecutedCount() const { return lastExecutedCount; }
+    String        getLastExecutedText(int i) const {
+        return (i >= 0 && i < lastExecutedCount && i < 8) ? lastExecutedTexts[i] : "";
+    }
+
   private:
     JsonSettings     &settings;
     SplitFlapDisplay *display = nullptr;
@@ -84,6 +102,11 @@ class SplitFlapCluster {
     float  pendingSpeed    = 0.0f;        // 0 = unset; overwritten by PREPARE before executeGo runs
     bool   pendingCentering = true;
     int    pendingCmdId    = -1;
+
+    // ---- Last-executed tracking (worker status page) -------------------
+    String        lastExecutedTexts[8];
+    int           lastExecutedCount = 0;
+    unsigned long lastExecutedMs    = 0;
 
     // ---- Protocol -------------------------------------------------------
     // Transmit: serialises doc, appends "|<CRC8-hex>\n"
