@@ -29,14 +29,20 @@ JsonSettings settings = JsonSettings("config", {
     {"mqtt_port", JsonSetting(1883)},
     {"mqtt_user", JsonSetting("")},
     {"mqtt_pass", JsonSetting("")},
-    // Hardware Settings
-    {"moduleCount", JsonSetting(8)},
-    {"moduleAddresses", JsonSetting({0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27})},
+    // Hardware Settings - Wire (Bus 1)
+    {"wire_moduleAddresses", JsonSetting({0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27})},
+    {"wire_moduleOffsets",   JsonSetting({0, 0, 0, 0, 0, 0, 0, 0})},
+    {"sdaPin",               JsonSetting(SDA_PIN)},
+    {"sclPin",               JsonSetting(SCL_PIN)},
+#ifdef ENABLE_DUAL_I2C
+    // Hardware Settings - Wire1 (Bus 2)
+    {"wire1_moduleAddresses", JsonSetting({0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27})},
+    {"wire1_moduleOffsets",   JsonSetting({0, 0, 0, 0, 0, 0, 0, 0})},
+    {"sda2Pin",               JsonSetting(SDA2_PIN)},
+    {"scl2Pin",               JsonSetting(SCL2_PIN)},
+#endif
     {"magnetPosition", JsonSetting(730)},
-    {"moduleOffsets", JsonSetting({0, 0, 0, 0, 0, 0, 0, 0})},
     {"displayOffset", JsonSetting(0)},
-    {"sdaPin", JsonSetting(8)},
-    {"sclPin", JsonSetting(9)},
     {"stepsPerRot", JsonSetting(2048)},
     {"maxVel", JsonSetting(15.0f)},
     {"charset", JsonSetting(37)},

@@ -7,45 +7,169 @@
 SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
 
 void SplitFlapDisplay::init() {
-    numModules = settings.getInt("moduleCount");
     stepsPerRot = settings.getInt("stepsPerRot");
     displayOffset = settings.getInt("displayOffset");
     magnetPosition = settings.getInt("magnetPosition");
     maxVel = settings.getFloat("maxVel");
     charSetSize = settings.getInt("charset");
 
-    std::vector<int> settingAddresses = settings.getIntVector("moduleAddresses");
-    for (int i = 0; i < numModules; i++) {
-        moduleAddresses[i] = (uint8_t) settingAddresses[i];
+    // Wire (Bus 1)
+    std::vector<int> wAddrs   = settings.getIntVector("wire_moduleAddresses");
+    std::vector<int> wOffsets = settings.getIntVector("wire_moduleOffsets");
+    wireCount = wAddrs.size();
+    for (int i = 0; i < wireCount; i++) {
+        wireAddresses[i] = (uint8_t) wAddrs[i];
+        wireOffsets[i]   = wOffsets[i];
     }
 
-    std::vector<int> settingOffsets = settings.getIntVector("moduleOffsets");
-    for (int i = 0; i < numModules; i++) {
-        moduleOffsets[i] = settingOffsets[i];
+#ifdef ENABLE_DUAL_I2C
+    // Wire1 (Bus 2)
+    std::vector<int> w1Addrs   = settings.getIntVector("wire1_moduleAddresses");
+    std::vector<int> w1Offsets = settings.getIntVector("wire1_moduleOffsets");
+    wire1Count = w1Addrs.size();
+    for (int i = 0; i < wire1Count; i++) {
+        wire1Addresses[i] = (uint8_t) w1Addrs[i];
+        wire1Offsets[i]   = w1Offsets[i];
     }
+#else
+    wire1Count = 0;
+#endif
 
-    Serial.print("Module Offsets: ");
-    for (int i = 0; i < numModules; i++) {
-        Serial.print(moduleOffsets[i]);
-        Serial.print(" ");
-    }
-    Serial.println();
+    numModules = wireCount + wire1Count;
 
-    for (uint8_t i = 0; i < numModules; i++) {
-        modules[i] = SplitFlapModule(
-            moduleAddresses[i], stepsPerRot, moduleOffsets[i] + displayOffset, magnetPosition, charSetSize
-        );
-    }
-
+    // Init Wire (Bus 1)
     SDAPin = settings.getInt("sdaPin");
     SCLPin = settings.getInt("sclPin");
-
     Wire.begin(SDAPin, SCLPin);
     Wire.setClock(400000);
 
-    for (uint8_t i = 0; i < numModules; i++) {
+#ifdef ENABLE_DUAL_I2C
+    // Init Wire1 (Bus 2)
+    SDA2Pin = settings.getInt("sda2Pin");
+    SCL2Pin = settings.getInt("scl2Pin");
+    bool wire1Ok = Wire1.begin(SDA2Pin, SCL2Pin);
+    Wire1.setClock(400000);
+    if (!wire1Ok) {
+        Serial.printf("[ERROR] Wire1.begin() failed (SDA=%d, SCL=%d)\n", SDA2Pin, SCL2Pin);
+    }
+#endif
+
+    // Wire modules fill indices 0..(wireCount-1)
+    for (int i = 0; i < wireCount; i++) {
+        modules[i] = SplitFlapModule(
+            wireAddresses[i], stepsPerRot, wireOffsets[i] + displayOffset, magnetPosition, charSetSize, &Wire
+        );
+    }
+
+#ifdef ENABLE_DUAL_I2C
+    // Wire1 modules fill indices wireCount..(numModules-1)
+    for (int i = 0; i < wire1Count; i++) {
+        modules[wireCount + i] = SplitFlapModule(
+            wire1Addresses[i], stepsPerRot, wire1Offsets[i] + displayOffset, magnetPosition, charSetSize, &Wire1
+        );
+    }
+#endif
+
+    configI2cModules();
+    scanI2cModules();
+
+    for (int i = 0; i < numModules; i++) {
         modules[i].init();
     }
+}
+
+void SplitFlapDisplay::configI2cModules() {
+    Serial.println("\n=== I2C Configuration ===");
+
+    Serial.printf("%-6s (SDA=%d, SCL=%d): ", "Wire", SDAPin, SCLPin);
+    for (int i = 0; i < wireCount; i++) {
+        Serial.printf("[%d]0x%02X ", i, wireAddresses[i]);
+    }
+    if (wireCount == 0) Serial.print("(none)");
+    Serial.println();
+
+#ifdef ENABLE_DUAL_I2C
+    Serial.printf("%-6s (SDA=%d, SCL=%d): ", "Wire1", SDA2Pin, SCL2Pin);
+    for (int i = 0; i < wire1Count; i++) {
+        Serial.printf("[%d]0x%02X ", wireCount + i, wire1Addresses[i]);
+    }
+    if (wire1Count == 0) Serial.print("(none)");
+    Serial.println();
+#endif
+
+    Serial.printf("Total modules: %d\n", numModules);
+    Serial.println("=========================");
+}
+
+void SplitFlapDisplay::scanI2cModules() {
+    Serial.println("\n=== I2C Scanner ===");
+
+    struct BusCfg {
+        TwoWire  *bus;
+        const char *name;
+        uint8_t  *addrs;
+        int       count;
+        int       idxOffset;
+    };
+
+    BusCfg buses[] = {
+        {&Wire, "Wire", wireAddresses, wireCount, 0},
+#ifdef ENABLE_DUAL_I2C
+        {&Wire1, "Wire1", wire1Addresses, wire1Count, wireCount},
+#endif
+    };
+    int numBuses = sizeof(buses) / sizeof(buses[0]);
+
+    for (int b = 0; b < numBuses; b++) {
+        TwoWire    *bus      = buses[b].bus;
+        const char *busName  = buses[b].name;
+        uint8_t    *cfgAddrs = buses[b].addrs;
+        int         cfgCount = buses[b].count;
+        int         idxOff   = buses[b].idxOffset;
+
+        // Full address range scan so we can see unexpected devices and diagnose
+        // buses that appear dead vs modules at wrong addresses
+        bool cfgFound[MAX_MODULES] = {};
+        bool anyFound = false;
+
+        Serial.printf("%-6s:", busName);
+
+        for (uint8_t addr = 1; addr < 127; addr++) {
+            bus->beginTransmission(addr);
+            uint8_t err = bus->endTransmission();
+            if (err != 0) continue;
+
+            anyFound = true;
+
+            // Match against configured addresses
+            int modIdx = -1;
+            for (int i = 0; i < cfgCount; i++) {
+                if (cfgAddrs[i] == addr) {
+                    modIdx = idxOff + i;
+                    cfgFound[i] = true;
+                    break;
+                }
+            }
+
+            if (modIdx >= 0) {
+                Serial.printf(" [%d]0x%02X", modIdx, addr);
+            } else {
+                Serial.printf(" 0x%02X(unexpected)", addr);
+            }
+        }
+
+        if (!anyFound) Serial.print(" (none found)");
+        Serial.println();
+
+        // Report any configured modules that did not respond
+        for (int i = 0; i < cfgCount; i++) {
+            if (!cfgFound[i]) {
+                Serial.printf("  -> [%d]0x%02X MISSING\n", idxOff + i, cfgAddrs[i]);
+            }
+        }
+    }
+
+    Serial.println("===================\n");
 }
 
 void SplitFlapDisplay::testAll() {
