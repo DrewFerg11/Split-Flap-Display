@@ -5,7 +5,11 @@
 
 #include <Arduino.h>
 
-#define MAX_MODULES 8 // for memory allocation, update if more modules
+#ifdef ENABLE_DUAL_I2C
+    #define MAX_MODULES 16
+#else
+    #define MAX_MODULES 8
+#endif
 #define MAX_RPM 15.0f
 
 class SplitFlapMqtt;
@@ -42,20 +46,33 @@ class SplitFlapDisplay {
     bool checkAllFalse(bool array[], int size);
     void stopMotors();
     void startMotors();
+    void configI2cModules();
+    void scanI2cModules();
 
     int numModules;
-    uint8_t moduleAddresses[MAX_MODULES];
     SplitFlapModule modules[MAX_MODULES];
-    int moduleOffsets[MAX_MODULES];
     int displayOffset;
+
+    // Wire (Bus 1)
+    uint8_t wireAddresses[MAX_MODULES];
+    int wireOffsets[MAX_MODULES];
+    int wireCount;
+    int SDAPin;
+    int SCLPin;
+
+#ifdef ENABLE_DUAL_I2C
+    // Wire1 (Bus 2)
+    uint8_t wire1Addresses[MAX_MODULES];
+    int wire1Offsets[MAX_MODULES];
+    int wire1Count;
+    int SDA2Pin;
+    int SCL2Pin;
+#endif
 
     float maxVel;       // Max Velocity In RPM
     int charSetSize;    // 37 for standard, 48 for extended
-    int stepsPerRot;    // number of motor steps per full rotation of character
-                        // drum
+    int stepsPerRot;    // number of motor steps per full rotation of character drum
     int magnetPosition; // position of drum wheel when magnet is detected
-    int SDAPin;         // SDA pin
-    int SCLPin;         // SCL pin
 
     SplitFlapMqtt *mqtt = nullptr;
 };
