@@ -40,14 +40,32 @@ class SplitFlapDisplay {
     int getCharsetSize() const { return charSetSize; }
     void setMqtt(SplitFlapMqtt *mqttHandler);
 
+    // Static movement engine — operates on a subset of modules
+    static void moveModules(
+        SplitFlapModule *mods, int count, int *targets,
+        float speed, bool releaseMotors, int stepsPerRot, float maxVel
+    );
+
+#ifdef ENABLE_DUAL_I2C
+    void homeDual(float speed = MAX_RPM);
+    void writeStringDual(
+        String row1, String row2, float speed = MAX_RPM,
+        bool centering = true
+    );
+#endif
+
   private:
     JsonSettings &settings;
 
-    bool checkAllFalse(bool array[], int size);
-    void stopMotors();
-    void startMotors();
+    static bool checkAllFalse(bool array[], int size);
+    static void stopMotors(SplitFlapModule *mods, int count);
+    static void startMotors(SplitFlapModule *mods, int count);
     void configI2cModules();
     void scanI2cModules();
+
+#ifdef ENABLE_DUAL_I2C
+    void moveToDual(int *targetPositions, float speed, bool releaseMotors);
+#endif
 
     int numModules;
     SplitFlapModule modules[MAX_MODULES];
@@ -60,11 +78,12 @@ class SplitFlapDisplay {
     int SDAPin;
     int SCLPin;
 
+    int wire1Count = 0; // Always declared; 0 when dual I2C disabled
+
 #ifdef ENABLE_DUAL_I2C
     // Wire1 (Bus 2)
     uint8_t wire1Addresses[MAX_MODULES];
     int wire1Offsets[MAX_MODULES];
-    int wire1Count;
     int SDA2Pin;
     int SCL2Pin;
 #endif

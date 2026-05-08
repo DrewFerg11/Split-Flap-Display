@@ -3,6 +3,7 @@
 #include "JsonSettings.h"
 #include "SplitFlapModule.h"
 #include "SplitFlapMqtt.h"
+#include <freertos/semphr.h>
 
 SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
 
@@ -235,11 +236,19 @@ void SplitFlapDisplay::testCount() {
 
 void SplitFlapDisplay::home(float speed) {
     Serial.println("Homing");
+
+#ifdef ENABLE_DUAL_I2C
+    if (wire1Count > 0) {
+        homeDual(speed);
+        return;
+    }
+#endif
+
     int targetPositions[numModules];
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
     }
-    startMotors();
+    startMotors(modules, numModules);
     moveTo(targetPositions, speed, false);
     char homeChar = ' ';
     int charPosition;
@@ -255,7 +264,7 @@ void SplitFlapDisplay::homeToString(String homeString, float speed, bool centeri
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
     }
-    startMotors();
+    startMotors(modules, numModules);
     moveTo(targetPositions, speed, false);
     writeString(homeString, speed, centering);
 }
@@ -266,13 +275,13 @@ void SplitFlapDisplay::homeToChar(char homeChar, float speed) {
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
     }
-    startMotors();
+    startMotors(modules, numModules);
     moveTo(targetPositions, speed, false);
 
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = modules[i].getCharPosition(homeChar);
     }
-    moveTo(targetPositions, true, speed);
+    moveTo(targetPositions, speed);
 }
 
 void SplitFlapDisplay::writeChar(char inputChar, float speed) {
@@ -327,11 +336,22 @@ void SplitFlapDisplay::writeString(String inputString, float speed, bool centeri
 }
 
 void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMotors) {
-    // TODO check length of array and return if empty
+#ifdef ENABLE_DUAL_I2C
+    if (wire1Count > 0) {
+        moveToDual(targetPositions, speed, releaseMotors);
+        return;
+    }
+#endif
+    moveModules(modules, numModules, targetPositions, speed, releaseMotors, stepsPerRot, maxVel);
+}
 
-    speed = constrain(speed, 2, maxVel);
-    float stepsPerSecond = (speed / 60) * stepsPerRot;
-    float timePerStep = 1000000 / stepsPerSecond;
+void SplitFlapDisplay::moveModules(SplitFlapModule *mods, int count, int *targets, float speed, 
+                                   bool releaseMotors, int stepsPerRot, float maxVel) {
+    if (count == 0) return;
+
+    speed = constrain(speed, 2.0f, maxVel);
+    float stepsPerSecond = (speed / 60.0f) * stepsPerRot;
+    float timePerStep = 1000000.0f / stepsPerSecond;
 
     unsigned long currentTime = micros();
 
@@ -340,39 +360,36 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
     int startStopDelay = 200; // time to wait to let motor realign itself to
     // magnetic field on stop and start
 
-    bool resetLatches[numModules] = {}; // Initialize to false //start with latch on to prevent case where the
+    bool resetLatches[count] = {}; // Initialize to false //start with latch on to prevent case where the
     // motion starts with the magnet over the sensor
-    bool needsStepping[numModules] = {};             // Initialize to false; //modules that still require moving
-    unsigned long lastStepTimes[numModules] = {};    // Initialize to false; //track when each module was last stepped
+    bool needsStepping[count] = {};             // Initialize to false; //modules that still require moving
+    unsigned long lastStepTimes[count] = {};    // Initialize to false; //track when each module was last stepped
     unsigned long lastSensorCheckTime = currentTime; // track when we last read all the hall effect sensors
 
-    for (int i = 0; i < numModules; i++) {
-        targetPositions[i] = constrain(
-            targetPositions[i],
+    for (int i = 0; i < count; i++) {
+        targets[i] = constrain(
+            targets[i],
             0,
             stepsPerRot - 1
         ); // Constrain to avoid errors with incorrect inputs
         resetLatches[i] = true;
         lastStepTimes[i] = currentTime;
-        if (modules[i].getPosition() != targetPositions[i]) {
-            needsStepping[i] = true;
-        } else {
-            needsStepping[i] = false;
-        }
+        needsStepping[i] = (mods[i].getPosition() != targets[i]);
     }
 
-    startMotors(); // not sure if this helps or not, likely that it does not based
-    // on testing
-    delay(startStopDelay); // give the motor time to align to magnetic field
+    // Re-energize coils and give the motor time to align to magnetic field
+    startMotors(mods, count);
+    delay(startStopDelay);
 
-    bool isFinished = checkAllFalse(needsStepping, numModules);
+    bool isFinished = checkAllFalse(needsStepping, count);
+
     while (! isFinished) {
         currentTime = micros();
-        for (int i = 0; i < numModules; i++) {
-            if (((currentTime - lastStepTimes[i]) > timePerStep) && needsStepping[i]) {
-                modules[i].step();
+        for (int i = 0; i < count; i++) {
+            if (needsStepping[i] && ((currentTime - lastStepTimes[i]) > timePerStep)) {
+                mods[i].step();
                 lastStepTimes[i] = micros();
-                if (modules[i].getPosition() == targetPositions[i]) { // this module is not in the correct position,
+                if (mods[i].getPosition() == targets[i]) { // this module is not in the correct position,
                     // requires stepping
                     needsStepping[i] = false;
                 }
@@ -381,10 +398,8 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
 
         if ((currentTime - lastSensorCheckTime) > checkIntervalUs) { // check hall effect sensor every checkIntervalMs
             // check every modules sensor
-            for (int i = 0; i < numModules; i++) {
-                if (needsStepping[i] &&
-                    (modules[i].readHallEffectSensor() == true
-                    )) { // only check sensors where the module is still moving
+            for (int i = 0; i < count; i++) {
+                if (needsStepping[i] && mods[i].readHallEffectSensor()) {
                     if (! resetLatches[i]) {
                         // UNCOMMENTING THIS WILL PROBBALY MAKE THE MOTORS INACCURATE, DUE
                         // TO TIME TAKEN TO PRINT
@@ -397,7 +412,7 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
                         //  Serial.print(" Error: ");
                         //  Serial.println((modules[i].getMagnetPosition() -
                         //  modules[i].getPosition()));
-                        modules[i].magnetDetected(); // update position to the modules
+                        mods[i].magnetDetected(); // update position to the modules
                         // magnet position
                         resetLatches[i] = true;
                     }
@@ -405,14 +420,14 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
                     resetLatches[i] = false;
                 }
             }
-            isFinished = checkAllFalse(needsStepping, numModules);
+            isFinished = checkAllFalse(needsStepping, count);
             lastSensorCheckTime = currentTime; // recall micros because for loop may
             // take a moment to execute
         }
     }
     if (releaseMotors) {
-        delay(startStopDelay); // allow all motors time to settle
-        stopMotors();
+        delay(startStopDelay);
+        stopMotors(mods, count);
     }
 }
 
@@ -425,20 +440,138 @@ bool SplitFlapDisplay::checkAllFalse(bool array[], int size) {
     return true;                       // All values were false
 }
 
-void SplitFlapDisplay::startMotors() { // Probably broken somewhere, not sure
-    // why, haven't looked
-    for (int i = 0; i < numModules; i++) {
-        modules[i].start();
+void SplitFlapDisplay::startMotors(SplitFlapModule *mods, int count) {
+    for (int i = 0; i < count; i++) {
+        mods[i].start();
     }
 }
 
-void SplitFlapDisplay::stopMotors() {
-    // Serial.println("Stopping Motors");
-    for (int i = 0; i < numModules; i++) {
-        modules[i].stop();
+void SplitFlapDisplay::stopMotors(SplitFlapModule *mods, int count) {
+    for (int i = 0; i < count; i++) {
+        mods[i].stop();
     }
 }
 
 void SplitFlapDisplay::setMqtt(SplitFlapMqtt *mqttHandler) {
     mqtt = mqttHandler;
 }
+
+// =============================================================================
+// Dual I2C bus support — all code below only compiled when ENABLE_DUAL_I2C is
+// defined (WROOM build). The two buses drive physically separate rows of
+// modules and run their movement loops on independent FreeRTOS tasks.
+// =============================================================================
+#ifdef ENABLE_DUAL_I2C
+
+struct BusMoveParams {
+    SplitFlapModule *modules;
+    int count;
+    int *targets;
+    float speed;
+    bool releaseMotors;
+    int stepsPerRot;
+    float maxVel;
+    SemaphoreHandle_t doneSem;
+};
+
+static void busMovementTask(void *param) {
+    BusMoveParams *p = static_cast<BusMoveParams *>(param);
+    SplitFlapDisplay::moveModules(
+        p->modules, p->count, p->targets,
+        p->speed, p->releaseMotors, p->stepsPerRot, p->maxVel
+    );
+    xSemaphoreGive(p->doneSem);
+    vTaskDelete(NULL);
+}
+
+void SplitFlapDisplay::moveToDual(int *targetPositions, float speed, bool releaseMotors) {
+    int tasksToWait = 0;
+    SemaphoreHandle_t doneSem = xSemaphoreCreateCounting(2, 0);
+
+    BusMoveParams wireParams = {
+        modules, wireCount, targetPositions,
+        speed, releaseMotors, stepsPerRot, maxVel, doneSem
+    };
+    BusMoveParams wire1Params = {
+        modules + wireCount, wire1Count, targetPositions + wireCount,
+        speed, releaseMotors, stepsPerRot, maxVel, doneSem
+    };
+
+    if (wireCount > 0) {
+        xTaskCreatePinnedToCore(busMovementTask, "bus1Move", 4096, &wireParams, 1, NULL, 1);
+        tasksToWait++;
+    }
+    if (wire1Count > 0) {
+        xTaskCreatePinnedToCore(busMovementTask, "bus2Move", 4096, &wire1Params, 1, NULL, 0);
+        tasksToWait++;
+    }
+
+    for (int i = 0; i < tasksToWait; i++) {
+        xSemaphoreTake(doneSem, portMAX_DELAY);
+    }
+
+    vSemaphoreDelete(doneSem);
+}
+
+void SplitFlapDisplay::homeDual(float speed) {
+    Serial.println("Homing (dual bus)");
+    int targetPositions[numModules];
+
+    // Phase 1: spin nearly full rotation to find magnets on both buses in parallel
+    for (int i = 0; i < numModules; i++) {
+        targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
+    }
+    moveToDual(targetPositions, speed, false);
+
+    // Phase 2: move all modules to space character
+    for (int i = 0; i < numModules; i++) {
+        targetPositions[i] = modules[i].getCharPosition(' ');
+    }
+    moveToDual(targetPositions, speed, true);
+}
+
+void SplitFlapDisplay::writeStringDual(String row1, String row2, float speed, bool centering) {
+    int targetPositions[numModules];
+
+    // Process row 1 (Wire bus — top row)
+    String displayRow1 = row1.substring(0, wireCount);
+    if (centering) {
+        int padding = wireCount - displayRow1.length();
+        int padLeft = padding / 2;
+        String padded = "";
+        for (int i = 0; i < padLeft; i++) padded += " ";
+        padded += displayRow1;
+        while ((int) padded.length() < wireCount) padded += " ";
+        displayRow1 = padded;
+    } else {
+        while ((int) displayRow1.length() < wireCount) displayRow1 += " ";
+    }
+    for (int i = 0; i < wireCount; i++) {
+        targetPositions[i] = modules[i].getCharPosition(displayRow1[i]);
+    }
+
+    // Process row 2 (Wire1 bus — bottom row)
+    String displayRow2 = row2.substring(0, wire1Count);
+    if (centering) {
+        int padding = wire1Count - displayRow2.length();
+        int padLeft = padding / 2;
+        String padded = "";
+        for (int i = 0; i < padLeft; i++) padded += " ";
+        padded += displayRow2;
+        while ((int) padded.length() < wire1Count) padded += " ";
+        displayRow2 = padded;
+    } else {
+        while ((int) displayRow2.length() < wire1Count) displayRow2 += " ";
+    }
+    for (int i = 0; i < wire1Count; i++) {
+        targetPositions[wireCount + i] = modules[wireCount + i].getCharPosition(displayRow2[i]);
+    }
+
+    moveToDual(targetPositions, speed, true);
+
+    if (mqtt && mqtt->isConnected()) {
+        mqtt->publishState(displayRow1 + "|" + displayRow2);
+    }
+}
+
+#endif  // ENABLE_DUAL_I2C
