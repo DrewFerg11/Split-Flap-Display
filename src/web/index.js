@@ -39,29 +39,100 @@ document.addEventListener("alpine:init", () => {
             );
         },
 
-        get addressArray() {
-            return (
-                this.settings.moduleAddresses
-                    ?.split(",")
-                    .map((s) => s.trim()) || []
-            );
-        },
-        setAddress(index, value) {
-            const arr = this.addressArray;
-            arr[index] = value;
-            this.settings.moduleAddresses = arr.join(",");
+        get isDualI2C() {
+            return this.settings.wire1Addresses !== undefined;
         },
 
-        get offsetArray() {
+        // Bus 1 (Wire)
+        get wireAddressArray() {
             return (
-                this.settings.moduleOffsets?.split(",").map((s) => s.trim()) ||
+                this.settings.wireAddresses?.split(",").map((s) => s.trim()) ||
                 []
             );
         },
-        setOffset(index, value) {
-            const arr = this.offsetArray;
+        setWireAddress(index, value) {
+            const arr = this.wireAddressArray;
             arr[index] = value;
-            this.settings.moduleOffsets = arr.join(",");
+            this.settings.wireAddresses = arr.join(",");
+        },
+        get wireOffsetArray() {
+            return (
+                this.settings.wireOffsets?.split(",").map((s) => s.trim()) || []
+            );
+        },
+        setWireOffset(index, value) {
+            const arr = this.wireOffsetArray;
+            arr[index] = value;
+            this.settings.wireOffsets = arr.join(",");
+        },
+        get wireCount() {
+            return this.wireAddressArray.length;
+        },
+        addWireModule() {
+            const addr = (32 + this.wireCount).toString();
+            this.settings.wireAddresses = [...this.wireAddressArray, addr].join(
+                ",",
+            );
+            this.settings.wireOffsets = [...this.wireOffsetArray, "0"].join(
+                ",",
+            );
+        },
+        removeWireModule() {
+            if (this.wireCount > 1) {
+                this.settings.wireAddresses = this.wireAddressArray
+                    .slice(0, -1)
+                    .join(",");
+                this.settings.wireOffsets = this.wireOffsetArray
+                    .slice(0, -1)
+                    .join(",");
+            }
+        },
+
+        // Bus 2 (Wire1)
+        get wire1AddressArray() {
+            return (
+                this.settings.wire1Addresses?.split(",").map((s) => s.trim()) ||
+                []
+            );
+        },
+        setWire1Address(index, value) {
+            const arr = this.wire1AddressArray;
+            arr[index] = value;
+            this.settings.wire1Addresses = arr.join(",");
+        },
+        get wire1OffsetArray() {
+            return (
+                this.settings.wire1Offsets?.split(",").map((s) => s.trim()) ||
+                []
+            );
+        },
+        setWire1Offset(index, value) {
+            const arr = this.wire1OffsetArray;
+            arr[index] = value;
+            this.settings.wire1Offsets = arr.join(",");
+        },
+        get wire1Count() {
+            return this.wire1AddressArray.length;
+        },
+        addWire1Module() {
+            const addr = (32 + this.wire1Count).toString();
+            this.settings.wire1Addresses = [
+                ...this.wire1AddressArray,
+                addr,
+            ].join(",");
+            this.settings.wire1Offsets = [...this.wire1OffsetArray, "0"].join(
+                ",",
+            );
+        },
+        removeWire1Module() {
+            if (this.wire1Count > 1) {
+                this.settings.wire1Addresses = this.wire1AddressArray
+                    .slice(0, -1)
+                    .join(",");
+                this.settings.wire1Offsets = this.wire1OffsetArray
+                    .slice(0, -1)
+                    .join(",");
+            }
         },
 
         init() {
