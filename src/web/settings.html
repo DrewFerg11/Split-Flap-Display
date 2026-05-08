@@ -674,6 +674,12 @@
                             x-model="settings.sda2Pin"
                             placeholder="Enter SDA2 pin"
                         />
+                        <div
+                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
+                            x-cloak
+                            x-show="errors.key === 'sda2Pin'"
+                            x-text="errors.message"
+                        ></div>
                     </div>
 
                     <div x-show="isDualI2C" x-cloak>
@@ -689,6 +695,12 @@
                             x-model="settings.scl2Pin"
                             placeholder="Enter SCL2 pin"
                         />
+                        <div
+                            class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
+                            x-cloak
+                            x-show="errors.key === 'scl2Pin'"
+                            x-text="errors.message"
+                        ></div>
                     </div>
 
                     <div>

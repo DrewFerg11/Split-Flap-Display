@@ -36,6 +36,7 @@ class JsonSettings {
     String lastValidationKey;
 
     JsonSetting find(const char *key);
+    bool validateCrossFields(const JsonDocument &doc);
 
     Preferences preferences;
 };
