@@ -15,8 +15,8 @@ void SplitFlapDisplay::init() {
     charSetSize = settings.getInt("charset");
 
     // Wire (Bus 1)
-    std::vector<int> wAddrs   = settings.getIntVector("wire_moduleAddresses");
-    std::vector<int> wOffsets = settings.getIntVector("wire_moduleOffsets");
+    std::vector<int> wAddrs   = settings.getIntVector("wireAddresses");
+    std::vector<int> wOffsets = settings.getIntVector("wireOffsets");
     wireCount = wAddrs.size();
     for (int i = 0; i < wireCount; i++) {
         wireAddresses[i] = (uint8_t) wAddrs[i];
@@ -25,8 +25,8 @@ void SplitFlapDisplay::init() {
 
 #ifdef ENABLE_DUAL_I2C
     // Wire1 (Bus 2)
-    std::vector<int> w1Addrs   = settings.getIntVector("wire1_moduleAddresses");
-    std::vector<int> w1Offsets = settings.getIntVector("wire1_moduleOffsets");
+    std::vector<int> w1Addrs   = settings.getIntVector("wire1Addresses");
+    std::vector<int> w1Offsets = settings.getIntVector("wire1Offsets");
     wire1Count = w1Addrs.size();
     for (int i = 0; i < wire1Count; i++) {
         wire1Addresses[i] = (uint8_t) w1Addrs[i];

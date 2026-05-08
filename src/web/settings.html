@@ -398,23 +398,24 @@
                     @click="$dispatch('open-help', {
         title: 'Hardware Settings Help',
         content: `
-            <ul class='list-disc list-inside pl-2'>
-                <li><strong>Number of modules:</strong> How many split-flap modules are connected.</li>
-                <li><strong>Character Set:</strong> 37 = standard (A-Z0-9), 48 = extended (includes symbols).</li>
-                <li><strong>Addresses:</strong> I²C address for each module. Typically starts at 32 and increases per module.</li>
+            <ul class=’list-disc list-inside pl-2’>
+                <li><strong>Character Set:</strong> 37 = standard (A-Z 0-9), 48 = extended (includes symbols).</li>
+                <li><strong>Bus 1 / Bus 2:</strong> Use + / − to add or remove modules on each I²C bus. Each bus supports up to 8 modules; the same address range (32–39) can be reused across buses.</li>
+                <li><strong>Addresses:</strong> I²C address for each module (decimal). Typically 32–39 (0x20–0x27).</li>
                 <li><strong>Offsets:</strong> Fine-tune each module’s zero position if flaps are misaligned.</li>
             </ul>
 
-            <p class='mt-2'><strong>Advanced Settings:</strong></p>
-            <ul class='list-disc list-inside pl-2'>
-                <li><strong>Magnet Position:</strong> Step where the home sensor is triggered. Usually 730 (37) or 615 (48).</li>
-                 <li><strong>SDA / SCL Pin:</strong> GPIO pins on the Esp32 used for I²C communication to modules.</li>
-                <li><strong>Steps Per Rotation:</strong> Total steps to rotate one full cycle across all flaps.</li>
-                <li><strong>Max Velocity:</strong> Controls how fast the motor moves (too high may skip steps).</li>
+            <p class=’mt-2’><strong>Advanced Settings:</strong></p>
+            <ul class=’list-disc list-inside pl-2’>
+                <li><strong>Magnet Position:</strong> Step where the home sensor triggers. Usually 730 (37-char) or 615 (48-char).</li>
+                <li><strong>SDA / SCL Pin:</strong> GPIO pins for the primary I²C bus (Bus 1).</li>
+                <li><strong>SDA2 / SCL2 Pin:</strong> GPIO pins for the second I²C bus (Bus 2). Only shown on dual-bus builds.</li>
+                <li><strong>Steps Per Rotation:</strong> Total motor steps per full drum rotation.</li>
+                <li><strong>Max Velocity:</strong> Motor speed in RPM — too high may cause missed steps.</li>
             </ul>
 
-            <p class='mt-2 text-xs italic text-gray-400'>
-                For the Advanced Settings you should be able to go with the defaults unless you're building custom hardware.
+            <p class=’mt-2 text-xs italic text-gray-400’>
+                Advanced settings can stay at defaults unless you are building custom hardware.
             </p>
         `
     })"
@@ -436,87 +437,76 @@
                 </button>
             </h2>
 
-            <div class="gap-2 grid grid-cols-2 w-full">
-                <div>
-                    <label
-                        for="moduleCount"
-                        class="block text-left text-lg mt-4"
-                    >
-                        Number of Modules
-                    </label>
-                    <input
-                        class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        type="number"
-                        id="moduleCount"
-                        x-model="settings.moduleCount"
-                        min="1"
-                        max="8"
-                        placeholder="1-8"
-                    />
-                    <div
-                        class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                        x-cloak
-                        x-show="errors.key === 'moduleCount'"
-                        x-text="errors.message"
-                    ></div>
-                </div>
-                <div>
-                    <label for="charset" class="block text-left text-lg mt-4">
-                        Character Set
-                    </label>
-                    <select
-                        class="w-full p-3.5 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-white"
-                        x-model.number="settings.charset"
-                        id="charset"
-                        @change="
-                            if (settings.charset === 37) {
-                                settings.magnetPosition = 730;
-                            } else if (settings.charset === 48) {
-                                settings.magnetPosition = 615;
-                            }
-                        "
-                    >
-                        <option value="37">Standard (37)</option>
-                        <option value="48">Extended (48)</option>
-                    </select>
-                </div>
+            <div class="w-full">
+                <label for="charset" class="block text-left text-lg mt-4">
+                    Character Set
+                </label>
+                <select
+                    class="w-full p-3.5 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-white"
+                    x-model.number="settings.charset"
+                    id="charset"
+                    @change="
+                        if (settings.charset === 37) {
+                            settings.magnetPosition = 730;
+                        } else if (settings.charset === 48) {
+                            settings.magnetPosition = 615;
+                        }
+                    "
+                >
+                    <option value="37">Standard (37)</option>
+                    <option value="48">Extended (48)</option>
+                </select>
             </div>
 
-            <label class="block text-left text-lg mt-4">
-                Module Addresses
-            </label>
+            <!-- Bus 1 (Wire) -->
+            <div class="flex items-center justify-between w-full mt-6">
+                <label class="text-lg font-medium">Bus 1 Addresses</label>
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        class="w-8 h-8 rounded bg-neutral-600 hover:bg-neutral-500 text-white font-bold disabled:opacity-40"
+                        @click="removeWireModule()"
+                        :disabled="wireCount <= 1"
+                    >
+                        −
+                    </button>
+                    <span class="w-6 text-center" x-text="wireCount"></span>
+                    <button
+                        type="button"
+                        class="w-8 h-8 rounded bg-neutral-600 hover:bg-neutral-500 text-white font-bold disabled:opacity-40"
+                        @click="addWireModule()"
+                        :disabled="wireCount >= 8"
+                    >
+                        +
+                    </button>
+                </div>
+            </div>
             <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
                 <template
-                    x-for="(val, i) in Array.from({ length: settings.moduleCount })"
-                    :key="`addr-${i}-${addressArray[i]}`"
+                    x-for="(val, i) in wireAddressArray"
+                    :key="`wire-addr-${i}`"
                 >
                     <input
                         type="number"
                         class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        :value="addressArray[i]"
-                        @input="setAddress(i, $event.target.value)"
+                        :value="wireAddressArray[i]"
+                        @input="setWireAddress(i, $event.target.value)"
                         :placeholder="`e.g. ${32 + i}`"
                     />
                 </template>
             </div>
-            <div
-                class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
-                x-cloak
-                x-show="errors.key === 'moduleAddresses'"
-                x-text="errors.message"
-            ></div>
 
-            <label class="block text-left text-lg mt-4"> Module Offsets </label>
+            <label class="block text-left text-lg mt-4">Bus 1 Offsets</label>
             <div class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full">
                 <template
-                    x-for="(val, i) in Array.from({ length: settings.moduleCount })"
-                    :key="`off-${i}-${offsetArray[i]}`"
+                    x-for="(val, i) in wireOffsetArray"
+                    :key="`wire-off-${i}`"
                 >
                     <input
                         type="number"
                         class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
-                        :value="offsetArray[i]"
-                        @input="setOffset(i, $event.target.value)"
+                        :value="wireOffsetArray[i]"
+                        @input="setWireOffset(i, $event.target.value)"
                         placeholder="e.g. 0"
                     />
                 </template>
@@ -524,9 +514,84 @@
             <div
                 class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
                 x-cloak
-                x-show="errors.key === 'moduleOffsets'"
+                x-show="errors.key === 'wireAddresses'"
                 x-text="errors.message"
             ></div>
+
+            <!-- Bus 2 (Wire1) — only shown on dual-bus builds -->
+            <template x-if="isDualI2C">
+                <div>
+                    <div class="flex items-center justify-between w-full mt-6">
+                        <label class="text-lg font-medium"
+                            >Bus 2 Addresses</label
+                        >
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                class="w-8 h-8 rounded bg-neutral-600 hover:bg-neutral-500 text-white font-bold disabled:opacity-40"
+                                @click="removeWire1Module()"
+                                :disabled="wire1Count <= 1"
+                            >
+                                −
+                            </button>
+                            <span
+                                class="w-6 text-center"
+                                x-text="wire1Count"
+                            ></span>
+                            <button
+                                type="button"
+                                class="w-8 h-8 rounded bg-neutral-600 hover:bg-neutral-500 text-white font-bold disabled:opacity-40"
+                                @click="addWire1Module()"
+                                :disabled="wire1Count >= 8"
+                            >
+                                +
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full"
+                    >
+                        <template
+                            x-for="(val, i) in wire1AddressArray"
+                            :key="`wire1-addr-${i}`"
+                        >
+                            <input
+                                type="number"
+                                class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                :value="wire1AddressArray[i]"
+                                @input="setWire1Address(i, $event.target.value)"
+                                :placeholder="`e.g. ${32 + i}`"
+                            />
+                        </template>
+                    </div>
+
+                    <label class="block text-left text-lg mt-4"
+                        >Bus 2 Offsets</label
+                    >
+                    <div
+                        class="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2 w-full"
+                    >
+                        <template
+                            x-for="(val, i) in wire1OffsetArray"
+                            :key="`wire1-off-${i}`"
+                        >
+                            <input
+                                type="number"
+                                class="no-buttons w-full p-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                                :value="wire1OffsetArray[i]"
+                                @input="setWire1Offset(i, $event.target.value)"
+                                placeholder="e.g. 0"
+                            />
+                        </template>
+                    </div>
+                    <div
+                        class="w-full p-3 mt-2 text-sm text-white bg-red-700 rounded-md"
+                        x-cloak
+                        x-show="errors.key === 'wire1Addresses'"
+                        x-text="errors.message"
+                    ></div>
+                </div>
+            </template>
 
             <a
                 href="#"
@@ -594,6 +659,36 @@
                             x-show="errors.key === 'sclPin'"
                             x-text="errors.message"
                         ></div>
+                    </div>
+
+                    <div x-show="isDualI2C" x-cloak>
+                        <label
+                            for="sda2Pin"
+                            class="block text-left text-lg mt-4"
+                            >SDA2 Pin</label
+                        >
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="sda2Pin"
+                            x-model="settings.sda2Pin"
+                            placeholder="Enter SDA2 pin"
+                        />
+                    </div>
+
+                    <div x-show="isDualI2C" x-cloak>
+                        <label
+                            for="scl2Pin"
+                            class="block text-left text-lg mt-4"
+                            >SCL2 Pin</label
+                        >
+                        <input
+                            class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
+                            type="number"
+                            id="scl2Pin"
+                            x-model="settings.scl2Pin"
+                            placeholder="Enter SCL2 pin"
+                        />
                     </div>
 
                     <div>
@@ -700,7 +795,6 @@
                 <button
                     class="w-2/3 p-3 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-500 transition-colors"
                     x-on:click.prevent="save()"
-                    disabled
                     :disabled="processing"
                     :class="{'opacity-50 cursor-not-allowed': processing}"
                 >
