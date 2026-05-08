@@ -99,6 +99,10 @@ JsonDocument JsonSettings::toJson() {
 }
 
 bool JsonSettings::fromJson(JsonDocument settings) {
+    if (! validateCrossFields(settings)) {
+        return false;
+    }
+
     preferences.begin(name, false);
 
     for (JsonPair kv : settings.as<JsonObject>()) {
@@ -138,4 +142,137 @@ JsonSetting JsonSettings::find(const char *key) {
         throw std::runtime_error("Key not found in settings map");
     }
     return it->second;
+}
+
+bool JsonSettings::validateCrossFields(const JsonDocument &doc) {
+    auto csvLen = [](const String &s) -> int {
+        if (s.isEmpty()) return 0;
+        int count = 1;
+        for (size_t i = 0; i < s.length(); i++) {
+            if (s[i] == ',') count++;
+        }
+        return count;
+    };
+
+    auto parseAddresses = [](const String &csv, int out[], int &count) -> bool {
+        count = 0;
+        std::istringstream stream(csv.c_str());
+        std::string token;
+        while (std::getline(stream, token, ',')) {
+            try {
+                out[count++] = std::stoi(token);
+            } catch (...) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    auto validateAddressList = [&](const String &csv, const char *key) -> bool {
+        int addrs[16];
+        int count = 0;
+        if (! parseAddresses(csv, addrs, count)) {
+            lastValidationError = "Invalid address value in " + String(key);
+            lastValidationKey = key;
+            return false;
+        }
+        for (int i = 0; i < count; i++) {
+            if (addrs[i] < 0x20 || addrs[i] > 0x27) {
+                lastValidationError = "Address " + String(addrs[i]) + " is not a valid module address (must be 32-39)";
+                lastValidationKey = key;
+                return false;
+            }
+            for (int j = i + 1; j < count; j++) {
+                if (addrs[i] == addrs[j]) {
+                    lastValidationError = "Duplicate address " + String(addrs[i]) + " on the same bus";
+                    lastValidationKey = key;
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    bool hasWireAddrs    = doc["wireAddresses"].is<String>();
+    bool hasWireOffsets  = doc["wireOffsets"].is<String>();
+    bool hasWire1Addrs   = doc["wire1Addresses"].is<String>();
+    bool hasWire1Offsets = doc["wire1Offsets"].is<String>();
+
+    // Bus 1: address and offset arrays must be the same length
+    if (hasWireAddrs && hasWireOffsets) {
+        int addrLen = csvLen(doc["wireAddresses"].as<String>());
+        int offLen  = csvLen(doc["wireOffsets"].as<String>());
+        if (addrLen != offLen) {
+            lastValidationError = "Bus 1 address count (" + String(addrLen) + ") must match offset count (" + String(offLen) + ")";
+            lastValidationKey = "wireAddresses";
+            return false;
+        }
+    }
+
+    // Bus 2: address and offset arrays must be the same length
+    if (hasWire1Addrs && hasWire1Offsets) {
+        int addrLen = csvLen(doc["wire1Addresses"].as<String>());
+        int offLen  = csvLen(doc["wire1Offsets"].as<String>());
+        if (addrLen != offLen) {
+            lastValidationError = "Bus 2 address count (" + String(addrLen) + ") must match offset count (" + String(offLen) + ")";
+            lastValidationKey = "wire1Addresses";
+            return false;
+        }
+    }
+
+    // Total module count must not exceed MAX_MODULES
+    if (hasWireAddrs || hasWire1Addrs) {
+        int wireCount  = hasWireAddrs  ? csvLen(doc["wireAddresses"].as<String>())  : 0;
+        int wire1Count = hasWire1Addrs ? csvLen(doc["wire1Addresses"].as<String>()) : 0;
+#ifdef ENABLE_DUAL_I2C
+        const int maxModules = 16;
+#else
+        const int maxModules = 8;
+#endif
+        if (wireCount + wire1Count > maxModules) {
+            lastValidationError = "Total module count (" + String(wireCount + wire1Count) + ") exceeds maximum (" + String(maxModules) + ")";
+            lastValidationKey = "wireAddresses";
+            return false;
+        }
+    }
+
+    // Address range and duplicate check per bus
+    if (hasWireAddrs && ! validateAddressList(doc["wireAddresses"].as<String>(), "wireAddresses")) {
+        return false;
+    }
+    if (hasWire1Addrs && ! validateAddressList(doc["wire1Addresses"].as<String>(), "wire1Addresses")) {
+        return false;
+    }
+
+    // SDA/SCL pin conflict checks
+    int sda  = doc["sdaPin"].isNull()  ? -1 : doc["sdaPin"].as<int>();
+    int scl  = doc["sclPin"].isNull()  ? -1 : doc["sclPin"].as<int>();
+    int sda2 = doc["sda2Pin"].isNull() ? -1 : doc["sda2Pin"].as<int>();
+    int scl2 = doc["scl2Pin"].isNull() ? -1 : doc["scl2Pin"].as<int>();
+
+    if (sda != -1 && scl != -1 && sda == scl) {
+        lastValidationError = "Bus 1 SDA and SCL must be different pins";
+        lastValidationKey = "sdaPin";
+        return false;
+    }
+    if (sda2 != -1 && scl2 != -1 && sda2 == scl2) {
+        lastValidationError = "Bus 2 SDA2 and SCL2 must be different pins";
+        lastValidationKey = "sda2Pin";
+        return false;
+    }
+    if (sda != -1 && sda2 != -1) {
+        int bus1[2] = {sda, scl};
+        int bus2[2] = {sda2, scl2};
+        for (int a : bus1) {
+            for (int b : bus2) {
+                if (a != -1 && b != -1 && a == b) {
+                    lastValidationError = "GPIO " + String(a) + " is shared between Bus 1 and Bus 2";
+                    lastValidationKey = "sda2Pin";
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
 }

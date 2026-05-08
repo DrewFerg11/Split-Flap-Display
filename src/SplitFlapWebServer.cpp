@@ -390,7 +390,7 @@ void SplitFlapWebServer::startWebServer() {
         }
 
         if (! settings.fromJson(json)) {
-            response["message"] = "Failed to save settings";
+            response["message"] = settings.getLastValidationError();
             response["type"] = "error";
             response["errors"]["key"] = settings.getLastValidationKey();
             response["errors"]["message"] = settings.getLastValidationError();
