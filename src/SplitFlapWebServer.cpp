@@ -416,66 +416,96 @@ void SplitFlapWebServer::startWebServer() {
         Serial.println("Received text update request");
         Serial.println(json.as<String>());
 
-        // {"mode":"single","words":["adfasdf"],"delay":1,"center":false}
-        // {"mode":"multiple","words":["asdf","asdfasdf","fffff"],"delay":"14","center":true}
         JsonDocument response;
 
         if (! json["mode"].is<String>()) {
-            response["message"] = "Invalid mode type";
-        }
-
-        if (! json["words"].is<JsonArray>()) {
-            response["message"] = "Invalid words array";
-        }
-
-        float delay = json["delay"].as<float>();
-        if (delay < 1) {
-            response["message"] = "Invalid delay type / value";
-        }
-
-        if (! json["center"].is<bool>()) {
-            response["message"] = "Invalid center type";
-        }
-
-        if (response["message"].is<String>()) {
+            response["message"] = "Invalid mode";
             response["type"] = "error";
             return request->send(400, "application/json", response.as<String>());
         }
 
-        this->setMultiDelay(delay * 1000);
-        Serial.println("Delay: " + String(this->getMultiWordDelay()));
+        String mode = json["mode"].as<String>();
+        centering = json["center"].is<bool>() ? (json["center"].as<bool>() ? 1 : 0) : 0;
 
-        centering = json["center"].as<bool>() ? 1 : 0;
-        Serial.println("centering: " + String(centering ? "true" : "false"));
-
-        if (json["mode"] == "single") {
-            String word = decodeURIComponent(json["words"][0].as<String>());
-            Serial.println("Single Word: " + word);
-            this->setInputString(word);
-            this->setMode(0); // change mode last once all variables updated
-        }
-
-        if (json["mode"] == "multiple") {
-            JsonArray wordsArray = json["words"].as<JsonArray>();
-            String words = "";
-            for (JsonVariant v : wordsArray) {
-                words += decodeURIComponent(v.as<String>()) + ",";
+        auto buildCsv = [this](JsonArray arr) -> String {
+            String csv = "";
+            for (JsonVariant v : arr) {
+                csv += decodeURIComponent(v.as<String>()) + ",";
             }
-            if (words.length() > 0) {
-                words.remove(words.length() - 1);
+            if (csv.length() > 0) csv.remove(csv.length() - 1);
+            return csv;
+        };
+
+        if (mode == "single") {
+            if (! json["words"].is<JsonArray>()) {
+                response["message"] = "Invalid words array";
+                response["type"] = "error";
+                return request->send(400, "application/json", response.as<String>());
             }
+            this->setInputString(decodeURIComponent(json["words"][0].as<String>()));
+            this->setMode(0);
+            this->writtenString = "";
 
-            this->setMultiInputString(words);
-            this->numMultiWords = wordsArray.size();
-            Serial.println("Multiple Words: " + words);
-            Serial.println("Number of Words: " + String(this->numMultiWords));
-
+        } else if (mode == "multiple") {
+            if (! json["words"].is<JsonArray>()) {
+                response["message"] = "Invalid words array";
+                response["type"] = "error";
+                return request->send(400, "application/json", response.as<String>());
+            }
+            float delay = json["delay"].as<float>();
+            if (delay < 1) {
+                response["message"] = "Delay must be at least 1 second";
+                response["type"] = "error";
+                return request->send(400, "application/json", response.as<String>());
+            }
+            this->setMultiDelay(delay * 1000);
+            JsonArray arr = json["words"].as<JsonArray>();
+            this->setMultiInputString(buildCsv(arr));
+            this->numMultiWords = arr.size();
+            this->inputString = "";
             this->setMode(1);
-        }
+            this->writtenString = "";
 
+        } else if (mode == "dual-single") {
+            if (! json["row1"].is<String>() || ! json["row2"].is<String>()) {
+                response["message"] = "Invalid row1 or row2";
+                response["type"] = "error";
+                return request->send(400, "application/json", response.as<String>());
+            }
+            this->dualRow1String = decodeURIComponent(json["row1"].as<String>());
+            this->dualRow2String = decodeURIComponent(json["row2"].as<String>());
+            this->inputString = "";
+            this->setMode(7);
+            this->writtenString = "";
+
+        } else if (mode == "dual-multiple") {
+            if (! json["words"].is<JsonArray>()) {
+                response["message"] = "Invalid words array";
+                response["type"] = "error";
+                return request->send(400, "application/json", response.as<String>());
+            }
+            float delay = json["delay"].as<float>();
+            if (delay < 1) {
+                response["message"] = "Delay must be at least 1 second";
+                response["type"] = "error";
+                return request->send(400, "application/json", response.as<String>());
+            }
+            this->setMultiDelay(delay * 1000);
+            JsonArray arr = json["words"].as<JsonArray>();
+            this->setMultiInputString(buildCsv(arr));
+            this->numMultiWords = arr.size();
+            this->multiWordCurrentIndex = 0;
+            this->inputString = "";
+            this->setMode(8);
+            this->writtenString = "";
+
+        } else {
+            response["message"] = "Unknown mode: " + mode;
+            response["type"] = "error";
+            return request->send(400, "application/json", response.as<String>());
+        }
         response["message"] = "Text updated successfully!";
         response["type"] = "success";
-
         request->send(200, "application/json", response.as<String>());
     }));
 

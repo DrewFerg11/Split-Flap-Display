@@ -56,6 +56,19 @@ SplitFlapDisplay display(settings);
 SplitFlapWebServer webServer(settings);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
 
+// Forward declarations for functions defined after loop()
+void singleInputMode();
+void multiInputMode();
+void dateMode();
+void timeMode();
+void randomTest();
+void checkConnection();
+void reconnectIfNeeded();
+#ifdef ENABLE_DUAL_I2C
+void dualSingleInputMode();
+void dualMultiInputMode();
+#endif
+
 void setup() {
     // put your setup code here, to run once:
     Serial.begin(SERIAL_SPEED);
@@ -108,6 +121,10 @@ void loop() {
         case 3: timeMode(); break;
         case 4: break;
         case 5: randomTest(); break;
+#ifdef ENABLE_DUAL_I2C
+        case 7: dualSingleInputMode(); break;
+        case 8: dualMultiInputMode(); break;
+#endif
         default: break;
     }
 
@@ -122,6 +139,7 @@ void loop() {
 
 void singleInputMode() {
     String userInput = webServer.getInputString();
+    if (userInput.isEmpty()) return;
     if (userInput != webServer.getWrittenString()) {
         display.writeString(userInput, MAX_RPM, webServer.getCentering());
         webServer.setWrittenString(userInput);
@@ -180,6 +198,38 @@ void randomTest() {
     display.testRandom();
     delay(2500);
 }
+
+#ifdef ENABLE_DUAL_I2C
+void dualSingleInputMode() {
+    String row1 = webServer.getDualRow1String();
+    String row2 = webServer.getDualRow2String();
+    String combined = row1 + "|" + row2;
+    if (combined != webServer.getWrittenString()) {
+        display.writeStringDual(row1, row2, MAX_RPM, webServer.getCentering());
+        webServer.setWrittenString(combined);
+    }
+}
+
+void dualMultiInputMode() {
+    if (millis() - webServer.getLastSwitchMultiTime() > webServer.getMultiWordDelay()) {
+        String userInput = webServer.getMultiInputString();
+        int idx = webServer.getMultiWordCurrentIndex();
+        String row1 = extractFromCSV(userInput, idx);
+        String row2 = (idx + 1 < webServer.getNumMultiWords())
+                          ? extractFromCSV(userInput, idx + 1)
+                          : "";
+        String combined = row1 + "|" + row2;
+        if (combined != webServer.getWrittenString()) {
+            display.writeStringDual(row1, row2, MAX_RPM, webServer.getCentering());
+            webServer.setWrittenString(combined);
+        }
+        webServer.setLastSwitchMultiTime(millis());
+        int nextIdx = idx + 2;
+        if (nextIdx >= webServer.getNumMultiWords()) nextIdx = 0;
+        webServer.setMultiWordCurrentIndex(nextIdx);
+    }
+}
+#endif
 
 void checkConnection() {
     if (millis() - webServer.getLastCheckWifiTime() >

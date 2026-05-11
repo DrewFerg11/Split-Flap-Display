@@ -62,6 +62,10 @@ class SplitFlapWebServer {
     void setLastCheckDateTime(unsigned long input) { lastCheckDateTime = input; }
     int getDateCheckInterval() { return checkDateInterval; }
 
+    // Mode 7, Dual Single / Mode 8, Dual Multi
+    String getDualRow1String() const { return dualRow1String; }
+    String getDualRow2String() const { return dualRow2String; }
+
     int getCentering() { return centering; }
 
   private:
@@ -88,6 +92,8 @@ class SplitFlapWebServer {
 
     String inputString;      // latest single input from user
     String writtenString;    // string for whatever is currently written to the display
+    String dualRow1String;   // row 1 text for dual single/multi modes
+    String dualRow2String;   // row 2 text for dual single/multi modes
 
     bool rebootRequired;
     bool attemptReconnect;
