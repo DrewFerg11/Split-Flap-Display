@@ -28,10 +28,13 @@ document.addEventListener("alpine:init", () => {
         // Control page specific
         singleMode: true,
         singleWord: "",
+        row1: "",
+        row2: "",
         multiWord: "",
         multiWords: [],
         delay: 1,
         centerText: false,
+        separateRows: false,
 
         get processing() {
             return (
@@ -135,6 +138,25 @@ document.addEventListener("alpine:init", () => {
             }
         },
 
+        get maxCharsHint() {
+            if (this.isDualI2C && this.separateRows) {
+                return `max ${this.wireCount} / ${this.wire1Count} chars (Row 1 / Row 2)`;
+            }
+            return `max ${this.wireCount + (this.isDualI2C ? this.wire1Count : 0)} chars`;
+        },
+
+        isWordOverLimit(word, index) {
+            if (this.isDualI2C && this.separateRows) {
+                const limit =
+                    index % 2 === 0 ? this.wireCount : this.wire1Count;
+                return word.length > limit;
+            }
+            return (
+                word.length >
+                this.wireCount + (this.isDualI2C ? this.wire1Count : 0)
+            );
+        },
+
         init() {
             this.loadSettings();
             if (type === "Settings") {
@@ -147,6 +169,7 @@ document.addEventListener("alpine:init", () => {
                 .then((res) => res.json())
                 .then((data) => {
                     Object.assign(this.settings, data);
+                    this.separateRows = this.isDualI2C;
                 })
                 .catch(() =>
                     this.showDialog("Failed to load settings", "error", true),
@@ -173,21 +196,25 @@ document.addEventListener("alpine:init", () => {
         },
 
         updateDisplay() {
+            const dualSeparate = this.isDualI2C && this.separateRows;
+
             if (this.settings.mode === 6) {
-                if (this.delay < 1) {
+                if (!this.singleMode && this.delay < 1) {
                     return this.showDialog(
                         "Delay must be at least 1 second.",
                         "error",
                     );
                 }
-
-                if (this.singleMode && this.singleWord.trim() === "") {
+                if (
+                    this.singleMode &&
+                    !dualSeparate &&
+                    this.singleWord.trim() === ""
+                ) {
                     return this.showDialog(
                         "Single word cannot be empty.",
                         "error",
                     );
                 }
-
                 if (!this.singleMode && this.multiWords.length === 0) {
                     return this.showDialog(
                         "Word list cannot be empty.",
@@ -203,17 +230,35 @@ document.addEventListener("alpine:init", () => {
             });
 
             if (this.settings.mode === 6) {
-                fetch("/text", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
+                let body;
+                if (dualSeparate && this.singleMode) {
+                    body = {
+                        mode: "dual-single",
+                        row1: this.row1,
+                        row2: this.row2,
+                        center: this.centerText,
+                    };
+                } else if (dualSeparate && !this.singleMode) {
+                    body = {
+                        mode: "dual-multiple",
+                        words: this.multiWords,
+                        delay: this.delay,
+                        center: this.centerText,
+                    };
+                } else {
+                    body = {
                         mode: this.singleMode ? "single" : "multiple",
                         words: this.singleMode
                             ? [this.singleWord]
                             : this.multiWords,
                         delay: this.delay,
                         center: this.centerText,
-                    }),
+                    };
+                }
+                fetch("/text", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
                 })
                     .then((res) => res.json())
                     .then((res) => this.showDialog(res.message, res.type))

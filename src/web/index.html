@@ -42,11 +42,12 @@
 
             <template x-if="settings.mode == 6">
                 <div class="w-full">
+                    <!-- Row 1: Single/Multiple + Center toggles -->
                     <div class="flex items-center justify-between gap-4 mb-4">
                         <div class="flex items-center gap-4">
                             <label
                                 class="text-lg font-medium"
-                                x-text="singleMode ? 'Single Word' : 'Multiple Words'"
+                                x-text="singleMode ? 'Single' : 'Multiple'"
                             ></label>
                             <label class="relative inline-block w-12 h-6">
                                 <input
@@ -64,9 +65,7 @@
                             </label>
                         </div>
                         <div class="flex items-center gap-4">
-                            <label class="text-lg font-medium"
-                                >Center Text</label
-                            >
+                            <label class="text-lg font-medium">Center</label>
                             <label class="relative inline-block w-12 h-6">
                                 <input
                                     type="checkbox"
@@ -82,22 +81,106 @@
                                 ></span>
                             </label>
                         </div>
-                    </div>
-
-                    <div class="w-full" x-show="singleMode" x-cloak>
-                        <label for="singleWord" class="block text-left text-lg"
-                            >Custom Text:</label
+                        <!-- Combined/Separate toggle — dual mode only -->
+                        <div
+                            class="flex items-center gap-4"
+                            x-show="isDualI2C"
+                            x-cloak
                         >
-                        <input
-                            type="text"
-                            x-model="singleWord"
-                            id="singleWord"
-                            placeholder="Enter a single word"
-                            class="w-full p-3 mt-2 text-lg border border-neutral-600 rounded-md text-center bg-neutral-700 text-white"
-                        />
+                            <label
+                                class="text-lg font-medium"
+                                x-text="separateRows ? 'Separate' : 'Combined'"
+                            ></label>
+                            <label class="relative inline-block w-12 h-6">
+                                <input
+                                    type="checkbox"
+                                    x-model="separateRows"
+                                    class="hidden"
+                                />
+                                <span
+                                    class="absolute inset-0 bg-neutral-600 rounded-full cursor-pointer transition duration-300"
+                                ></span>
+                                <span
+                                    class="absolute left-1 top-1 w-4 h-4 cursor-pointer rounded-full transition-transform duration-300"
+                                    :class="separateRows ? 'translate-x-6 bg-amber-500' : 'translate-x-0 bg-neutral-300'"
+                                ></span>
+                            </label>
+                        </div>
                     </div>
 
-                    <div class="w-full mt-6" x-show="! singleMode" x-cloak>
+                    <!-- Single word mode -->
+                    <div class="w-full" x-show="singleMode" x-cloak>
+                        <!-- Combined (or single-bus): one input -->
+                        <div x-show="!isDualI2C || !separateRows">
+                            <label
+                                for="singleWord"
+                                class="block text-left text-lg"
+                                >Custom Text:</label
+                            >
+                            <input
+                                type="text"
+                                x-model="singleWord"
+                                id="singleWord"
+                                placeholder="Enter text"
+                                class="w-full p-3 mt-2 text-lg rounded-md text-center bg-neutral-700 text-white transition-colors"
+                                :class="singleWord.length > wireCount + (isDualI2C ? wire1Count : 0)
+                                    ? 'border-2 border-red-500'
+                                    : 'border border-neutral-600'"
+                            />
+                            <div class="flex justify-end mt-1">
+                                <span
+                                    class="text-sm"
+                                    :class="singleWord.length > wireCount + (isDualI2C ? wire1Count : 0)
+                                        ? 'text-red-400' : 'text-neutral-400'"
+                                    x-text="`${wireCount + (isDualI2C ? wire1Count : 0) - singleWord.length} / ${wireCount + (isDualI2C ? wire1Count : 0)}`"
+                                ></span>
+                            </div>
+                        </div>
+                        <!-- Separate rows: two inputs -->
+                        <div x-show="isDualI2C && separateRows">
+                            <label class="block text-left text-lg"
+                                >Row 1:</label
+                            >
+                            <input
+                                type="text"
+                                x-model="row1"
+                                placeholder="Enter Row 1 text"
+                                class="w-full p-3 mt-2 text-lg rounded-md text-center bg-neutral-700 text-white transition-colors"
+                                :class="row1.length > wireCount
+                                    ? 'border-2 border-red-500'
+                                    : 'border border-neutral-600'"
+                            />
+                            <div class="flex justify-end mt-1">
+                                <span
+                                    class="text-sm"
+                                    :class="row1.length > wireCount ? 'text-red-400' : 'text-neutral-400'"
+                                    x-text="`${wireCount - row1.length} / ${wireCount}`"
+                                ></span>
+                            </div>
+                            <label class="block text-left text-lg mt-4"
+                                >Row 2:</label
+                            >
+                            <input
+                                type="text"
+                                x-model="row2"
+                                placeholder="Enter Row 2 text"
+                                class="w-full p-3 mt-2 text-lg rounded-md text-center bg-neutral-700 text-white transition-colors"
+                                :class="row2.length > wire1Count
+                                    ? 'border-2 border-red-500'
+                                    : 'border border-neutral-600'"
+                            />
+                            <div class="flex justify-end mt-1">
+                                <span
+                                    class="text-sm"
+                                    :class="row2.length > wire1Count ? 'text-red-400' : 'text-neutral-400'"
+                                    x-text="`${wire1Count - row2.length} / ${wire1Count}`"
+                                ></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Multiple words mode -->
+                    <div class="w-full mt-6" x-show="!singleMode" x-cloak>
                         <label class="block text-left text-lg"
                             >Word List:</label
                         >
@@ -110,13 +193,13 @@
                                     >No words added yet</span
                                 >
                             </template>
-
                             <template
                                 x-for="(word, index) in multiWords"
                                 :key="index"
                             >
                                 <span
-                                    class="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-full text-sm"
+                                    class="flex items-center gap-2 px-3 py-1 text-white rounded-full text-sm"
+                                    :class="isWordOverLimit(word, index) ? 'bg-red-600' : 'bg-green-600'"
                                 >
                                     <span x-text="word"></span>
                                     <button
@@ -142,6 +225,12 @@
                             >
                                 Add
                             </button>
+                        </div>
+                        <div class="flex justify-end mt-1">
+                            <span
+                                class="text-sm text-neutral-400"
+                                x-text="maxCharsHint"
+                            ></span>
                         </div>
 
                         <div class="mt-4">
