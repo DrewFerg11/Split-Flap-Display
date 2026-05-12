@@ -66,6 +66,14 @@ class SplitFlapWebServer {
     String getDualRow1String() const { return dualRow1String; }
     String getDualRow2String() const { return dualRow2String; }
 
+    // Mode 9, Accuracy Test
+    int getAccuracyCharIndex() const { return accuracyCharIndex; }
+    void setAccuracyCharIndex(int v) { accuracyCharIndex = v; }
+    int getAccuracyDelay() const { return accuracyDelay; }
+    int getAccuracyStepSize() const { return accuracyStepSize; }
+    unsigned long getLastAccuracyStepTime() const { return lastAccuracyStepTime; }
+    void setLastAccuracyStepTime(unsigned long v) { lastAccuracyStepTime = v; }
+
     int getCentering() { return centering; }
 
   private:
@@ -94,6 +102,11 @@ class SplitFlapWebServer {
     String writtenString;    // string for whatever is currently written to the display
     String dualRow1String;   // row 1 text for dual single/multi modes
     String dualRow2String;   // row 2 text for dual single/multi modes
+
+    int accuracyCharIndex;
+    int accuracyDelay;
+    int accuracyStepSize;
+    unsigned long lastAccuracyStepTime;
 
     bool rebootRequired;
     bool attemptReconnect;

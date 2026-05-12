@@ -29,6 +29,9 @@ class SplitFlapModule {
 
     bool getHasErrored() const { return hasErrored; }
 
+    static const char StandardChars[37];
+    static const char ExtendedChars[48];
+
   private:
     uint8_t address;                // i2c address of module
     TwoWire *wire;                  // i2c bus this module communicates on
@@ -48,8 +51,6 @@ class SplitFlapModule {
     int numChars;                   // current number of characters
     int charSetSize;
 
-    static const char StandardChars[37];
-    static const char ExtendedChars[48];
 };
 
 // //PINs on the PCF8575 Board

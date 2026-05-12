@@ -16,7 +16,7 @@
 SplitFlapWebServer::SplitFlapWebServer(JsonSettings &settings)
     : settings(settings), server(80), multiWordDelay(1000), rebootRequired(false), attemptReconnect(false),
       multiWordCurrentIndex(0), numMultiWords(0), wifiCheckInterval(1000), connectionMode(0), checkDateInterval(250),
-      centering(1) {
+      centering(1), accuracyCharIndex(0), accuracyDelay(5000), accuracyStepSize(1), lastAccuracyStepTime(0) {
     lastSwitchMultiTime = millis();
 }
 
@@ -497,6 +497,23 @@ void SplitFlapWebServer::startWebServer() {
             this->multiWordCurrentIndex = 0;
             this->inputString = "";
             this->setMode(8);
+            this->writtenString = "";
+
+        } else if (mode == "accuracy") {
+            float delay = json["delay"].as<float>();
+            if (delay < 1) {
+                response["message"] = "Delay must be at least 1 second";
+                response["type"] = "error";
+                return request->send(400, "application/json", response.as<String>());
+            }
+            int stepSize = json["stepSize"].as<int>();
+            if (stepSize < 1) stepSize = 1;
+            this->accuracyCharIndex = 0;
+            this->accuracyDelay = (int)(delay * 1000);
+            this->accuracyStepSize = stepSize;
+            this->lastAccuracyStepTime = 0;
+            this->inputString = "";
+            this->setMode(9);
             this->writtenString = "";
 
         } else {
