@@ -62,6 +62,7 @@ void multiInputMode();
 void dateMode();
 void timeMode();
 void randomTest();
+void accuracyTestMode();
 void checkConnection();
 void reconnectIfNeeded();
 #ifdef ENABLE_DUAL_I2C
@@ -121,6 +122,7 @@ void loop() {
         case 3: timeMode(); break;
         case 4: break;
         case 5: randomTest(); break;
+        case 9: accuracyTestMode(); break;
 #ifdef ENABLE_DUAL_I2C
         case 7: dualSingleInputMode(); break;
         case 8: dualMultiInputMode(); break;
@@ -230,6 +232,19 @@ void dualMultiInputMode() {
     }
 }
 #endif
+
+void accuracyTestMode() {
+    int charSetSize = display.getCharsetSize();
+    const char *charSet = (charSetSize == 48) ? SplitFlapModule::ExtendedChars
+                                               : SplitFlapModule::StandardChars;
+    unsigned long now = millis();
+    if (now - webServer.getLastAccuracyStepTime() >= (unsigned long) webServer.getAccuracyDelay()) {
+        int idx = webServer.getAccuracyCharIndex();
+        display.writeChar(charSet[idx]);
+        webServer.setAccuracyCharIndex((idx + webServer.getAccuracyStepSize()) % charSetSize);
+        webServer.setLastAccuracyStepTime(now);
+    }
+}
 
 void checkConnection() {
     if (millis() - webServer.getLastCheckWifiTime() >

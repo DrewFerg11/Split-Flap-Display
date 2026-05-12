@@ -35,6 +35,10 @@ document.addEventListener("alpine:init", () => {
         delay: 1,
         centerText: false,
         separateRows: false,
+        accuracyDelay: 5,
+        accuracyStepSize: 1,
+        accuracyStep: 0,
+        accuracyInterval: null,
 
         get processing() {
             return (
@@ -138,6 +142,115 @@ document.addEventListener("alpine:init", () => {
             }
         },
 
+        get accuracyCharSet() {
+            const std = [
+                " ",
+                "A",
+                "B",
+                "C",
+                "D",
+                "E",
+                "F",
+                "G",
+                "H",
+                "I",
+                "J",
+                "K",
+                "L",
+                "M",
+                "N",
+                "O",
+                "P",
+                "Q",
+                "R",
+                "S",
+                "T",
+                "U",
+                "V",
+                "W",
+                "X",
+                "Y",
+                "Z",
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+            ];
+            if (this.settings.charset === 48) {
+                return [
+                    ...std,
+                    "'",
+                    ":",
+                    "?",
+                    "!",
+                    ".",
+                    "-",
+                    "/",
+                    "$",
+                    "@",
+                    "#",
+                    "%",
+                ];
+            }
+            return std;
+        },
+        get accuracyCharIndex() {
+            const len = this.accuracyCharSet.length;
+            return (this.accuracyStep * this.accuracyStepSize) % len;
+        },
+        get accuracyLoopCount() {
+            const len = this.accuracyCharSet.length;
+            return Math.floor(
+                (this.accuracyStep * this.accuracyStepSize) / len,
+            );
+        },
+        get accuracyCurrentChar() {
+            return this.accuracyCharSet[this.accuracyCharIndex] ?? "";
+        },
+
+        startAccuracyTest() {
+            if (this.accuracyDelay < 1) {
+                return this.showDialog(
+                    "Delay must be at least 1 second.",
+                    "error",
+                );
+            }
+            this.stopAccuracyTest();
+            this.accuracyStep = 0;
+            fetch("/text", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    mode: "accuracy",
+                    delay: this.accuracyDelay,
+                    stepSize: this.accuracyStepSize,
+                }),
+            })
+                .then((res) => res.json())
+                .then((res) => {
+                    if (res.type === "success") {
+                        this.accuracyInterval = setInterval(() => {
+                            this.accuracyStep++;
+                        }, this.accuracyDelay * 1000);
+                    }
+                    this.showDialog(res.message, res.type);
+                })
+                .catch((err) => this.showDialog(err.message, "error"));
+        },
+
+        stopAccuracyTest() {
+            if (this.accuracyInterval !== null) {
+                clearInterval(this.accuracyInterval);
+                this.accuracyInterval = null;
+            }
+        },
+
         get maxCharsHint() {
             if (this.isDualI2C && this.separateRows) {
                 return `max ${this.wireCount} / ${this.wire1Count} chars (Row 1 / Row 2)`;
@@ -228,6 +341,11 @@ document.addEventListener("alpine:init", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ mode: this.settings.mode }),
             });
+
+            if (this.settings.mode === 9) {
+                this.startAccuracyTest();
+                return;
+            }
 
             if (this.settings.mode === 6) {
                 let body;
