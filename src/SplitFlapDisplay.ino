@@ -101,8 +101,8 @@ void setup() {
         webServer.startWebServer();
 
         display.init();
-        splitflapMqtt.setup();
         splitflapMqtt.setDisplay(&display);
+        splitflapMqtt.setup();
         display.setMqtt(&splitflapMqtt);
 
         display.homeToString("OK");
