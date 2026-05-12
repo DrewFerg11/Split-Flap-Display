@@ -336,12 +336,10 @@ document.addEventListener("alpine:init", () => {
                 }
             }
 
-            fetch("/settings", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mode: this.settings.mode }),
-            });
-
+            // Modes 6 and 9 use /text which calls setMode() internally.
+            // Sending mode 6/9 to /settings races with /text setting the real
+            // firmware mode (0/1/7/8/9) and can cause the loop to hit
+            // default:break, silently dropping the update.
             if (this.settings.mode === 9) {
                 this.startAccuracyTest();
                 return;
@@ -382,6 +380,12 @@ document.addEventListener("alpine:init", () => {
                     .then((res) => this.showDialog(res.message, res.type))
                     .catch((err) => this.showDialog(err.message, "error"));
             } else {
+                // Date / Time / Random — /settings is the only update needed
+                fetch("/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ mode: this.settings.mode }),
+                });
                 this.showDialog("Mode updated successfully.", "success");
             }
         },

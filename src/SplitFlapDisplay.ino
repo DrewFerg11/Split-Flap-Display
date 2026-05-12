@@ -68,6 +68,7 @@ void reconnectIfNeeded();
 #ifdef ENABLE_DUAL_I2C
 void dualSingleInputMode();
 void dualMultiInputMode();
+void dateTimeMode();
 #endif
 
 void setup() {
@@ -126,6 +127,7 @@ void loop() {
 #ifdef ENABLE_DUAL_I2C
         case 7: dualSingleInputMode(); break;
         case 8: dualMultiInputMode(); break;
+        case 10: dateTimeMode(); break;
 #endif
         default: break;
     }
@@ -171,7 +173,15 @@ void dateMode() {
         String result = renderDate(strftimeFormat);
 
         if (result.length() <= display.getNumModules() && result != webServer.getWrittenString()) {
+#ifdef ENABLE_DUAL_I2C
+            if (display.getWire1Count() > 0) {
+                display.writeStringDual(result, "", MAX_RPM, true);
+            } else {
+                display.writeString(result, MAX_RPM);
+            }
+#else
             display.writeString(result, MAX_RPM);
+#endif
             webServer.setWrittenString(result);
         }
     }
@@ -181,16 +191,19 @@ void timeMode() {
     if (millis() - webServer.getLastCheckDateTime() > webServer.getDateCheckInterval()) {
         webServer.setLastCheckDateTime(millis());
 
-        // Get user-friendly format from settings (fallback to "HH:mm")
         String userFormat = settings.getString("timeFormat").length() > 0 ? settings.getString("timeFormat") : "HH:mm";
+        String result = renderTime(convertToStrftime(userFormat));
 
-        // Convert to strftime-compatible format
-        String strftimeFormat = convertToStrftime(userFormat);
-        String result = renderTime(strftimeFormat);
-
-        // Write to display if it changed
         if (result != webServer.getWrittenString()) {
+#ifdef ENABLE_DUAL_I2C
+            if (display.getWire1Count() > 0) {
+                display.writeStringDual(result, "", MAX_RPM, true);
+            } else {
+                display.writeString(result, MAX_RPM);
+            }
+#else
             display.writeString(result, MAX_RPM);
+#endif
             webServer.setWrittenString(result);
         }
     }
@@ -202,6 +215,24 @@ void randomTest() {
 }
 
 #ifdef ENABLE_DUAL_I2C
+void dateTimeMode() {
+    if (millis() - webServer.getLastCheckDateTime() > webServer.getDateCheckInterval()) {
+        webServer.setLastCheckDateTime(millis());
+
+        String timeUserFormat = settings.getString("timeFormat").length() > 0
+                                    ? settings.getString("timeFormat")
+                                    : "{HH}:{MM}";
+        String timeResult = renderTime(convertToStrftime(timeUserFormat));
+        String dateResult = renderDate(convertToStrftime(settings.getString("dateFormat")));
+
+        String combined = timeResult + "|" + dateResult;
+        if (combined != webServer.getWrittenString()) {
+            display.writeStringDual(timeResult, dateResult, MAX_RPM, true);
+            webServer.setWrittenString(combined);
+        }
+    }
+}
+
 void dualSingleInputMode() {
     String row1 = webServer.getDualRow1String();
     String row2 = webServer.getDualRow2String();
