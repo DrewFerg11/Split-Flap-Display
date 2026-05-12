@@ -48,7 +48,10 @@ class SplitFlapDisplay {
     );
 
 #ifdef ENABLE_DUAL_I2C
-    void homeDual(float speed = MAX_RPM);
+    void homeToStringDual(
+        String row1, String row2, float speed = MAX_RPM,
+        bool centering = true
+    );
     void writeStringDual(
         String row1, String row2, float speed = MAX_RPM,
         bool centering = true

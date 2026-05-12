@@ -36,6 +36,9 @@
             >
                 <option value="2">Date</option>
                 <option value="3">Time</option>
+                <option value="10" x-show="isDualI2C" x-cloak>
+                    Date + Time
+                </option>
                 <!--        <option value="4">Count</option>-->
                 <option value="6">Custom Text</option>
                 <option value="5">Random</option>
@@ -104,7 +107,7 @@
                                 ></span>
                                 <span
                                     class="absolute left-1 top-1 w-4 h-4 cursor-pointer rounded-full transition-transform duration-300"
-                                    :class="separateRows ? 'translate-x-6 bg-amber-500' : 'translate-x-0 bg-neutral-300'"
+                                    :class="separateRows ? 'translate-x-0 bg-white' : 'translate-x-6 bg-neutral-300'"
                                 ></span>
                             </label>
                         </div>
