@@ -239,7 +239,7 @@ void SplitFlapDisplay::home(float speed) {
 
 #ifdef ENABLE_DUAL_I2C
     if (wire1Count > 0) {
-        homeDual(speed);
+        homeToStringDual("", "", speed, false);
         return;
     }
 #endif
@@ -513,21 +513,17 @@ void SplitFlapDisplay::moveToDual(int *targetPositions, float speed, bool releas
     vSemaphoreDelete(doneSem);
 }
 
-void SplitFlapDisplay::homeDual(float speed) {
-    Serial.println("Homing (dual bus)");
+void SplitFlapDisplay::homeToStringDual(String row1, String row2, float speed, bool centering) {
     int targetPositions[numModules];
 
-    // Phase 1: spin nearly full rotation to find magnets on both buses in parallel
+    // Phase 1: spin nearly full rotation to find magnets
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
     }
     moveToDual(targetPositions, speed, false);
 
-    // Phase 2: move all modules to space character
-    for (int i = 0; i < numModules; i++) {
-        targetPositions[i] = modules[i].getCharPosition(' ');
-    }
-    moveToDual(targetPositions, speed, true);
+    // Phase 2: move directly to target strings
+    writeStringDual(row1, row2, speed, centering);
 }
 
 void SplitFlapDisplay::writeStringDual(String row1, String row2, float speed, bool centering) {

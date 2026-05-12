@@ -186,21 +186,34 @@ The existing validation API (`JsonSetting::validate()`) is **per-field, string-b
 - [x] `publishState()` works for 16-module strings without changes; `writeStringDual()` already publishes `row1|row2`
 - [x] Accuracy test publishes via `writeChar()` on each step — intentional, HA can track the current test character
 
-### Step 9: Testing
+### Step 9: Mode Cleanup
 
-- [ ] Compile with `ENABLE_DUAL_I2C` (WROOM) and without (C3, S3) — confirm no `wire1` symbols emitted in C3/S3 binaries
-- [ ] Single bus, 8 modules — verify no behavioral change vs. main
-- [ ] Dual bus, 16 modules — all home, write string, and report correct positions; both rows move in parallel (visually distinct from sequential)
-- [ ] Asymmetric bus counts (e.g. 3 + 5, 8 + 0, 0 + 8) — confirm `moveToDual()` handles empty-bus skip
-- [ ] Settings save/load round-trip for all `wire1_*` settings
-- [ ] Settings page renders correctly: Bus 2 section visible on WROOM, hidden on C3/S3, validation errors show under correct field
-- [ ] Address reuse: same I²C address on both buses (e.g. 0x20 on Wire and 0x20 on Wire1) — modules respond independently
-- [ ] OTA update on dual-I2C build — verify post-OTA boot still inits both buses
+
 
 ### Step 10: Random
 
 - [ ] Update home logic to center 'ok' in dual mode
 - [ ] Add config for 'fast home' which modifies to homing logic to only home, instead of home, home all and display display ok, then home the ok modules.
+
+### Step Final: Testing
+
+#### Misc fixes (found during testing, applied before formal test pass)
+- [x] Date and Time modes now use `writeStringDual(result, "")` in dual mode — content on row 1 only, row 2 blank; single-bus behavior unchanged
+- [x] New "Date + Time" mode (mode 10, WROOM only): row 1 = time format, row 2 = date format, both using existing `timeFormat`/`dateFormat` settings; shown in dropdown only when `isDualI2C`
+- [x] Custom Text Update Display race condition fixed — removed redundant `/settings` POST for modes 6 and 9; `/text` handler already calls `setMode()` internally, eliminating the race where `/settings` could overwrite the firmware mode back to 6 (default: break)
+- [x] Separate/Combined toggle defaults to left-position and white when in Separate (default) state
+- [x] MQTT max field accounts for `|` separator in dual mode (`numModules + 1`); pipe-separated command payload routes to `writeStringDual()`
+
+#### Still to verify
+- [ ] Compile with `ENABLE_DUAL_I2C` (WROOM) and without (C3, S3) — confirm no `wire1` symbols emitted in C3/S3 binaries
+- [ ] Single bus, 8 modules — verify no behavioral change vs. main
+- [ ] Dual bus, 16 modules — all home, write string, report correct positions; both rows move in parallel
+- [ ] Asymmetric bus counts (e.g. 3 + 5, 8 + 0, 0 + 8) — confirm `moveToDual()` handles empty-bus skip
+- [ ] Settings save/load round-trip for all wire1 settings
+- [ ] Settings page: Bus 2 visible on WROOM, hidden on C3/S3, validation errors show under correct field
+- [ ] Address reuse: same I²C address on both buses responds independently
+- [ ] OTA update on dual-I2C build — verify post-OTA boot still inits both buses
+
 
 ---
 
