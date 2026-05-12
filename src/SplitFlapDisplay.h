@@ -37,6 +37,7 @@ class SplitFlapDisplay {
     void testCount();
     void testRandom(float speed = MAX_RPM);
     int getNumModules() { return numModules; }
+    int getWire1Count() const { return wire1Count; }
     int getCharsetSize() const { return charSetSize; }
     void setMqtt(SplitFlapMqtt *mqttHandler);
 

@@ -27,7 +27,16 @@ void SplitFlapMqtt::setup() {
         Serial.printf("[MQTT] Message received: %s\n", message.c_str());
         if (display) {
             float maxVel = settings.getFloat("maxVel");
+#ifdef ENABLE_DUAL_I2C
+            int sep = message.indexOf('|');
+            if (sep >= 0) {
+                display->writeStringDual(message.substring(0, sep), message.substring(sep + 1), maxVel, false);
+            } else {
+                display->writeString(message, maxVel, false);
+            }
+#else
             display->writeString(message, maxVel, false);
+#endif
         }
     });
 
@@ -50,11 +59,15 @@ void SplitFlapMqtt::connectToMqtt() {
             Serial.println("[MQTT] Connected to broker");
 
             // clang-format off
+            int numModules = display ? display->getNumModules() : 16;
+            int wire1Count = display ? display->getWire1Count() : 0;
+            int maxLen = wire1Count > 0 ? numModules + 1 : numModules;
             String payload_text = "{"
                 "\"name\":\"Display\","
                 "\"unique_id\":\"text_" + mdns + "\","
                 "\"command_topic\":\"" + topic_command + "\","
                 "\"availability_topic\":\"" + topic_avail + "\","
+                "\"max\":" + String(maxLen) + ","
                 "\"device\":{"
                     "\"identifiers\":[\"splitflap_" + mdns + "\"],"
                     "\"name\":\"" + name + "\","
