@@ -368,8 +368,22 @@ void SplitFlapWebServer::startWebServer() {
         }
 
         if (json["otaPass"].is<String>() && json["otaPass"].as<String>() != settings.getString("otaPass")) {
-            rebootRequired = true; // OTA password change can only be applied by rebooting
+            rebootRequired = true;
             response["message"] = "Settings updated successfully, OTA Password has changed. Rebooting...";
+        }
+
+        if (
+            (json["wireAddresses"].is<String>() && json["wireAddresses"].as<String>() != settings.getString("wireAddresses")) ||
+            (json["wireOffsets"].is<String>()   && json["wireOffsets"].as<String>()   != settings.getString("wireOffsets"))   ||
+            (json["wire1Addresses"].is<String>() && json["wire1Addresses"].as<String>() != settings.getString("wire1Addresses")) ||
+            (json["wire1Offsets"].is<String>()   && json["wire1Offsets"].as<String>()   != settings.getString("wire1Offsets"))   ||
+            (json["sdaPin"].is<int>()  && json["sdaPin"].as<int>()  != settings.getInt("sdaPin"))  ||
+            (json["sclPin"].is<int>()  && json["sclPin"].as<int>()  != settings.getInt("sclPin"))  ||
+            (json["sda2Pin"].is<int>() && json["sda2Pin"].as<int>() != settings.getInt("sda2Pin")) ||
+            (json["scl2Pin"].is<int>() && json["scl2Pin"].as<int>() != settings.getInt("scl2Pin"))
+        ) {
+            rebootRequired = true;
+            response["message"] = "Hardware settings changed. Rebooting to apply...";
         }
 
         if (json["mdns"].is<String>() && json["mdns"].as<String>() != settings.getString("mdns")) {
