@@ -1,0 +1,96 @@
+site_name: Split Flap Display
+site_description: Documentation for the modular Split-Flap Display — firmware, custom PCB, wiring, and assembly.
+site_url: https://drewferg11.github.io/Split-Flap-Display/
+site_author: DrewFerg11
+
+repo_url: https://github.com/DrewFerg11/Split-Flap-Display
+repo_name: DrewFerg11/Split-Flap-Display
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - navigation.instant
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.action.edit
+    - content.tabs.link
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Build & Assembly:
+    - Overview: build/index.md
+    - Original Display (37/48 char):
+      - build/original/index.md
+    - Dual Display (16 modules):
+      - Overview: build/dual-display/index.md
+      - PCB Ordering: build/dual-display/pcb-ordering.md
+      - Wiring Guide: build/dual-display/wiring.md
+      - Assembly: build/dual-display/assembly.md
+      - Firmware Configuration: build/dual-display/firmware-config.md
+  - Firmware:
+    - firmware/index.md
+    - Build & Flash: firmware/setup.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/DrewFerg11/Split-Flap-Display
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/RCvks4XXXH
