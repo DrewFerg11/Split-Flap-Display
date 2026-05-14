@@ -8,7 +8,7 @@ Everything you need to build the 16-module dual display. Items marked **required
 
 | Item | Qty | Notes |
 |------|-----|-------|
-| dowjames v5.1 PCB (JLCPCB assembled) | 16 | Order 16 minimum — see [PCB ordering guide](../../../custom-pcb/dowjames-v5.1/pcb-instructions.md) |
+| dowjames v5.1 PCB (JLCPCB assembled) | 16 | Order 16 minimum — see [PCB ordering guide](https://github.com/DrewFerg11/Split-Flap-Display/blob/main/custom-pcb/dowjames-v5.1/pcb-instructions.md) |
 | Stepper motor | 16 | One per module |
 | Hall effect sensor — TI DRV5033 | 16 | Polarity-agnostic; one per module |
 | 4.7kΩ through-hole resistors | 2 | I²C pull-ups — only needed on one PCB per bus |
