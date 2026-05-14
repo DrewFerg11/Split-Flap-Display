@@ -24,10 +24,11 @@ Firmware for the modular Split Flap Display created by [Morgan Manly](https://gi
 
 ## Supported boards
 
-| Environment          | Processor     | Tested Boards                                                            |
-| -------------------- | ------------- | ------------------------------------------------------------------------ |
-| `esp32_c3` (default) | ESP32-C3FN4   | Teyleten Robot ESP32-C3-SuperMini<br>Waveshare ESP32-C3-Zero             |
-| `esp32_s3`           | ESP32-S3FH4R2 | Waveshare ESP32-S3-Zero<sup>\*</sup><br>ESP32-S3 Super Mini<sup>\*</sup> |
+| Environment          | Processor     | Tested Boards                                                            | Dual Compatible |
+| -------------------- | ------------- | ------------------------------------------------------------------------ | --------------- |
+| `esp32_c3` (default) | ESP32-C3FN4   | Teyleten Robot ESP32-C3-SuperMini<br>Waveshare ESP32-C3-Zero             | N               |
+| `esp32_s3`           | ESP32-S3FH4R2 | Waveshare ESP32-S3-Zero<sup>\*</sup><br>ESP32-S3 Super Mini<sup>\*</sup> | N               |
+| `esp32_wroom`        | ESP32         | ESP32-WROOM DevKit V1                                                    | Y               |
 
 <sub>\* Requires manually resetting the board into firmware upload mode by holding BOOT, pressing & releasing RESET, then releasing BOOT prior to upload. After uploading is successful, either press & release RESET or power cycle the board to put it in normal operation mode.</sub>
 

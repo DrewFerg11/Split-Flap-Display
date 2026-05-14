@@ -76,14 +76,13 @@ nav:
   - Home: index.md
   - Build & Assembly:
     - Overview: build/index.md
-    - Original Display (37/48 char):
+    - Original Display:
       - build/original/index.md
-    - Dual Display (16 modules):
+    - Dual Display:
       - Overview: build/dual-display/index.md
-      - PCB Ordering: build/dual-display/pcb-ordering.md
-      - Wiring Guide: build/dual-display/wiring.md
+      - BOM: build/dual-display/bom.md
+      - ESP32 Wiring: build/dual-display/esp32-wiring.md
       - Assembly: build/dual-display/assembly.md
-      - Firmware Configuration: build/dual-display/firmware-config.md
   - Firmware:
     - firmware/index.md
     - Build & Flash: firmware/setup.md
