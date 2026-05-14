@@ -1,6 +1,6 @@
 # Build & Assembly
 
-There are two build paths:
+There are two build paths to choose from:
 
 <div class="grid cards" markdown>
 
@@ -48,6 +48,7 @@ There are two build paths:
 | DIY PCB option | ✅ | ✅ |
 | Purchased PCB option | ✅ | ✅ |
 
-* _Firmware is backwards compatible_
-** _Only possible with square enclosure_
+*_Firmware is backwards compatible_
+
+**_Only possible with square enclosure_
 

@@ -1,34 +1,73 @@
-# PCB Ordering — v5.1 from JLCPCB
+# Bill of Materials
 
-!!! note "Full guide"
-    The complete step-by-step ordering guide (with screenshots) lives at [`custom-pcb/dowjames-v5.1/pcb-instructions.md`](https://github.com/DrewFerg11/Split-Flap-Display/blob/main/custom-pcb/dowjames-v5.1/pcb-instructions.md). It will be migrated into this site in a follow-up update.
+Everything you need to build the 16-module dual display. Items marked **required** are needed for every build. Power supply is **choose one**.
 
-## Quick summary
+---
 
-Each PCB is a per-module I²C-controlled stepper driver board. You need **one PCB per split-flap module**. Most people order 10 at a time (JLCPCB's minimum for assembly).
+## Modules & PCBs
 
-The boards daisy-chain via 4-pin NEXT/PREV headers carrying +5V, GND, SCL, and SDA — no wiring between boards.
+| Item | Qty | Notes |
+|------|-----|-------|
+| dowjames v5.1 PCB (JLCPCB assembled) | 16 | Order 16 minimum — see [PCB ordering guide](../../../custom-pcb/dowjames-v5.1/pcb-instructions.md) |
+| Stepper motor | 16 | One per module |
+| Hall effect sensor — TI DRV5033 | 16 | Polarity-agnostic; one per module |
+| 4.7kΩ through-hole resistors | 2 | I²C pull-ups — only needed on one PCB per bus |
 
-## Files needed
+---
 
-Download [`splitflapv5.1-pcb.zip`](https://github.com/DrewFerg11/Split-Flap-Display/blob/main/custom-pcb/dowjames-v5.1/splitflapv5.1-pcb.zip) and unzip. Inside the `splitflapv5.1-pcb/` folder:
+## Enclosure
 
-| File | Purpose |
-|------|---------|
-| `gerber.zip` | Gerber + drill files (PCB manufacturing) |
-| `bom.csv` | Bill of materials with LCSC part numbers |
-| `positions.csv` | Pick-and-place / CPL file |
+| Item | Qty | Notes |
+|------|-----|-------|
+| Square enclosure — printed parts | 16 sets | [MakerWorld — square enclosure](https://makerworld.com/en/models/2489058-split-flap-display-square-enclosure#profileId-2734898) |
+| PSU enclosure — printed parts | 1 set | 3D printed housing that mounts to back of display (integrated PSU option only) |
 
-## Key gotchas
+---
 
-!!! warning "Log in before uploading"
-    Upload the gerber while logged out and JLCPCB may not auto-populate the PCB dimensions — you'll have blank X/Y fields.
+## ESP32 Controller Board
 
-!!! warning "Don't power motors without firmware"
-    The PCF8575 (U1 on the board) pulls all output pins HIGH by default. With a motor connected and no firmware running, both coils are energized continuously — the motor and ULN2003 driver will overheat and can warp flaps.
+| Item | Qty | Notes |
+|------|-----|-------|
+| ESP32-WROOM DevKit V1 | 1 | Required for dual-bus support |
+| Perfboard | 1 | For controller board assembly |
+| Screw terminals | — | GND, +5V, I²C Bus A, I²C Bus B |
 
-!!! warning "Select C1 and C2_BYPASS1"
-    These bypass capacitors may default to unchecked in the BOM review. They are required — select them. (They're capacitors, not resistors, despite the name.)
+See [ESP32 controller board wiring](esp32-wiring.md) for the full build.
 
-!!! warning "I²C pull-up resistors required"
-    Add 4.7kΩ pull-up resistors from SDA → +5V and SCL → +5V on **one board** in the chain. The display will not work without them.
+---
+
+## Power Supply — choose one
+
+=== "Option A — Integrated PSU (recommended)"
+
+    **MEAN WELL LRS-75-5** — 5V 14A, hardwired via terminal blocks, mounts inside a 3D-printed enclosure on the back of the display.
+
+    - Higher current headroom (14A) — comfortable margin for 16 motors
+    - Cleaner install — no external brick
+    - Requires terminal block wiring and the printed PSU enclosure
+    - 110V/240V input — works worldwide
+
+    | Spec | Value |
+    |------|-------|
+    | Output | 5V DC |
+    | Current | 14A |
+    | Wattage | 70W |
+    | Connection | Terminal block |
+
+    [MEAN WELL LRS-75-5 on Amazon](https://www.amazon.com/dp/B09DKGZ9Y5){ .md-button }
+
+=== "Option B — External Adapter"
+
+    **5V 10A barrel jack adapter** — wall adapter brick that sits separately from the display. Simpler setup, no hardwiring required.
+
+    - Easier to set up — plug straight in
+    - Lower current (10A) — sufficient for 16 modules but less headroom
+    - Brick sits externally — less tidy for a finished display
+    - Check availability before ordering (stock varies)
+
+    | Spec | Value |
+    |------|-------|
+    | Output | 5V DC |
+    | Current | 10A |
+    | Wattage | 50W |
+    | Connection | 5.5×2.1mm barrel jack |
