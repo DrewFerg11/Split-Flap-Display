@@ -7,3 +7,7 @@ The original design supports up to **8 modules** on a single I²C bus. Full buil
 :fontawesome-solid-arrow-up-right-from-square: **[Full build guide on Instructables](https://www.instructables.com/Split-Flap-Display-3D-Printed-Modular-Compact-Encl/)**
 
 The Instructables guide covers the complete build: 3D printing, hardware assembly, wiring, and firmware upload. It is the authoritative reference for the original design.
+
+## Square Enclosure
+
+The original design used a 'rounded' enclosure, but you can also use the [square enclosure](https://makerworld.com/en/models/2489058-split-flap-display-square-enclosure#profileId-2734898) for this build. 

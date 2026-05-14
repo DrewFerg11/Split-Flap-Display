@@ -4,19 +4,19 @@ There are two build paths:
 
 <div class="grid cards" markdown>
 
-- :material-numeric-8-box: **Original display — up to 8 modules**
+- **Original Display** - :material-numeric-8-box:
 
     ---
 
-    ESP32 controlling up to 8 modules over a single I²C bus. The original design by Morgan Manly.
+    Single ESP32 controlling up to 8 modules over a single I²C bus. The original design by Morgan Manly.
 
     [:octicons-arrow-right-24: Original build guide](original/index.md)
 
-- :material-numeric-1-box::material-numeric-6-box: **Dual display — up to 16 modules**
+- **Dual Display** - :material-numeric-1-box::material-numeric-6-box:
 
     ---
 
-    ESP32 controlling up to 16 modules over two I²C buses. Enhanced version based on the original design.
+    Single ESP32 controlling up to 16 modules over two I²C buses. Enhanced version based on the original design.
 
     [:octicons-arrow-right-24: Dual display guide](dual-display/index.md)
 
@@ -25,11 +25,11 @@ There are two build paths:
 <div style="display: flex; gap: 1.5rem; margin: 2rem 0;" markdown>
 <figure style="flex: 1; text-align: center;" markdown>
 ![8-module split-flap display showing SUN16FEB](../assets/8-modules.png)
-<figcaption>Original — 8 modules, single row</figcaption>
+<figcaption>Original</figcaption>
 </figure>
 <figure style="flex: 1; text-align: center;" markdown>
 ![16-module dual split-flap display showing HELLO WORLD](../assets/16-modules.jpg)
-<figcaption>Dual display — 16 modules, two rows of 8</figcaption>
+<figcaption>Dual</figcaption>
 </figure>
 </div>
 
@@ -41,8 +41,13 @@ There are two build paths:
 | Display rows | 1 | 2 |
 | Characters shown | 8 | 16 |
 | I²C buses | 1 | 2 |
-| Original enclosure | yes | no |
-| Square enclosure | yes | yes |
-| Enhanced accuracy | yes | yes |
-| DIY PCB | yes | yes |
-| Purchased PCB | yes | yes |
+| Dual-bus firmware | ✅* | ✅ |
+| Original (rounded) enclosure | ✅ | ❌ |
+| Square enclosure | ✅ | ✅ |
+| Enhanced flap accuracy | ✅** | ✅ |
+| DIY PCB option | ✅ | ✅ |
+| Purchased PCB option | ✅ | ✅ |
+
+* _Firmware is backwards compatible_
+** _Only possible with square enclosure_
+
