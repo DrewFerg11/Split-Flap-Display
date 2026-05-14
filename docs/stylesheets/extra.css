@@ -1,0 +1,4 @@
+/* Center text content inside grid cards */
+.md-typeset .grid.cards > ul > li {
+  text-align: center;
+}
