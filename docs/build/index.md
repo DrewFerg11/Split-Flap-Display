@@ -41,14 +41,19 @@ There are two build paths to choose from:
 | Display rows | 1 | 2 |
 | Characters shown | 8 | 16 |
 | I²C buses | 1 | 2 |
-| Dual-bus firmware | ✅* | ✅ |
+| Dual-bus firmware | ✅[^1] | ✅ |
 | Original (rounded) enclosure | ✅ | ❌ |
 | Square enclosure | ✅ | ✅ |
-| Enhanced flap accuracy | ✅** | ✅ |
+| Flap count | 37/48[^2] | 37 |
+| Enhanced flap accuracy | ✅[^3] | ✅ |
 | DIY PCB option | ✅ | ✅ |
 | Purchased PCB option | ✅ | ✅ |
 
-*_Firmware is backwards compatible_
+[^1]: _Firmware is backwards compatible_
 
-**_Only possible with square enclosure_
+[^2]: _Square enclosure (currently) only supports 37. Original (rounded) enclosure supports both counts._
+
+[^3]: _Only comes with the square enclosure._
+
+[^4]: _Only_
 

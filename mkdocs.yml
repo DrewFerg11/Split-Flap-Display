@@ -94,6 +94,7 @@ nav:
     - Dual Display:
       - Overview: build/dual-display/index.md
       - BOM: build/dual-display/bom.md
+      - Power: build/dual-display/power.md
       - ESP32 Wiring: build/dual-display/esp32-wiring.md
       - Assembly: build/dual-display/assembly.md
   - Firmware:
