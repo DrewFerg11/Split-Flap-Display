@@ -20,7 +20,7 @@ There are two options:
 
     A purpose-built PCB ordered assembled from JLCPCB. All SMT components pre-soldered — you only add pull-up resistors.
 
-    [:octicons-arrow-right-24: Custom PCB guide](custom-pcb.md)
+    [:octicons-arrow-right-24: Custom PCB guide](custom-pcb/index.md)
 
 </div>
 
