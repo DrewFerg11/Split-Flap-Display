@@ -92,6 +92,14 @@ nav:
   - Home:
     - index.md
     - I²C Reference: i2c.md
+  - Module Boards:
+    - module-boards/index.md
+    - DIY Board: module-boards/diy-board.md
+    - Custom PCBs:
+      - module-boards/custom-pcb/index.md
+      - dowjames v5.1:
+        - module-boards/custom-pcb/dowjames-v5.1/index.md
+        - Ordering: module-boards/custom-pcb/dowjames-v5.1/ordering.md
   - Build & Assembly:
     - Overview: build/index.md
     - Original Display:

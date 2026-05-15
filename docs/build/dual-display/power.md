@@ -1,6 +1,6 @@
 # Power
 
-The dual display requires a stable **5V DC** supply capable of handling up to 16 stepper motors running simultaneously. There are two options to power your dual display. Choose your option no as it'll dictate the hardware you buy and parts you print. 
+The dual display requires a stable **5V DC** supply capable of handling up to 16 stepper motors running simultaneously. There are two options to power your dual display. Choose your option no as it'll dictate the [hardware you buy](bom.md) and [parts you print](build-guide/printed-parts.md). 
 
 ## Why are there multiple options?
 

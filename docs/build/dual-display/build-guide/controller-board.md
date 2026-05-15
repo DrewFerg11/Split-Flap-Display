@@ -19,6 +19,7 @@ The controller board is built on perfboard using:
 A few things to keep in mind before you start — this is one working design, not the only one:
 
 - **You don't have to build this controller board.** You can solder wires directly to the ESP32 and skip the perfboard entirely. The controller board exists for easier assembly and disassembly, not because the firmware requires it.
+     - The 3d printed enclosure is meant to mount this design. If you choose a different design, you will have to figure out your own mounting setup.
 - **The terminal block layout is a personal choice.** Separated and different-sized terminal blocks aren't required — I used what I had on hand and like the spacing between connections. A single multi-position block works fine too.
 - **Pull-up resistors are not on this board.** The 4.7kΩ I²C pull-ups for each bus live on the split-flap PCBs (or DIY boards), not on the controller. See the [I²C reference](../../../i2c.md#pull-up-resistors) for placement details.
 
