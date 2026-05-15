@@ -141,10 +141,6 @@ flowchart LR
     Ch0 ~~~ Ch1 ~~~ Ch2 ~~~ More
 ```
 
-![TCA9548A I²C multiplexer breakout board](assets/TCA9548A-mux.jpg){ width="280" }
-
-*TCA9548A multiplexer — splits one I²C bus into 8 isolated channels*
-
 **It works for addressing.** Drew tested a TCA9548A successfully driving 30 modules across multiple channels:
 
 > *"I got i2c multiplexing working with the code (which in theory allows 512+ addressable modules), and I was able to successfully test this with 30 modules. Big win just to get this point!"* — drewferg11
@@ -154,6 +150,10 @@ flowchart LR
 > *"when I tried to update all 30 modules at the same time, they turned very slowly… the i2c bus can't send all the required commands to every module on a single bus at the same time at a fast enough speed. The more modules you add, the slower it gets. I tried threading the commands, batching them, only updating modules that need to be changed, messing with bus speeds, etc, but nothing got me to full performance speed."* — drewferg11
 
 The practical ceiling for **full-speed simultaneous updates on a single I²C bus is roughly 13 modules**. Beyond that the motors visibly slow down — they still step correctly, just at a fraction of normal speed. Idle current cost of the multiplexer itself is negligible (~30mA), so the bottleneck is purely bus bandwidth.
+
+![TCA9548A I²C multiplexer breakout board](assets/TCA9548A-mux.jpg){ width="280" }
+
+*TCA9548A multiplexer — splits one I²C bus into 8 isolated channels*
 
 !!! info "Multiplexer overhead"
     *"At idle, adding the single multiplexer required an extra 0.03 amps."* — drewferg11. The TCA9548A is not what's slowing things down.
