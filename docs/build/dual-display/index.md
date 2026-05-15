@@ -13,5 +13,4 @@ The dual display configuration drives **up to 16 split-flap modules** from a sin
 
 1. [Bill of materials](bom.md) — everything you need before you start
 2. Order the PCBs from JLCPCB — see [`custom-pcb/dowjames-v5.1/pcb-instructions.md`](https://github.com/DrewFerg11/Split-Flap-Display/blob/main/custom-pcb/dowjames-v5.1/pcb-instructions.md)
-3. [ESP32 controller board wiring](esp32-wiring.md) — connecting the ESP32, power, and dual I²C buses
-4. [Assembly](assembly.md) — mounting into enclosures, hall sensors, motors
+3. [Assembly](build-guide/assembly.md) — mounting into enclosures, hall sensors, motors

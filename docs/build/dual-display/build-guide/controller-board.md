@@ -1,4 +1,4 @@
-# Controller Board Assembly
+# 2. Controller Board
 
 The dual display configuration uses a custom ESP32 controller board that manages two independent I²C buses (Bus 1 and Bus 2) and coordinates power distribution to support up to 16 split-flap modules. This page covers assembling the perfboard-based design.
 
@@ -102,6 +102,8 @@ Flip the board over:
 
 ## Install and Wire Controller Board
 
+TODO!!!
+
 The perfboard provides two independent daisy-chain outputs:
 
 - **Bus 1 (GPIO 21/22 - left terminal)** — connects to the first chain (top row) of up to 8 split-flap modules
@@ -129,4 +131,4 @@ All power runs through the main 5V supply connected to the controller board's sc
 
 ## Next Steps
 
-Once the controller board is assembled and tested, proceed to [ESP32 Wiring](esp32-wiring.md) to understand how it connects to the full dual display system.
+Once the controller board is assembled and tested, proceed to [Assembly](build-guide/assembly.md) to mount everything into the enclosure.

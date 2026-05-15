@@ -40,6 +40,14 @@ A fully 3D-printed, modular split-flap display with an ESP32-based web interface
 
     [:octicons-arrow-right-24: View repository](https://github.com/DrewFerg11/Split-Flap-Display)
 
+- :fontawesome-solid-heart: **Support**
+
+    ---
+
+    If this project saved you time or inspired your build, consider supporting further development.
+
+    [:simple-kofi: Ko-fi](https://ko-fi.com/drewferg11) · [:fontawesome-brands-github: GitHub Sponsors](https://github.com/sponsors/DrewFerg11)
+
 </div>
 
 ---

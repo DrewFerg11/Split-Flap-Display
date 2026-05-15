@@ -99,10 +99,12 @@ nav:
     - Dual Display:
       - Overview: build/dual-display/index.md
       - BOM: build/dual-display/bom.md
-      - Controller Board: build/dual-display/controller-board.md
       - Power: build/dual-display/power.md
-      - ESP32 Wiring: build/dual-display/esp32-wiring.md
-      - Assembly: build/dual-display/assembly.md
+      - Build Guide:
+        - build/dual-display/build-guide/index.md
+        - 1. Printed Parts: build/dual-display/build-guide/printed-parts.md
+        - 2. Controller Board: build/dual-display/build-guide/controller-board.md
+        - 3. Assembly: build/dual-display/build-guide/assembly.md
   - Firmware:
     - firmware/index.md
     - Build & Flash: firmware/setup.md
@@ -113,3 +115,9 @@ extra:
       link: https://github.com/DrewFerg11/Split-Flap-Display
     - icon: fontawesome/brands/discord
       link: https://discord.gg/RCvks4XXXH
+    - icon: fontawesome/solid/heart
+      link: https://github.com/sponsors/DrewFerg11
+      name: Sponsor on GitHub
+    - icon: simple/kofi
+      link: https://ko-fi.com/drewferg11
+      name: Support on Ko-fi
