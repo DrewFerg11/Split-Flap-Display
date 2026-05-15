@@ -1,6 +1,6 @@
 # Build & Assembly
 
-There are two build options for this project
+There are two build options for this project:
 
 <div class="grid cards" markdown>
 
@@ -37,7 +37,7 @@ There are two build options for this project
 </figure>
 </div>
 
-## Which path is right for you?
+## Which build is right for you?
 
 | | Original | Dual |
 |---|---|---|

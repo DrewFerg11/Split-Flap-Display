@@ -1,6 +1,6 @@
 # Controller Board Assembly
 
-The dual display configuration requires a custom ESP32 controller board that manages two independent I²C buses (Bus A and Bus B) and coordinates power distribution to support up to 16 split-flap modules. This page covers assembling the perfboard-based design.
+The dual display configuration uses a custom ESP32 controller board that manages two independent I²C buses (Bus 1 and Bus 2) and coordinates power distribution to support up to 16 split-flap modules. This page covers assembling the perfboard-based design.
 
 ![ESP32 controller board](../../assets/esp32-controller-board-1.jpg){ width="500" .center }
 
@@ -12,36 +12,35 @@ The controller board is built on perfboard using:
 
 - **ESP32 microcontroller** — runs the firmware and manages both I²C buses
 - **Perfboard with screw terminals** — provides clean connections for power, ground, and I²C signals
-- **Pull-up resistors** — one set per I²C bus (typically 4.7kΩ)
 - **Wiring and connectors** — interface with the 5V power supply and split-flap PCB daisy chains
+
+## Notes
+
+A few things to keep in mind before you start — this is one working design, not the only one:
+
+- **You don't have to build this controller board.** You can solder wires directly to the ESP32 and skip the perfboard entirely. The controller board exists for easier assembly and disassembly, not because the firmware requires it.
+- **The terminal block layout is a personal choice.** Separated and different-sized terminal blocks aren't required — I used what I had on hand and like the spacing between connections. A single multi-position block works fine too.
+- **Pull-up resistors are not on this board.** The 4.7kΩ I²C pull-ups for each bus live on the split-flap PCBs (or DIY boards), not on the controller. See the [I²C reference](../../i2c.md#pull-up-resistors) for placement details.
 
 ## Components
 
-Before assembling, gather:
-
-- 1x **ESP32 development board** (commonly NodeMCU-style with 30 pins)
-- 1x **Perfboard** (breadboard-style through-hole board, ~5cm × 7cm minimum)
-- 2x pairs of **4.7kΩ resistors** for I²C pull-ups (one pair per bus)
-- **Screw terminal blocks** (5mm pitch) for power input and bus outputs
-- **22 AWG hookup wire** in different colors (red for 5V, black for GND, blue/green for SDA/SCL)
-- **Solder and soldering iron**
-- **Heat shrink tubing** (optional but recommended for protection)
+Full list of parts can be found in the [BOM](bom.md). The "Split Flap Display connection" terminals are the daisy-chain outputs to the first module in each row.
 
 ![Controller board with labeled components](../../assets/esp32-controller-board-label.png){ width="500" .center }
 
-*Labeled components on the controller board — ESP32, pull-up resistors, and screw terminals for power and dual I²C bus outputs*
+*Labeled components on the controller board — ESP32 and screw terminals for power input and dual I²C bus outputs*
 
 ## Pin Connections
 
-The ESP32 has two dedicated I²C peripherals:
+The ESP32 has two dedicated I²C peripherals. The firmware uses these GPIO defaults:
 
-| Signal | Bus A | Bus B |
+| Signal | Bus 1 | Bus 2 |
 |---|---|---|
-| **SDA** (data) | GPIO 21 | GPIO 23 |
-| **SCL** (clock) | GPIO 22 | GPIO 19 |
+| **SDA** (data) | GPIO 21 | GPIO 33 |
+| **SCL** (clock) | GPIO 22 | GPIO 32 |
 | **GND** | GND | GND |
 
-Each I²C bus also requires **pull-up resistors** on SDA and SCL to 5V (4.7kΩ each). Only one set of pull-ups per bus is needed, soldered on the perfboard.
+These match the `SDA_PIN`, `SCL_PIN`, `SDA2_PIN`, and `SCL2_PIN` build flags in the firmware.
 
 ## Assembly Steps
 
@@ -49,41 +48,30 @@ Each I²C bus also requires **pull-up resistors** on SDA and SCL to 5V (4.7kΩ e
 
 - Mount the ESP32 on the perfboard using header sockets or by soldering the pins directly
 - Plan the layout so power (5V/GND) runs along one edge and I²C signals are easily accessible
-- Leave space for the pull-up resistors and output connectors
+- Leave space for the output terminal blocks
 
 ### 2. Add Screw Terminals
 
 Solder screw terminal blocks to the perfboard for:
 
 - **5V power input** (from the external power supply)
-- **GND** (ground, connected to both ESP32 and power supply)
-- **Bus A output** (SDA, SCL, GND to first split-flap daisy chain)
-- **Bus B output** (SDA, SCL, GND to second split-flap daisy chain)
+- **GND** (ground, connected to both the ESP32 and the power supply)
+- **Bus 1 output** (SDA, SCL, GND to the first split-flap daisy chain)
+- **Bus 2 output** (SDA, SCL, GND to the second split-flap daisy chain)
 
-### 3. Solder Pull-up Resistors
+### 3. Wire the Internal Connections
 
-For **Bus A**:
-
-- Solder a 4.7kΩ resistor from the SDA line (GPIO 21) to the 5V rail
-- Solder another 4.7kΩ resistor from the SCL line (GPIO 22) to the 5V rail
-
-For **Bus B**:
-
-- Repeat with GPIO 23 (SDA) and GPIO 19 (SCL)
-
-### 4. Wire the Internal Connections
-
-Run jumper wires from the ESP32 GPIO pins through the pull-up resistors to the screw terminals, and tie all grounds together. Keep power and signal runs neat so the back side stays clean.
+Run jumper wires from the ESP32 GPIO pins to the screw terminals and tie all grounds together. Keep power and signal runs neat so the back side stays clean.
 
 ![Internal wiring — front view](../../assets/esp32-controller-board-internal-wiring.png){ width="500" .center }
 
-*Front-side internal wiring — ESP32 GPIO pins routed through pull-up resistors to the bus output terminals*
+*Front-side internal wiring — ESP32 GPIO pins routed to the bus output terminals*
 
 ![Internal wiring — back view](../../assets/esp32-controller-board-internal-wiring-back.jpg){ width="500" .center }
 
 *Back-side solder joints — keep traces short and well-soldered to avoid intermittent I²C errors*
 
-### 5. Test Before Installation
+### 4. Test Before Installation
 
 - Power on the controller board and check that the ESP32 boots
 - Use the firmware's I²C scanner (if available) to verify each bus can detect modules
@@ -97,14 +85,14 @@ Run jumper wires from the ESP32 GPIO pins through the pull-up resistors to the s
 
 The perfboard provides two independent daisy-chain outputs:
 
-- **Bus A (GPIO 21/22)** — connects to the first chain of up to 8 split-flap modules
-- **Bus B (GPIO 23/19)** — connects to the second chain of up to 8 split-flap modules
+- **Bus 1 (GPIO 21/22)** — connects to the first chain of up to 8 split-flap modules
+- **Bus 2 (GPIO 33/32)** — connects to the second chain of up to 8 split-flap modules
 
 Each split-flap PCB has NEXT/PREV headers that daisy-chain along the row. The controller board's I²C outputs feed the first module in each chain; the modules then daisy-chain through their onboard headers.
 
 ![External wiring — controller to PSU and displays](../../assets/esp32-controller-board-external-wiring.png){ width="500" .center }
 
-*External wiring — 5V power input from the PSU on one side, Bus A and Bus B outputs to the split-flap daisy chains on the other*
+*External wiring — 5V power input from the PSU on one side, Bus 1 and Bus 2 outputs to the split-flap daisy chains on the other*
 
 ![Controller board installed](../../assets/esp32-controller-board-3.jpg){ width="500" .center }
 
