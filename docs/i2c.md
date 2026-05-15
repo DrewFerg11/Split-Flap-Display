@@ -1,6 +1,6 @@
 # I²C Reference
 
-![I2C bus logo](assets/I2C_bus_logo.svg.png){ width="140" .center }
+![I2C bus logo](assets/I2C_bus_logo.svg.png){ width="220" .center }
 
 I²C (Inter-Integrated Circuit) is the communication protocol used to control every split-flap module in this project. Understanding how it works explains many of the design decisions — including why a second bus is needed for 16 modules.
 
