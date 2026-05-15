@@ -2,6 +2,17 @@
 
 There are two build options for this project:
 
+<div style="display: flex; gap: 1.5rem; margin: 2rem 0;" markdown>
+<figure style="flex: 1; text-align: center;" markdown>
+![8-module split-flap display showing SUN16FEB](../assets/8-modules.png)
+<figcaption>Original</figcaption>
+</figure>
+<figure style="flex: 1; text-align: center;" markdown>
+![16-module dual split-flap display showing HELLO WORLD](../assets/16-modules.jpg)
+<figcaption>Dual</figcaption>
+</figure>
+</div>
+
 <div class="grid cards" markdown>
 
 - **Original Display**
@@ -24,17 +35,6 @@ There are two build options for this project:
 
     [:octicons-arrow-right-24: Dual display guide](dual-display/index.md)
 
-</div>
-
-<div style="display: flex; gap: 1.5rem; margin: 2rem 0;" markdown>
-<figure style="flex: 1; text-align: center;" markdown>
-![8-module split-flap display showing SUN16FEB](../assets/8-modules.png)
-<figcaption>Original</figcaption>
-</figure>
-<figure style="flex: 1; text-align: center;" markdown>
-![16-module dual split-flap display showing HELLO WORLD](../assets/16-modules.jpg)
-<figcaption>Dual</figcaption>
-</figure>
 </div>
 
 ## Which build is right for you?
