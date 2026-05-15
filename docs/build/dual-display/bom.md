@@ -32,7 +32,7 @@ Everything you need to build the 16-module dual display. Items marked **required
 | Perfboard | 1 | For controller board assembly |
 | Screw terminals | — | GND, +5V, I²C Bus A, I²C Bus B |
 
-See [Controller Board Assembly](controller-board.md) for the full build.
+See [Controller Board Assembly](build-guide/controller-board.md) for the full build.
 
 ---
 

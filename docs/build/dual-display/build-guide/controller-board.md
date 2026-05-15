@@ -2,7 +2,7 @@
 
 The dual display configuration uses a custom ESP32 controller board that manages two independent I²C buses (Bus 1 and Bus 2) and coordinates power distribution to support up to 16 split-flap modules. This page covers assembling the perfboard-based design.
 
-![ESP32 controller board](../../assets/esp32-controller-board-1.jpg){ width="500" .center }
+![ESP32 controller board](../../../assets/esp32-controller-board-1.jpg){ width="500" .center }
 
 *The assembled ESP32 controller board*
 
@@ -20,13 +20,13 @@ A few things to keep in mind before you start — this is one working design, no
 
 - **You don't have to build this controller board.** You can solder wires directly to the ESP32 and skip the perfboard entirely. The controller board exists for easier assembly and disassembly, not because the firmware requires it.
 - **The terminal block layout is a personal choice.** Separated and different-sized terminal blocks aren't required — I used what I had on hand and like the spacing between connections. A single multi-position block works fine too.
-- **Pull-up resistors are not on this board.** The 4.7kΩ I²C pull-ups for each bus live on the split-flap PCBs (or DIY boards), not on the controller. See the [I²C reference](../../i2c.md#pull-up-resistors) for placement details.
+- **Pull-up resistors are not on this board.** The 4.7kΩ I²C pull-ups for each bus live on the split-flap PCBs (or DIY boards), not on the controller. See the [I²C reference](../../../i2c.md#pull-up-resistors) for placement details.
 
 ## Components
 
-Full list of parts can be found in the [BOM](bom.md). The "Split Flap Display connection" terminals represent the daisy-chain outputs to the first module in each row.
+Full list of parts can be found in the [BOM](../bom.md). The "Split Flap Display connection" terminals represent the daisy-chain outputs to the first module in each row.
 
-![Controller board with labeled components](../../assets/esp32-controller-board-label.png){ width="500" .center }
+![Controller board with labeled components](../../../assets/esp32-controller-board-label.png){ width="500" .center }
 
 *Labeled components on the controller board — ESP32 and screw terminals for power input and dual I²C bus outputs*
 
@@ -69,11 +69,11 @@ Flip the board over:
 - Solder a pair of jumper wires from the [ESP32 GPIO pins](#pin-connections) to the two different I2C screw terminals.
     - I used 22 awg wire.
 
-![Internal wiring — front view](../../assets/esp32-controller-board-internal-wiring.png){ width="500" .center }
+![Internal wiring — front view](../../../assets/esp32-controller-board-internal-wiring.png){ width="500" .center }
 
 *Top side internal wiring — wires soldered on the back of the perfboard*
 
-![Internal wiring — back view](../../assets/esp32-controller-board-internal-wiring-bottom.jpg){ width="500" .center }
+![Internal wiring — back view](../../../assets/esp32-controller-board-internal-wiring-bottom.jpg){ width="500" .center }
 
 *Bottom side solder joints and wiring — keep traces short and well-soldered to avoid intermittent I²C errors*
 
@@ -85,16 +85,16 @@ Flip the board over:
 
 <div style="display: flex; gap: 1.5rem; margin: 2rem 0;" markdown>
 <figure style="flex: 1; text-align: center;" markdown>
-![Completed controller board](../../assets/esp32-controller-board-2.jpg)
+![Completed controller board](../../../assets/esp32-controller-board-2.jpg)
 <figcaption>Front</figcaption>
 </figure>
 <figure style="flex: 1; text-align: center;" markdown>
-![Controller board from a different angle](../../assets/esp32-controller-board-3.jpg)
+![Controller board from a different angle](../../../assets/esp32-controller-board-3.jpg)
 <figcaption>Back</figcaption>
 </figure>
 </div>
 
-![Controller board with bus wires connected](../../assets/esp32-controller-board-4.jpg){ width="500" .center }
+![Controller board with bus wires connected](../../../assets/esp32-controller-board-4.jpg){ width="500" .center }
 
 *Power and I²C bus wires connected to the screw terminals for testing before assembly*
 
@@ -111,13 +111,13 @@ The perfboard provides two independent daisy-chain outputs:
 
 Each split-flap PCB has NEXT/PREV headers that daisy-chain along the row. The controller board's I²C outputs feed the first module in each chain; the modules then daisy-chain through their onboard headers.
 
-![External wiring — controller to PSU and displays](../../assets/esp32-controller-board-external-wiring.png){ width="500" .center }
+![External wiring — controller to PSU and displays](../../../assets/esp32-controller-board-external-wiring.png){ width="500" .center }
 
 *External wiring — 5V power input from the PSU on one side, Bus 1 and Bus 2 outputs to the split-flap daisy chains on the other*
 
 
 
-![Controller board installed in the enclosure](../../assets/esp32-controller-board-5.jpg){ width="500" .center }
+![Controller board installed in the enclosure](../../../assets/esp32-controller-board-5.jpg){ width="500" .center }
 
 *Final installation — controller board mounted and powering the dual display*
 
@@ -131,4 +131,4 @@ All power runs through the main 5V supply connected to the controller board's sc
 
 ## Next Steps
 
-Once the controller board is assembled and tested, proceed to [Assembly](build-guide/assembly.md) to mount everything into the enclosure.
+Once the controller board is assembled and tested, proceed to [Assembly](assembly.md) to mount everything into the enclosure.
