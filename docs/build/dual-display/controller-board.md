@@ -24,7 +24,7 @@ A few things to keep in mind before you start — this is one working design, no
 
 ## Components
 
-Full list of parts can be found in the [BOM](bom.md). The "Split Flap Display connection" terminals are the daisy-chain outputs to the first module in each row.
+Full list of parts can be found in the [BOM](bom.md). The "Split Flap Display connection" terminals represent the daisy-chain outputs to the first module in each row.
 
 ![Controller board with labeled components](../../assets/esp32-controller-board-label.png){ width="500" .center }
 
@@ -64,18 +64,18 @@ Solder the 4 screw terminal blocks to the perfboard for:
 Flip the board over:
 
 - Solder the 3 pins of the 5V terminal block and the ESP32 VIN pin together. 
-  - I used a solid copper wire, you could solder them all together without a wire if you want.
-- Solder the 3 pins of the GND terminal block and the ESP32 GND pin together.
+    - I used a solid copper wire, you could solder them all together without a wire if you want.
+- Solder the 3 pins of the GND terminal block and the ESP32 GND pin together, same as 5V.
 - Solder a pair of jumper wires from the [ESP32 GPIO pins](#pin-connections) to the two different I2C screw terminals.
-  - I used 22 awg wire
+    - I used 22 awg wire.
 
 ![Internal wiring — front view](../../assets/esp32-controller-board-internal-wiring.png){ width="500" .center }
 
-*Front-side internal wiring — wires soldered on the back of the perfboard*
+*Top side internal wiring — wires soldered on the back of the perfboard*
 
-![Internal wiring — back view](../../assets/esp32-controller-board-internal-wiring-back.jpg){ width="500" .center }
+![Internal wiring — back view](../../assets/esp32-controller-board-internal-wiring-bottom.jpg){ width="500" .center }
 
-*Back-side solder joints and wiring — keep traces short and well-soldered to avoid intermittent I²C errors*
+*Bottom side solder joints and wiring — keep traces short and well-soldered to avoid intermittent I²C errors*
 
 ### 4. Test Before Installation
 
@@ -86,11 +86,11 @@ Flip the board over:
 <div style="display: flex; gap: 1.5rem; margin: 2rem 0;" markdown>
 <figure style="flex: 1; text-align: center;" markdown>
 ![Completed controller board](../../assets/esp32-controller-board-2.jpg)
-<figcaption>Completed controller board ready for installation</figcaption>
+<figcaption>Front</figcaption>
 </figure>
 <figure style="flex: 1; text-align: center;" markdown>
 ![Controller board from a different angle](../../assets/esp32-controller-board-3.jpg)
-<figcaption>Controller board from a different angle</figcaption>
+<figcaption>Back</figcaption>
 </figure>
 </div>
 
