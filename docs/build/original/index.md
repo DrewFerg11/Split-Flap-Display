@@ -1,4 +1,4 @@
-# Original Display — 37 / 48 Characters
+# Original Display
 
 <figure markdown>
 ![Split-flap display showing OKAY — original rounded enclosure](../../assets/37-flap-main.png)

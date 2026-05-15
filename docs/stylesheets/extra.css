@@ -2,3 +2,9 @@
 .md-typeset .grid.cards > ul > li {
   text-align: center;
 }
+
+/* Utility: center a block-level image */
+.md-typeset img.center {
+  display: block;
+  margin: 1rem auto;
+}

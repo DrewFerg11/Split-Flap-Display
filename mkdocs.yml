@@ -89,7 +89,9 @@ extra_css:
   - stylesheets/extra.css
 
 nav:
-  - Home: index.md
+  - Home:
+    - index.md
+    - I²C Reference: i2c.md
   - Build & Assembly:
     - Overview: build/index.md
     - Original Display:

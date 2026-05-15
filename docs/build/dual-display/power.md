@@ -2,9 +2,6 @@
 
 The dual display requires a stable **5V DC** supply capable of handling up to 16 stepper motors running simultaneously.
 
-!!! tip "Building a permanent display?"
-    Go with **Option A** (Mean Well integrated PSU). Option B is documented for completeness but has known cold-start reliability issues at full 16-module scale.
-
 ## Why are there multiple options?
 
 I originally designed the dual display to work with an external 5V power supply, connected via barrel jack. This option was clean, simple, and worked during my testing. It was only after I soldered the ESP32 controller board and attached 16 modules when I ran into power issues. The main issue was the ESP32 wouldn't boot from a cold start. I found a workaround to get it to boot, but then I started having some reliability issues when running all 16 modules.
@@ -59,7 +56,7 @@ TODO
 **5V 10A barrel jack adapter** — wall adapter brick that sits separately from the display. Simpler setup, no hardwiring required.
 
 !!! warning "Known reliability issues at 16 modules"
-    This option has documented cold-start failures when driving all 16 modules — the ESP32 may not boot reliably. See [Why are there multiple options?](#why-are-there-multiple-options) above. If you proceed with Option B, use a quality supply (not a cheap Amazon generic) and test thoroughly before treating the build as complete.
+    This is documented for completeness but has known cold-start reliability issues at full 16-module scale, the ESP32 may not boot reliably. See [Why are there multiple options?](#why-are-there-multiple-options) above. If you proceed with Option B, use a quality supply (not a [cheap Amazon generic](https://a.co/d/036pBEuH)) and test thoroughly before treating the build as complete.
 
 To find a compatible supply: search for any **5V 10A** power supply with a **5.5×2.1mm DC barrel plug**. Quality varies significantly — avoid no-name generic units.
 
@@ -86,7 +83,7 @@ To find a compatible supply: search for any **5V 10A** power supply with a **5.5
 
 ## Wiring
 
-Both options deliver power to the first module's `NEXT` header (+5V and GND), which daisy-chains through all subsequent boards. See the [ESP32 wiring guide](esp32-wiring.md) for the full connection diagram.
+Both options deliver power to the first modules (+5V and GND), which daisy-chains through all subsequent boards. See the [ESP32 wiring guide](esp32-wiring.md) for the full connection diagram.
 
 !!! danger "Don't power through the ESP32 USB port"
-    Avoid powering the display chain through the ESP32's USB port, especially on smaller variants (ESP32-C3, ESP32-S3). The USB traces aren't rated for motor current and will overheat. Power the boards directly from the 5V supply.
+    Avoid powering the display chain through the ESP32's USB port, especially on smaller variants (ESP32-C3, ESP32-S3). This works fine for testing a few modules modules at a time, but not the entire display. The USB traces aren't rated for motor current and will overheat. Power the boards directly from the 5V supply.

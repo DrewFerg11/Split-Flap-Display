@@ -1,4 +1,4 @@
-# Dual Display — 16 Modules
+# Dual Display
 
 The dual display configuration drives **up to 16 split-flap modules** from a single ESP32 using two I²C buses. It uses the custom **dowjames v5.1 PCB**, ordered assembled from JLCPCB.
 
