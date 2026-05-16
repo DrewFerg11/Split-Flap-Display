@@ -49,16 +49,16 @@ These match the `SDA_PIN`, `SCL_PIN`, `SDA2_PIN`, and `SCL2_PIN` build flags in 
 
 - Mount the ESP32 on the perfboard using by soldering the pins directly. 
   - You can print the "ESPSpacer" part that should be give the correct height between the ESP32 and perfboard when soldering. This will also align the reboot button on the ESP32 with the enclosure side cutout. So you can easily reboot your esp if needed.
-- make sure you place the EPS32 in the same pins as the pictures, so you won't have any issues installing the board to it's mount.
+- Make sure you place the EPS32 in the same pins as the pictures, so you won't have any issues installing the board to it's mount.
 
 ### 2. Add Screw Terminals
 
 Solder the 4 screw terminal blocks to the perfboard for:
 
-- **+5V power input**
-- **GND**
-- **Bus 1 output**
-- **Bus 2 output**
+- **+5V Terminal**
+- **GND Terminal**
+- **i2c Termianl 1**
+- **i2c Terminal 2**
 
 ### 3. Wire the Internal Connections
 

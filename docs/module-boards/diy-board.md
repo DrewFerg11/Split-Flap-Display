@@ -1,6 +1,6 @@
 # DIY Board
 
-The DIY board is the original approach from Morgan Manly's design — discrete breakout modules wired together to drive each split-flap module's stepper motor.
+The DIY board is the original approach from [Morgan Manly's design](https://www.instructables.com/Split-Flap-Display-3D-Printed-Modular-Compact-Encl/) — discrete breakout modules wired together to drive each split-flap module's stepper motor.
 
 ## Components (per module)
 

@@ -30,12 +30,9 @@ There are two options:
 
 | | DIY Board | Custom PCB |
 |---|---|---|
-| Upfront cost | Lower (per-unit) | Higher (min order of 10) |
-| Soldering required | Significant | Minimal (pull-up resistors only) |
+| Upfront cost per-unit | Lower  | Higher (varies) |
+| Soldering required | Significant | Minimal |
 | Assembly time | Higher | Low |
 | Reliability | Good | Excellent |
 | Form factor | Bulkier | Compact, purpose-built |
 | Availability | Source parts yourself | Ordered as a set from JLCPCB |
-| Best for | Trying a single module | Building a full display |
-
-For a full 8- or 16-module display, the custom PCB is the better choice — the time saved on assembly alone justifies the minimum order cost.
