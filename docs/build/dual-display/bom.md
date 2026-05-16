@@ -69,7 +69,7 @@ Choose one option. See [Power](power.md) for details on each.
     | M5 16 AWG Ring Connector | 5 | | | [Amazon](https://a.co/d/0dwV33gi) |
     | M3 × 35mm Countersunk Machine Screws | 2 | | | [Amazon](https://a.co/d/07yLTH74) |
     | M3 × 30mm Countersunk Machine Screws | 2 | | | [Amazon](https://a.co/d/0dZ8LeA2) |
-    | M3 × 12mm Countersink Machine Screws | 2 | Could be 10 | | [Amazon](https://a.co/d/0gWgyT27) |
+    | M3 × 12mm Countersink Machine Screws | 2 | | | [Amazon](https://a.co/d/0gWgyT27) |
     | M3 × 6 × 5 Heat Set Insert | 5 | | | [Amazon](https://a.co/d/01hBrO8S) |
     | Shelly 1PM Gen4 | 1 | ✅ | Smart power monitoring | [Amazon](https://a.co/d/0e8rYym1) |
     | 16 AWG Wire Ferrule Terminals (Shelly) | 4 | ✅ | Not needed without the Shelly | [Amazon](https://a.co/d/08AVfBJG) |
