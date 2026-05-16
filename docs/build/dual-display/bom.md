@@ -31,7 +31,7 @@ Required for all builds regardless of power or board option.
 
 ## Module Board
 
-Choose one option. See the [Module Boards](../../../module-boards/index.md) section for a full comparison.
+Choose one option. See the [Module Boards](../../module-boards/index.md) section for a full comparison.
 
 === "Custom PCB (recommended)"
 
@@ -39,7 +39,7 @@ Choose one option. See the [Module Boards](../../../module-boards/index.md) sect
 
     | Item | Qty | Notes | Link |
     |------|-----|-------|------|
-    | dowjames v5.1 Custom PCB | 16 | Ordered assembled from JLCPCB | [Ordering guide](../../../module-boards/custom-pcb/dowjames-v5.1/ordering.md) |
+    | dowjames v5.1 Custom PCB | 16 | Ordered assembled from JLCPCB | [Ordering guide](../../module-boards/custom-pcb/dowjames-v5.1/ordering.md) |
     | 5V 28BYJ-48 Stepper Motor | 16 | You don't need the separate driver board | [Amazon](https://a.co/d/02uVBov3) |
     | 3 Pin JST PH Female Connector | 16 | | [Amazon](https://a.co/d/0fr4haGp) |
     | 4.7kΩ Pull-Up Resistor | 2 | One per I²C bus — first board in each chain | [Amazon](https://a.co/d/0fgxiKNf) |
@@ -52,7 +52,7 @@ Choose one option. See the [Module Boards](../../../module-boards/index.md) sect
 
 ## Power Supply
 
-Choose one option. See [Power](../power.md) for details on each.
+Choose one option. See [Power](power.md) for details on each.
 
 === "Option A — Integrated PSU (recommended)"
 

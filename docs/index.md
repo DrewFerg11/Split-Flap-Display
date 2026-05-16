@@ -51,3 +51,7 @@ A fully 3D-printed, modular split-flap display with an ESP32-based web interface
 </div>
 
 ---
+
+## Credits
+
+The dual display configuration, 3D-printed enclosure designs, custom PCB coordination, firmware extensions, and this documentation were developed by [DrewFerg11](https://github.com/DrewFerg11). Built on the original split-flap design by [Morgan Manly](https://github.com/ManlyMorgan/Split-Flap-Display), with community contributions from Jordan Hoff, Thom Koopman, dowjames, norpan, and many others in the [Discord](https://discord.gg/RCvks4XXXH).
