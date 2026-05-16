@@ -30,6 +30,6 @@ The PCF8575 has three address pins — A0, A1, A2 — set via the onboard DIP sw
 **Cons:**
 
 - More soldering per module — each board requires wiring multiple components together
-- Bulkier than the custom PCB
+- Bulkier than the [custom PCB](custom-pcb/index.md)
 - More points of failure (hand-soldered connections)
 - Harder to replicate consistently across 8–16 modules

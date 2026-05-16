@@ -1,6 +1,6 @@
 # Power
 
-The dual display requires a stable **5V DC** supply capable of handling up to 16 stepper motors running simultaneously. There are two options to power your dual display. Choose your option no as it'll dictate the [hardware you buy](bom.md) and [parts you print](build-guide/printed-parts.md). 
+The dual display requires a stable **5V DC** supply capable of handling up to 16 stepper motors running simultaneously. There are two options to power your dual display. Choose your option now as it'll dictate the [hardware you buy](bom.md) and [parts you print](build-guide/printed-parts.md). 
 
 ## Why are there multiple options?
 
@@ -86,4 +86,4 @@ To find a compatible supply: search for any **5V 10A** power supply with a **5.5
 Both options deliver power to the first modules (+5V and GND), which daisy-chains through all subsequent boards. See the [Controller Board Assembly](build-guide/controller-board.md) for the full connection diagram.
 
 !!! danger "Don't power through the ESP32 USB port"
-    Avoid powering the display chain through the ESP32's USB port, especially on smaller variants (ESP32-C3, ESP32-S3). This works fine for testing a few modules modules at a time, but not the entire display. The USB traces aren't rated for motor current and will overheat. Power the boards directly from the 5V supply.
+    Avoid powering the display chain through the ESP32's USB port, especially on smaller variants (ESP32-C3, ESP32-S3). This works fine for testing a few modules at a time, but not the entire display. The USB traces aren't rated for motor current and will overheat. Power the boards directly from the 5V supply.

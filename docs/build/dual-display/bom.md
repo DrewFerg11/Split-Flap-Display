@@ -19,10 +19,12 @@ Required for all builds regardless of power or board option.
 | 16 AWG Wire | — | Red and black for 120V wiring | [Amazon](https://a.co/d/0dnlzv3A) |
 | 18 AWG Wire | — | Red and black for 5V wiring | [Amazon](https://a.co/d/07qlweqJ) |
 | 24 AWG Wire | — | White and yellow for I²C wiring | [Amazon](https://a.co/d/01tevNzU) |
-| M3 × 350mm Fully Threaded Rod | 8 | | [Amazon](https://a.co/d/03wEigg8) |
-| M3 Nut | 8 | End caps | [Amazon](https://a.co/d/08b878Ls) |
-| M3 × 8mm Countersink Machine Screws | 8 | End caps | [Amazon](https://a.co/d/0h6fTboP) |
+| M3 × 350mm Fully Threaded Rod | 8 | 4 per row | [Amazon](https://a.co/d/03wEigg8) |
+| M3 × 30mm Countersunk Machine Screws | 64 | 4 per module | [Amazon](https://a.co/d/0dZ8LeA2) |
+| M3 × 6mm Countersink Machine Screws | 8 | End caps | [Amazon](https://a.co/d/0h6fTboP) |
+| M3 Nut | 72 | 8 for end caps; 64 for the modules | [Amazon](https://a.co/d/08b878Ls) |
 | M3 × 4 × 5 Heat Set Insert | 8 | End caps | [Amazon](https://a.co/d/01hBrO8S) |
+| 4mm × 18mm Dowel Pins | 16 | I recommend [Jordan Hoff's metal dowel mod](https://makerworld.com/en/models/1269780-split-flap-display-metal-dowel-mod#profileId-1296205) | [Amazon](https://a.co/d/0g9X6VVT) |
 | Black PETG Filament | ~2 kg | Everything except flaps | [Amazon](https://a.co/d/044ucNUs) |
 | Black PLA Filament | ~1 kg | Flaps | [Amazon](https://a.co/d/0aR8hNht) |
 | White PLA Filament | ~1 kg | Flaps | [Amazon](https://a.co/d/0fP4AraA) |
@@ -43,6 +45,7 @@ Choose one option. See the [Module Boards](../../module-boards/index.md) section
     | 5V 28BYJ-48 Stepper Motor | 16 | You don't need the separate driver board | [Amazon](https://a.co/d/02uVBov3) |
     | 3 Pin JST PH Female Connector | 16 | | [Amazon](https://a.co/d/0fr4haGp) |
     | 4.7kΩ Pull-Up Resistor | 2 | One per I²C bus — first board in each chain | [Amazon](https://a.co/d/0fgxiKNf) |
+    | 2.54mm Pitch 4 Pin Stackable Header | 2 | [See assembly note](build-guide/assembly.md#stackable-header-note) | [Amazon](https://a.co/d/00aMJGHA) |
 
 === "DIY Board"
 
@@ -64,8 +67,10 @@ Choose one option. See [Power](power.md) for details on each.
     | 16 AWG Wire Ferrule Terminals | 6 | | Recommended for 120V connections | [Amazon](https://a.co/d/08AVfBJG) |
     | 4.8mm 16 AWG Female Spade Connector | 3 | | | [Amazon](https://a.co/d/0gb0nYzu) |
     | M5 16 AWG Ring Connector | 5 | | | [Amazon](https://a.co/d/0dwV33gi) |
-    | M3 × 8mm Countersink Machine Screws | ? | | PSU enclosure | [Amazon](https://a.co/d/0gWgyT27) |
-    | M3 × 4 × 5 Heat Set Insert | 5 | | PSU enclosure | [Amazon](https://a.co/d/01hBrO8S) |
+    | M3 × 35mm Countersunk Machine Screws | 2 | | | [Amazon](https://a.co/d/07yLTH74) |
+    | M3 × 30mm Countersunk Machine Screws | 2 | | | [Amazon](https://a.co/d/0dZ8LeA2) |
+    | M3 × 12mm Countersink Machine Screws | 2 | Could be 10 | | [Amazon](https://a.co/d/0gWgyT27) |
+    | M3 × 6 × 5 Heat Set Insert | 5 | | | [Amazon](https://a.co/d/01hBrO8S) |
     | Shelly 1PM Gen4 | 1 | ✅ | Smart power monitoring | [Amazon](https://a.co/d/0e8rYym1) |
     | 16 AWG Wire Ferrule Terminals (Shelly) | 4 | ✅ | Not needed without the Shelly | [Amazon](https://a.co/d/08AVfBJG) |
 

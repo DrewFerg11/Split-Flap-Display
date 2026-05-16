@@ -1,6 +1,6 @@
 # Dual Display
 
-The dual display configuration drives **up to 16 split-flap modules** from a single ESP32 using two I²C buses. It uses the custom **dowjames v5.1 PCB**, ordered assembled from JLCPCB.
+The dual display configuration drives **up to 16 split-flap modules** from a single ESP32 using two I²C buses. I used the [dowjames v5.1 custom PCBs](../../module-boards/custom-pcb/dowjames-v5.1/index.md) in my build, but the [original DIY boards](../../module-boards/diy-board.md) *should* work.
 
 ## Overview
 
@@ -14,3 +14,4 @@ The dual display configuration drives **up to 16 split-flap modules** from a sin
 1. [Bill of materials](bom.md) — everything you need before you start
 2. Order the PCBs from JLCPCB — see [`custom-pcb/dowjames-v5.1/pcb-instructions.md`](https://github.com/DrewFerg11/Split-Flap-Display/blob/main/custom-pcb/dowjames-v5.1/pcb-instructions.md)
 3. [Assembly](build-guide/assembly.md) — mounting into enclosures, hall sensors, motors
+

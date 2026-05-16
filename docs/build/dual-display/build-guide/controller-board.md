@@ -39,17 +39,16 @@ The ESP32 has two dedicated I²C peripherals. The firmware uses these GPIO defau
 |---|---|---|
 | **SDA** (data) | GPIO 21 | GPIO 33 |
 | **SCL** (clock) | GPIO 22 | GPIO 32 |
-| **GND** | GND | GND |
 
-These match the `SDA_PIN`, `SCL_PIN`, `SDA2_PIN`, and `SCL2_PIN` build flags in the firmware.
+These match the [`SDA_PIN`, `SCL_PIN`, `SDA2_PIN`, and `SCL2_PIN` build flags](https://github.com/DrewFerg11/Split-Flap-Display/blob/main/platformio.ini#L79-L82) in the firmware.
 
 ## Assembly Steps
 
 ### 1. Prepare the Perfboard
 
-- Mount the ESP32 on the perfboard using by soldering the pins directly. 
+- Mount the ESP32 on the perfboard by soldering the pins directly. 
   - You can print the "ESPSpacer" part that should be give the correct height between the ESP32 and perfboard when soldering. This will also align the reboot button on the ESP32 with the enclosure side cutout. So you can easily reboot your esp if needed.
-- Make sure you place the EPS32 in the same pins as the pictures, so you won't have any issues installing the board to it's mount.
+- Make sure you place the EPS32 in the same pins as the pictures, so you won't have any issues installing the board to its mount.
 
 ### 2. Add Screw Terminals
 
@@ -57,8 +56,8 @@ Solder the 4 screw terminal blocks to the perfboard for:
 
 - **+5V Terminal**
 - **GND Terminal**
-- **i2c Termianl 1**
-- **i2c Terminal 2**
+- **I²C Terminal 1**
+- **I²C Terminal 2**
 
 ### 3. Wire the Internal Connections
 
@@ -68,7 +67,7 @@ Flip the board over:
     - I used a solid copper wire, you could solder them all together without a wire if you want.
 - Solder the 3 pins of the GND terminal block and the ESP32 GND pin together, same as 5V.
 - Solder a pair of jumper wires from the [ESP32 GPIO pins](#pin-connections) to the two different I2C screw terminals.
-    - I used 22 awg wire.
+    - I used 24 awg wire.
 
 ![Internal wiring — front view](../../../assets/esp32-controller-board-internal-wiring.png){ width="500" .center }
 

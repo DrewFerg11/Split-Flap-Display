@@ -184,7 +184,7 @@ Almost always missing or insufficient **pull-up resistors**. The bus can sometim
 
 > *"When just one module is connected, the module works fine and homes without any problem. When I connect the second module (address 33), the first module (address 32) doesn't home correctly… When I detach the second module, the first one is working correctly again."* — n1co_93 (resolved by adding the 4.7kΩ pull-ups)
 
-**Fix:** Confirm 4.7kΩ pull-ups are installed on SDA and SCL on one board in the chain. See the [PCB ordering page](build/dual-display/bom.md) for placement guidance.
+**Fix:** Confirm 4.7kΩ pull-ups are installed on SDA and SCL on one board in the chain. See the [custom PCB page](module-boards/custom-pcb/dowjames-v5.1/index.md#1-add-ic-pull-up-resistors) for placement guidance.
 
 ### "Adding the 3rd / 7th / 8th module makes the display freeze"
 
