@@ -45,7 +45,7 @@
     Almost always missing pull-up resistors. The [PCF8575](i2c.md#how-its-used-in-this-project) has a weak internal pull-up that can barely hold the bus with one device — adding a second loads it past the threshold. Add 4.7kΩ pull-ups on SDA and SCL on the first board in the chain. See the [I²C reference](i2c.md#it-worked-with-one-module-breaks-when-i-add-a-second) for the full explanation.
 
 ??? question "My modules stop responding when I add more modules."
-    Usually a **power** issue, not I²C. As the daisy chain grows, voltage sag at the far end can drop below what the motors need. Check your power supply capacity, wire gauge, and consider feeding power from the middle of the chain. See the [I²C reference](i2c.md#adding-the-3rd--7th--8th-module-makes-the-display-freeze) for more.
+    Usually a **power** issue, not I²C. As the daisy chain grows, voltage sag at the far end can drop below what the motors need. Check your power supply capacity, wire gauge, and consider feeding power from the middle of the chain. See the [I²C reference](i2c.md#adding-the-3rd-7th-8th-module-makes-the-display-freeze) for more.
 
 ??? question "Two modules share the same address and neither works — how do I fix it?"
     Each module must have a unique DIP switch setting. The [PCF8575](i2c.md#how-its-used-in-this-project) defaults to address `0x20` — if two modules share that setting, both fail. Set a different DIP combination (A0/A1/A2) on every module. See the [I²C address table](i2c.md#address-assignment-via-dip-switch).
@@ -98,7 +98,7 @@
     Likely an inrush current issue with the power supply. This is a known limitation of lower-quality or lower-rated 5V adapters at full 16-module scale. Switching to the [integrated MEAN WELL PSU (Option A)](build/dual-display/power.md#option-a--integrated-psu-recommended) resolves this. See the [Power page](build/dual-display/power.md#why-are-there-multiple-options) for the full explanation.
 
 ??? question "My I²C errors appear under load but go away when motors are idle."
-    A noisy or undersized power supply can corrupt I²C signal edges when motors are drawing current. Try a higher-quality dedicated 5V supply for the module chain. See the [I²C reference](i2c.md#ic-error-codes-appear-under-load-but-vanish-on-a-different-power-supply).
+    A noisy or undersized power supply can corrupt I²C signal edges when motors are drawing current. Try a higher-quality dedicated 5V supply for the module chain. See the [I²C reference](i2c.md#i2c-error-codes-appear-under-load-but-vanish-on-a-different-power-supply).
 
 ---
 
@@ -118,9 +118,9 @@
 ??? question "Can I build more than 16 modules?"
     Yes, but it gets complicated fast. The 16-module ceiling is a hard limit of the ESP32's two I²C buses combined with the [PCF8575's](i2c.md#how-its-used-in-this-project) 8-address limit per bus. Going further requires one or both of:
 
-    - **[I²C multiplexers (TCA9548A)](i2c.md#ic-multiplexers-tca9548a--addressing-only-not-throughput)** — splits one bus into up to 8 isolated channels, each with 8 addressable modules. This solves the *addressing* problem but not the *throughput* problem. Testing showed 30 modules addressed successfully, but simultaneous updates slowed to a crawl — the I²C bus simply can't push commands to that many motors fast enough. The practical ceiling for full-speed simultaneous updates on a single bus is around **13 modules**.
+    - **[I²C multiplexers (TCA9548A)](i2c.md#i2c-multiplexers-tca9548a-addressing-only-not-throughput)** — splits one bus into up to 8 isolated channels, each with 8 addressable modules. This solves the *addressing* problem but not the *throughput* problem. Testing showed 30 modules addressed successfully, but simultaneous updates slowed to a crawl — the I²C bus simply can't push commands to that many motors fast enough. The practical ceiling for full-speed simultaneous updates on a single bus is around **13 modules**.
 
-    - **[Multiple ESP32s](i2c.md#multi-esp32--the-way-to-scale-further)** — the community's working approach for large displays. Each ESP drives up to 20 modules (two buses + a multiplexer per bus), with a coordinator ESP synchronizing them. More capable, but significantly more complex to set up — see the next question for how this has been prototyped.
+    - **[Multiple ESP32s](i2c.md#multi-esp32-the-way-to-scale-further)** — the community's working approach for large displays. Each ESP drives up to 20 modules (two buses + a multiplexer per bus), with a coordinator ESP synchronizing them. More capable, but significantly more complex to set up — see the next question for how this has been prototyped.
 
     See the [I²C scaling reference](i2c.md#scaling-beyond-16-modules) for a full breakdown of what the community has tried.
 
