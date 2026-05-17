@@ -33,10 +33,10 @@ The main module enclosure body.
 - **Option B:** print **16**
 
 ### B.1 — End Cap Right
-The right-side end cap contains the mount and cap. One per dual display. I recommend a smooth plate for the end cap.
+The right-side end cap contains the plate and cap. One per dual display. I recommend a smooth plate for the end cap.
 
 ### C — End Cap Left (Barrel Jack)
-*Option B (External Adapter) only.* The left-side end cap contains the mount and cap with a cutout for the barrel jack power connector.
+*Option B (External Adapter) only.* The left-side end cap contains the plate and cap with a cutout for the barrel jack power connector.
 
 - **C.1** — for a **34.5mm** barrel jack
 - **C.2** — for a **37.5mm** barrel jack

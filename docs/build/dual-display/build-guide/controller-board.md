@@ -100,27 +100,6 @@ Flip the board over:
 
 ---
 
-## Install and Wire Controller Board
-
-TODO!!!
-
-The perfboard provides two independent daisy-chain outputs:
-
-- **Bus 1 (GPIO 21/22 - left terminal)** — connects to the first chain (top row) of up to 8 split-flap modules
-- **Bus 2 (GPIO 33/32 - right terminal)** — connects to the second chain (bottom row) of up to 8 split-flap modules
-
-Each split-flap PCB has NEXT/PREV headers that daisy-chain along the row. The controller board's I²C outputs feed the first module in each chain; the modules then daisy-chain through their onboard headers.
-
-![External wiring — controller to PSU and displays](../../../assets/esp32-controller-board-external-wiring.png){ width="500" .center }
-
-*External wiring — 5V power input from the PSU on one side, Bus 1 and Bus 2 outputs to the split-flap daisy chains on the other*
-
-
-
-![Controller board installed in the enclosure](../../../assets/esp32-controller-board-5.jpg){ width="500" .center }
-
-*Final installation — controller board mounted and powering the dual display*
-
 ## Power Distribution
 
 All power runs through the main 5V supply connected to the controller board's screw terminals. The controller board is responsible for:
