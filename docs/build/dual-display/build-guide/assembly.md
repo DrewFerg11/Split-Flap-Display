@@ -1,6 +1,6 @@
 # Assembly
 
-Note: most of the build steps from the [original guide](../../original/index.md) still apply. So we won't re-cover them all. If there is something missing, please make an issue in GH and we'll get it addressed.
+Note: most of the build steps from the [original guide](../../original/index.md) still apply. So these steps won't go into detail for items already documented. If there is something missing, please create an issue and it'll be addressed.
 
 ## 1. Build Modules
 
@@ -8,11 +8,14 @@ Building each individual module is essentially the same as the original design. 
 
 - Installing the motor and hall sensor in the enclosure
 - Assembling the drum with flaps and magnet
-- Connecting the diy or custom pcd module board
+- Connecting the diy or custom pcb module board
 
 ## 2. Connect Modules
 
-Connect all modules together in two rows of 8. Using painters tape can help holder them together as you assemble.
+Connect all modules together in two rows of 8. Ensure you set the dip switches to each module before you connect them together.
+
+!!! tip
+    Painter's tape helps hold modules together while you assemble the row.
 
 <a id="stackable-header-note"></a>
 !!! warning "Custom PCB — stackable header required"
@@ -64,9 +67,11 @@ For **Option A (Integrated PSU)**, modules 4 and 7 in Row 1 use the **D.1 mount 
 
 **A.1** — Standard SFD Enclosure &nbsp;|&nbsp; **D.1** — Mount Enclosure (Option A — Integrated PSU only)
 
+## 3. Prepare Threaded Rods
 
+Cut the rod
 
-## 2. Install Heat Set Inserts
+## 4. Install Heat Set Inserts
 
 Use a soldering iron to install the heat set inserts into:
 
