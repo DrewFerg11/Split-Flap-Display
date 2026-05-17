@@ -12,6 +12,29 @@ Building each individual module is essentially the same as the original design. 
 
 ## 2. Solder Module Wire
 
+Regardless of the module board you are using, you'll want to solder wires with the correct length to the first module board before connecting all modules. Approximate wire lengths:
+
+- Row 1 (top): 90mm
+- Row 2 (bottom) 140mm
+
+!!! tip "How I wired the first module"
+    I used the [dowjames v5.1 custom PCB](../../../module-boards/custom-pcb/dowjames-v5.1/index.md) and soldered the wires directly to the PREV header pins, then added heat shrink tubing for protection.
+
+<div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Module board wiring step 1](../../../assets/module-board-wire-1.jpg)
+</figure>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Module board wiring step 2](../../../assets/module-board-wire-2.jpg)
+</figure>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Module board wiring step 3](../../../assets/module-board-wire-3.jpg)
+</figure>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Module board wiring step 4](../../../assets/module-board-wire-4.jpg)
+</figure>
+</div>
+
 ## 3. Connect Modules
 
 Connect all modules together in two rows of 8. Ensure you set the dip switches to each module before you connect them together.
@@ -71,7 +94,7 @@ For **Option A (Integrated PSU)**, modules 4 and 7 in Row 1 use the **D.1 mount 
 
 ## 3. Prepare Threaded Rods
 
-Cut the rod
+Cut all 8 threaded rod down to about 230mm, minimum 250mm. There should be extra sap
 
 ## 5. Install Heat Set Inserts
 
