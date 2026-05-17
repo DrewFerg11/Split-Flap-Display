@@ -27,8 +27,12 @@
 
     For the [dual display](build/dual-display/index.md), only the **37-flap version** is supported (square enclosure). See the [Build & Assembly comparison table](build/index.md#which-build-is-right-for-you) for details.
 
-??? question "Can I print everything in PLA?"
-    Print the **flaps in PLA** (black and white) for crisp character contrast. Print the **structural parts in PETG** — the enclosure, end caps, mounts, and drums. PETG is recommended for structural parts because PLA can soften and warp from motor heat over long-running displays, and PETG is more dimensionally stable for press-fit parts like the heat-set insert mounts. See the [BOM](build/dual-display/bom.md#common) for the recommended filaments.
+??? question "What filament should I use?"
+    **Flaps:** PLA (black and white) for crisp character contrast.
+
+    **Structural parts (enclosure, end caps, mounts, drums):** PETG is **recommended** but not strictly required — plenty of community members have built theirs entirely in PLA without issues. PETG holds up better to long-running motor heat and is more dimensionally stable for the heat-set insert mounts, but PLA works for most builds.
+
+    **A note on the white PLA in the [BOM](build/dual-display/bom.md#common):** It's the whitest white the community has tested so far, but it prints a little rougher than typical PLA and tends to stain print plates (both smooth and textured on Bambu printers). Worth knowing before you order.
 
 ---
 
@@ -100,6 +104,17 @@
 
 ## Expansion
 
+??? question "Why does this project use I²C?"
+    [I²C](i2c.md) is a solid fit for the **8–16 module range** this project targets. It enables per-module addressing with cheap, widely available hardware (PCF8575 + ULN2003), supports a clean daisy-chain wiring scheme through the NEXT/PREV headers, and pairs naturally with the ESP32's two hardware peripherals to enable the dual-display configuration. For the typical build, it just works.
+
+    For larger displays there are trade-offs worth knowing about:
+
+    - **Address ceiling** — 8 unique addresses per bus without a multiplexer
+    - **Throughput** — module updates are sequential, so speed degrades as you add modules
+    - **Cable length** — long daisy chains can pick up enough capacitance to slow signal edges
+
+    None of these are dead ends — multiplexers extend addressing, multi-ESP32 setups handle throughput, and the firmware/PCB design leaves room for community extensions. The community has actively pushed past the original 8-module limit (this dual display is one such example) and is still exploring more. If you have ideas, [join the Discord](https://discord.gg/RCvks4XXXH).
+
 ??? question "Can I build more than 16 modules?"
     Yes, but it gets complicated fast. The 16-module ceiling is a hard limit of the ESP32's two I²C buses combined with the [PCF8575's](i2c.md#how-its-used-in-this-project) 8-address limit per bus. Going further requires one or both of:
 
@@ -108,15 +123,6 @@
     - **[Multiple ESP32s](i2c.md#multi-esp32--the-way-to-scale-further)** — the community's working approach for large displays. Each ESP drives up to 20 modules (two buses + a multiplexer per bus), with a coordinator ESP synchronizing them. More capable, but significantly more complex to set up — see the next question for how this has been prototyped.
 
     See the [I²C scaling reference](i2c.md#scaling-beyond-16-modules) for a full breakdown of what the community has tried.
-
-??? question "Is I²C the right communication protocol for this project?"
-    It works well within the 8–16 module range, but it's not the ideal choice for large displays. [I²C](i2c.md) was designed for short on-board runs between chips, not for driving many devices in a daisy chain. Its limitations show up as:
-
-    - **Address ceiling** — only 8 unique addresses per bus without a multiplexer
-    - **Throughput** — serial by nature, each module update is sequential; speed degrades with module count
-    - **Cable length** — capacitance on long runs slows signal edges and causes errors
-
-    This project chose I²C because per-module addressing is simpler and the hardware is cheap and available — a reasonable trade-off up to about 16 modules.
 
 ??? question "Can I synchronize multiple ESP32s to act as one large display?"
     Yes — this has been prototyped and tested successfully. The implemented approach uses **UART** to coordinate a main node with secondary nodes (coded for up to 4 secondaries, tested with 1). Each ESP32 drives its own slice of the display independently, with the main node distributing display updates that each secondary acts on.
@@ -127,4 +133,4 @@
 
     **Power** — this is the bigger issue for large distributed builds. You can't run long 5V runs across a large display without significant voltage drop. The practical approach is a **12V or 24V PSU** running a main power line, with **buck converters** stepping down to 5V at each ESP32/module section. It's 100% doable but requires planning — it's not as simple as having a single 12V-powered PCB would be.
 
-    If you're planning a large distributed display, expect meaningful firmware and power planning work beyond what's documented here.
+    If you're planning a large distributed display, expect meaningful firmware and power planning work beyond what's (currently) documented here.
