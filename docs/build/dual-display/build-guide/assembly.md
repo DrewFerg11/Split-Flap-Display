@@ -12,6 +12,8 @@ Building each individual module is essentially the same as the original design. 
 - Assembling the drum with flaps and magnet
 - Connecting the [DIY or custom PCB module board](../../../module-boards/index.md)
 
+![Building modules](../../../assets/building-modules.jpg){ width="500" .center }
+
 ## 2. Solder Module Wires
 
 Regardless of the [module board](../../../module-boards/index.md) you're using, you'll want to solder wires of the correct length to the **first module board in each row** before connecting all modules together. I used **18 AWG** wire for 5V/GND and **24 AWG** wire for both I²C lines. Approximate wire lengths:
@@ -47,9 +49,33 @@ Use a soldering iron to install the heat set inserts into the [printed end mount
 !!! warning "Watch for melted plastic"
     As you sink the inserts, make sure no melted plastic is pushed up around them. Any plastic protruding above the surface will prevent the end caps from sitting flush and leave gaps in the enclosure. Use a sharp knife to trim any excess.
 
+<div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Heat set inserts in end plates](../../../assets/heat-set-inserts-end-plates-1.jpg)
+<figcaption>End plates</figcaption>
+</figure>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Heat set inserts in SFD enclosure mounts](../../../assets/heat-set-inserts-sfd-1.jpg)
+<figcaption>SFD enclosure mounts</figcaption>
+</figure>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Heat set inserts in PSU enclosure mounts](../../../assets/heat-set-inserts-psu-1.jpg)
+<figcaption>PSU enclosure mounts</figcaption>
+</figure>
+</div>
+
 ## 5. Install Controller Board
 
 Place the [controller board](controller-board.md) in the **left end mount** with the terminals facing down and the USB port facing forward. The fit should be snug — you may need to slightly flex the end mount to allow the board to slide in.
+
+<div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Controller board installation step 1](../../../assets/install-controller-board-1.jpg)
+</figure>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Controller board installation step 2](../../../assets/install-controller-board-2.jpg)
+</figure>
+</div>
 
 ## 6. Connect Modules
 
@@ -60,7 +86,7 @@ Connect all modules together in two rows of 8. **Set the DIP switches on each mo
 
 <a id="stackable-header-note"></a>
 !!! warning "Custom PCB — stackable header required"
-    If you are using the [dowjames v5.1 custom PCB](../../../module-boards/custom-pcb/dowjames-v5.1/index.md), you'll likely need a **2.54mm 4-pin stackable header** to connect the PCBs. By design, the PCBs are slightly narrower than the enclosure, which makes 8 consecutive boards hard to connect. Place this header between modules 4 and 5 on each row.
+    If you are using the [dowjames v5.1 custom PCB](../../../module-boards/custom-pcb/dowjames-v5.1/index.md), you'll likely need a **2.54mm 4-pin stackable header** to connect the PCBs. By design, the PCBs are slightly narrower than the enclosure, which makes 8 consecutive boards hard to connect. Place this header between modules 4 & 5 or 5 & 6 on each row.
 
 The diagram below shows how the 16 modules are arranged, **viewed from the back**. Numbering runs 8→1 left to right (mirrored from the front).
 
@@ -108,9 +134,27 @@ For **Option A (Integrated PSU)**, modules 4 and 7 in **Row 2** use the **D.1 mo
 
 **A.1** — Standard SFD Enclosure &nbsp;|&nbsp; **D.1** — Mount Enclosure (Option A — Integrated PSU only)
 
+<div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Connecting modules step 1](../../../assets/connect-modules-1.jpg)
+</figure>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Connecting modules step 2](../../../assets/connect-modules-2.jpg)
+</figure>
+</div>
+
 ## 7. Connect End Plates
 
 Connect the end plates to each side and insert the threaded rods into all 8 holes. **Be careful not to push too hard on the lower front hole** that slots through the flaps — you may hit a couple of flaps, but gently twisting the rod should let it pass. Finally, install 8 M3 nuts on each side. Hand-tighten enough to secure all modules, but not so much that the end modules get squeezed and the flap drums rub against the inside of the enclosure.
+
+<div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Connecting end plate step 1](../../../assets/connect-end-plate-1.jpg)
+</figure>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Connecting end plate step 2](../../../assets/connect-end-plate-2.jpg)
+</figure>
+</div>
 
 ## 8. Wire Controller Board to Modules
 
@@ -126,6 +170,15 @@ Connect the I²C wires you soldered in [step 2](#2-solder-module-wires) to the m
 ![External wiring — controller to PSU and displays](../../../assets/esp32-controller-board-external-wiring.png){ width="500" .center }
 
 *External wiring — 5V power input from the PSU on one side, Bus 1 and Bus 2 outputs to the split-flap daisy chains on the other*
+
+<div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Wiring controller board step 1](../../../assets/wire-control-board-1.jpg)
+</figure>
+<figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+![Wiring controller board step 2](../../../assets/wire-control-board-2.jpg)
+</figure>
+</div>
 
 !!! tip "Test before closing the enclosure"
     This is a good time to flash the firmware (if you haven't already) and verify all 16 modules respond and home correctly. It's much easier to troubleshoot a misbehaving module now than after the enclosure is sealed.
