@@ -11,6 +11,9 @@ docs_dir: docs
 
 theme:
   name: material
+  custom_dir: overrides
+  analytics:
+    provider: custom
   features:
     - navigation.tabs
     - navigation.tabs.sticky
