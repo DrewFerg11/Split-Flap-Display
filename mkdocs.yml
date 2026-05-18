@@ -14,6 +14,19 @@ theme:
   custom_dir: overrides
   analytics:
     provider: custom
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+            Thanks for your feedback! Help us improve this page by
+            <a href="https://github.com/DrewFerg11/Split-Flap-Display/issues/new/?title=[Feedback]+{title}&body={url}" target="_blank" rel="noopener">opening an issue</a>.
   features:
     - navigation.tabs
     - navigation.tabs.sticky
@@ -78,6 +91,9 @@ markdown_extensions:
 
 plugins:
   - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
   - glightbox:
       touchNavigation: true
       loop: false

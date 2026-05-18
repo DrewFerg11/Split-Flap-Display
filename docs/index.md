@@ -1,5 +1,10 @@
 # Split Flap Display
 
+[![Discord](https://img.shields.io/discord/1358181556769915001?logo=discord&logoColor=white&label=Discord)](https://discord.gg/RCvks4XXXH)
+[![GitHub Stars](https://img.shields.io/github/stars/DrewFerg11/Split-Flap-Display?style=flat&logo=github)](https://github.com/DrewFerg11/Split-Flap-Display/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/DrewFerg11/Split-Flap-Display?style=flat)](https://github.com/DrewFerg11/Split-Flap-Display/issues)
+[![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/drewferg11)
+
 A fully 3D-printed, modular split-flap display with an ESP32-based web interface. This project builds on the original hardware design by [Morgan Manly](https://github.com/ManlyMorgan/Split-Flap-Display) with extended firmware, an improved custom PCB, and support for a **16-module dual I²C configuration**.
 
 <figure markdown>

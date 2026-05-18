@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  <meta property="og:image" content="{{ config.site_url }}assets/split-flap-display-banana.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="{{ config.site_url }}assets/split-flap-display-banana.png">
+{% endblock %}
