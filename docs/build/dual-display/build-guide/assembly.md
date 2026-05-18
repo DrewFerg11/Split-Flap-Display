@@ -137,9 +137,11 @@ For **Option A (Integrated PSU)**, modules 4 and 7 in **Row 2** use the **D.1 mo
 <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
 ![Connecting modules step 1](../../../assets/connect-modules-1.jpg)
+<figcaption>Backside/figcaption>
 </figure>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
 ![Connecting modules step 2](../../../assets/connect-modules-2.jpg)
+<figcaption>End plates</figcaption>
 </figure>
 </div>
 
@@ -189,7 +191,7 @@ The next steps depend on which power option you chose. Skip to the section that 
 
 === "Option A — Integrated PSU"
 
-    ### 9. Install PSU Hardware
+    ### A.9. Install PSU Hardware
 
     !!! warning "Mains voltage"
         These steps involve 120V AC wiring. If you're not comfortable working with mains voltage, get help from someone who is.
@@ -202,13 +204,13 @@ The next steps depend on which power option you chose. Skip to the section that 
     - **Mount the LRS-75-5** into the PSU enclosure.
     - **(Optional)** Install the [Shelly 1PM Gen4](../bom.md#power-supply) for smart power monitoring.
 
-    ### 10. Wire the PSU
+    ### A.10. Wire the PSU
 
     - Cut the 120V wires to the correct lengths and crimp on ferrules/spade/ring connectors as needed.
     - Connect Line, Neutral, and Ground wires to the LRS-75-5's input terminals.
     - If installing the Shelly, wire it inline with the AC input per its documentation.
 
-    ### 11. Connect PSU to Controller Board
+    ### A.11. Connect PSU to Controller Board
 
     - Connect 5V and GND wires from the LRS-75-5's output terminals to the controller board's power input terminals.
     - Thread the wires through the hole on the back of the **left end cap**.
@@ -217,34 +219,34 @@ The next steps depend on which power option you chose. Skip to the section that 
     - Screw down the wires at the PSU's output terminals.
     - **Double-check all wiring one last time** before closing the enclosure.
 
-    ### 12. Mount the PSU Enclosure
+    ### A.12. Mount the PSU Enclosure
 
     Screw the PSU enclosure to the back of the display using the **M3 × 12mm screws** through the middle holes of the D.1 mounts.
 
-    ### 13. Close the Enclosure
+    ### A.13. Close the Enclosure
 
     - Place the PSU cable cover into the PSU enclosure.
     - Open the end cap just enough for the wire cover to slot into the end cap hole — the wire cover should be secure once the end cap is in place.
     - Tighten down the end cap screws.
     - Screw on the PSU enclosure top.
 
-    ### 14. Power On & Test
+    ### A.14. Power On & Test
 
     Plug in the power cord, flip the main switch, and verify the display boots and all modules respond.
 
 === "Option B — External Adapter"
 
-    ### 9. Install Barrel Jack
+    ### B.9. Install Barrel Jack
 
     - Cut the 5V/GND wires to the correct length.
     - Connect one end to the controller board's 5V/GND input terminals.
     - Connect the other end to the barrel jack.
     - Place the barrel jack into the cutout in the **C.1 or C.2 left end cap** (matched to your jack diameter).
 
-    ### 10. Close the Enclosure
+    ### B.10. Close the Enclosure
 
     Screw on the end caps. Make sure the barrel jack is seated properly in the cutout.
 
-    ### 11. Power On & Test
+    ### B.11. Power On & Test
 
     Plug in the external 5V power supply and verify the display boots and all modules respond.
