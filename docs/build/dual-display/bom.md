@@ -35,7 +35,7 @@ Required for all builds regardless of power or board option.
 
 Choose one option. See the [Module Boards](../../module-boards/index.md) section for a full comparison.
 
-=== "Custom PCB (recommended)"
+=== "Custom PCB"
 
     *Parts listed assume the dowjames v5.1 design.*
 

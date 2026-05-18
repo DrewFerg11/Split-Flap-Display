@@ -1,2 +1,16 @@
 <script data-goatcounter="https://split-flap-display.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
+<script>
+  var __md_analytics = function() {
+    function gtag(type, name, data) {
+      if (type === "feedback" && window.goatcounter && window.goatcounter.count) {
+        window.goatcounter.count({
+          path:  "/feedback/" + data.data,
+          title: name,
+          event: true
+        })
+      }
+    }
+    return gtag
+  }
+</script>

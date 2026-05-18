@@ -35,4 +35,4 @@ There are two options:
 | Assembly time | Higher | Low |
 | Reliability | Good | Excellent |
 | Form factor | Bulkier | Compact, purpose-built |
-| Availability | Source parts yourself | Ordered as a set from JLCPCB |
+| Availability | Source parts yourself | Ordered as a set from companies |
