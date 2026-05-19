@@ -238,10 +238,9 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     ### B.9. Install Barrel Jack
 
-    - Cut the 5V/GND wires to the correct length.
-    - Connect one end to the controller board's 5V/GND input terminals.
-    - Connect the other end to the barrel jack.
-    - Place the barrel jack into the cutout in the **C.1 or C.2 left end cap** (matched to your jack diameter).
+    Cut the 5V/GND wires to approximately 100mms. Connect one end to the controller board's 5V/GND input terminals, and the other end to the barrel jack. Place the barrel jack into the cutout in the **C.1 or C.2 left end cap** (matched to your jack size).
+
+    ![Installing barrel jack](../../../assets/install-barrel-jack-1.jpg){ width="500" .center }
 
     ### B.10. Close the Enclosure
 
@@ -250,3 +249,12 @@ The next steps depend on which power option you chose. Skip to the section that 
     ### B.11. Power On & Test
 
     Plug in the external 5V power supply and verify the display boots and all modules respond.
+
+    <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![External power setup 1](../../../assets/ext-power-1.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![External power setup 2](../../../assets/ext-power2.jpg)
+    </figure>
+    </div>
