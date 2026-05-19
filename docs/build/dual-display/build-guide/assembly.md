@@ -191,24 +191,44 @@ The next steps depend on which power option you chose. Skip to the section that 
 
 === "Option A — Integrated PSU"
 
-    ### A.9. Install PSU Hardware
-
     !!! warning "Mains voltage"
         These steps involve 120V AC wiring. If you're not comfortable working with mains voltage, get help from someone who is.
 
-    - **Install the Main Power Switch** into its 3D-printed mount with the switch facing the bottom.
+    ### A.9. Install PSU Hardware
 
-        !!! warning "Switch is hard to remove once installed"
-            Once pressed in, the switch is nearly impossible to remove without breaking the printed mount. Verify the mount has no imperfections and that you have the correct orientation before installing.
+    You'll end up removing these when you wire them up, but it's good to verify everything fits/ 
 
     - **Mount the LRS-75-5** into the PSU enclosure.
     - **(Optional)** Install the [Shelly 1PM Gen4](../bom.md#power-supply) for smart power monitoring.
+    - **Install the Main Power Switch** into its 3D-printed mount with the switch facing the bottom.
 
-    ### A.10. Wire the PSU
+    !!! warning "Switch is hard to remove once installed"
+        Once pressed in, the switch is nearly impossible to remove without breaking the printed mount. Verify the mount has no imperfections and that you have the correct orientation before installing.
 
-    - Cut the 120V wires to the correct lengths and crimp on ferrules/spade/ring connectors as needed.
-    - Connect Line, Neutral, and Ground wires to the LRS-75-5's input terminals.
-    - If installing the Shelly, wire it inline with the AC input per its documentation.
+    ### A.10. Prepare Wires
+
+    Use **16 AWG** for 120V lines. Cut and terminate wires based on whether you installed the Shelly.
+
+    === "With Shelly"
+
+        | Wire | From | To | Length | From Connector | To Connector |
+        |---|---|---|---|---|---|
+        | GND | Outlet (G) | PSU (G) | ~70mm | Female spade | M5 ring |
+        | LINE | Outlet (L) | Shelly (L) | ~80mm | Female spade | Wire ferrule |
+        | NEUTRAL | Outlet (N) | Shelly (N) | ~90mm | Female spade | Wire ferrule |
+        | LINE | Shelly (O) | PSU (L) | ~90mm | Wire ferrule | M5 ring |
+        | NEUTRAL | Shelly (N) | PSU (N) | ~80mm | Wire ferrule | M5 ring |
+
+    === "Without Shelly"
+
+        | Wire | From | To | Length | From Connector | To Connector |
+        |---|---|---|---|---|---|
+        | GND | Outlet (G) | PSU (G) | ~70mm | Female spade | M5 ring |
+        | LINE | Outlet (L) | PSU (L) | ~70mm | Female spade | M5 ring |
+        | NEUTRAL | Outlet (N) | PSU (N) | ~70mm | Female spade | M5 ring |
+
+
+
 
     ### A.11. Connect PSU to Controller Board
 
