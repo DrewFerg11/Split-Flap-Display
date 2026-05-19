@@ -7,9 +7,15 @@ on:
       - docs-site-setup  # TODO: remove this once initial docs setup is merged to main
     paths:
       - docs/**
+      - overrides/**
       - mkdocs.yml
       - .github/workflows/docs.yml
   workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to deploy from
+        required: false
+        default: ''
 
 permissions:
   contents: read
