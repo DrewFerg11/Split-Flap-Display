@@ -196,7 +196,7 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     ### A.9. Install PSU Hardware
 
-    You'll end up removing these when you wire them up, but it's good to verify everything fits/ 
+    You'll end up removing these when you wire them up, but it's good to verify everything fits first.
 
     - **Mount the LRS-75-5** into the PSU enclosure.
     - **(Optional)** Install the [Shelly 1PM Gen4](../bom.md#power-supply) for smart power monitoring.
@@ -205,11 +205,37 @@ The next steps depend on which power option you chose. Skip to the section that 
     !!! warning "Switch is hard to remove once installed"
         Once pressed in, the switch is nearly impossible to remove without breaking the printed mount. Verify the mount has no imperfections and that you have the correct orientation before installing.
 
-    ### A.10. Prepare Wires
+    <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![PSU hardware install step 1](../../../assets/psu-hardware-install-1.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![PSU hardware install step 2](../../../assets/psu-hardware-install-2.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![PSU hardware install step 3](../../../assets/psu-hardware-install-3.jpg)
+    </figure>
+    </div>
+
+    ### A.10. Prepare PSU Wires
 
     Use **16 AWG** for 120V lines. Cut and terminate wires based on whether you installed the Shelly.
 
     === "With Shelly"
+
+        ```mermaid
+        graph TD
+            SHELLY["Shelly 1PM Gen4"]
+
+            OUTLET["AC Outlet"]
+            PSU["LRS-75-5 PSU"]
+
+            OUTLET -- "GND · ~70mm · spade→ring" --> PSU
+            OUTLET -- "LINE · ~80mm · spade→ferrule" --> SHELLY
+            OUTLET -- "NEUTRAL · ~90mm · spade→ferrule" --> SHELLY
+            SHELLY -- "LINE · ~90mm · ferrule→ring" --> PSU
+            SHELLY -- "NEUTRAL · ~80mm · ferrule→ring" --> PSU
+        ```
 
         | Wire | From | To | Length | From Connector | To Connector |
         |---|---|---|---|---|---|
@@ -219,7 +245,21 @@ The next steps depend on which power option you chose. Skip to the section that 
         | LINE | Shelly (O) | PSU (L) | ~90mm | Wire ferrule | M5 ring |
         | NEUTRAL | Shelly (N) | PSU (N) | ~80mm | Wire ferrule | M5 ring |
 
+        ![PSU outlet wires](../../../assets/psu-outlet-wires-1.jpg){ width="500" .center }
+
+        ![PSU wires](../../../assets/psu-wires-1.jpg){ width="500" .center }
+
     === "Without Shelly"
+
+        ```mermaid
+        graph TD
+            OUTLET["AC Outlet"]
+            PSU["LRS-75-5 PSU"]
+
+            OUTLET -- "GND · ~70mm · spade→ring" --> PSU
+            OUTLET -- "LINE · ~70mm · spade→ring" --> PSU
+            OUTLET -- "NEUTRAL · ~70mm · spade→ring" --> PSU
+        ```
 
         | Wire | From | To | Length | From Connector | To Connector |
         |---|---|---|---|---|---|
@@ -238,6 +278,21 @@ The next steps depend on which power option you chose. Skip to the section that 
     - Route the 5V/GND wires through the corresponding hole in the PSU enclosure.
     - Screw down the wires at the PSU's output terminals.
     - **Double-check all wiring one last time** before closing the enclosure.
+
+    <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![PSU wired step 1](../../../assets/psu-wired-1.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![PSU wired and installed step 1](../../../assets/psu-wired-installed-1.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![PSU wired and installed step 2](../../../assets/psu-wired-installed-2.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![PSU wired and installed step 3](../../../assets/psu-wired-installed-3.jpg)
+    </figure>
+    </div>
 
     ### A.12. Mount the PSU Enclosure
 

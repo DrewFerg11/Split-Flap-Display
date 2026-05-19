@@ -13,7 +13,7 @@
     See the [Build & Assembly overview](build/index.md) for a full comparison.
 
 ??? question "Do I need the custom PCB, or can I use the DIY boards?"
-    Both work. The [custom PCB](module-boards/custom-pcb/index.md) arrives mostly assembled from JLCPCB — you just add [pull-up resistors](i2c.md#pull-up-resistors) and set the DIP switch. The [DIY board](module-boards/diy-board.md) uses discrete breakout modules you solder together yourself. For a full 16-module build, the custom PCB saves a significant amount of assembly time.
+    Both work. The [custom PCB](module-boards/custom-pcb/index.md) arrives mostly assembled from an online retailer — you just add [pull-up resistors](i2c.md#pull-up-resistors) and set the DIP switch. The [DIY board](module-boards/diy-board.md) uses discrete breakout modules you solder together yourself. Both are approved boards for this project.
 
 ??? question "How many modules can I run?"
     - **Minimum:** 1 — the firmware works with any number from 1 to 16; configure the count in the settings page after flashing
