@@ -239,11 +239,11 @@ The next steps depend on which power option you chose. Skip to the section that 
 
         | Wire | From | To | Length | From Connector | To Connector |
         |---|---|---|---|---|---|
-        | GND | Outlet (G) | PSU (G) | ~70mm | Female spade | M5 ring |
+        | GND | Outlet (G) | PSU (G) | ~70mm | Female spade | M4 ring |
         | LINE | Outlet (L) | Shelly (L) | ~80mm | Female spade | Wire ferrule |
         | NEUTRAL | Outlet (N) | Shelly (N) | ~90mm | Female spade | Wire ferrule |
-        | LINE | Shelly (O) | PSU (L) | ~90mm | Wire ferrule | M5 ring |
-        | NEUTRAL | Shelly (N) | PSU (N) | ~80mm | Wire ferrule | M5 ring |
+        | LINE | Shelly (O) | PSU (L) | ~90mm | Wire ferrule | M4 ring |
+        | NEUTRAL | Shelly (N) | PSU (N) | ~80mm | Wire ferrule | M4 ring |
 
         <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
         <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
@@ -270,44 +270,72 @@ The next steps depend on which power option you chose. Skip to the section that 
 
         | Wire | From | To | Length | From Connector | To Connector |
         |---|---|---|---|---|---|
-        | GND | Outlet (G) | PSU (G) | ~70mm | Female spade | M5 ring |
-        | LINE | Outlet (L) | PSU (L) | ~70mm | Female spade | M5 ring |
-        | NEUTRAL | Outlet (N) | PSU (N) | ~70mm | Female spade | M5 ring |
+        | GND | Outlet (G) | PSU (G) | ~70mm | Female spade | M4 ring |
+        | LINE | Outlet (L) | PSU (L) | ~70mm | Female spade | M4 ring |
+        | NEUTRAL | Outlet (N) | PSU (N) | ~70mm | Female spade | M4 ring |
+
+    Use **18 AWG** for 5V lines. I'd recommend keeping the wires paired and not separating them.
+
+    | Wire | From | To | Length | From Connector | To Connector |
+    |---|---|---|---|---|---|
+    | 5v | PSU (V+) | Controller Board (+5v Terminal) | ~280mm | M4 ring | Wire ferrule |
+    | GND | PSU (V-) | Controller Board (GND Terminal) | ~280mm | M4 ring | Wire ferrule |
+
+    pic
 
 
     ### A.11. Wire the PSU
 
-    Start by screwing down the 3 AC wires to the PSU terminals first. Then connect the Line and Neutral wires to the outlet — use the same outlet pins as shown in the photo.
+    You can now correct all the power hardware together.
 
-    ![PSU wired step 1](../../../assets/psu-wired-1.jpg){ width="500" .center }
+    === "With Shelly"
 
-    Next, place the LRS-75-5 into the enclosure and connect all the wires.
+        Start by screwing down the 3 AC wires to the PSU terminals first. Then connect the Line and Neutral wires to the outlet — use the same outlet pins as shown in the photo.
 
-    <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
-    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![PSU wired and installed step 1](../../../assets/psu-wired-installed-1.jpg)
-    </figure>
-    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![PSU wired and installed step 2](../../../assets/psu-wired-installed-2.jpg)
-    </figure>
-    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![PSU wired and installed step 3](../../../assets/psu-wired-installed-3.jpg)
-    <figcaption>Note the twist in the GND wire.</figcaption>
-    </figure>
-    </div>
+        ![PSU wired step 1](../../../assets/psu-wired-1.jpg){ width="500" .center }
+
+        Next, place the LRS-75-5 into the enclosure and connect all the wires.
+
+        <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+        <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+        ![PSU wired and installed step 1](../../../assets/psu-wired-installed-1.jpg)
+        </figure>
+        <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+        ![PSU wired and installed step 2](../../../assets/psu-wired-installed-2.jpg)
+        </figure>
+        <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+        ![PSU wired and installed step 3](../../../assets/psu-wired-installed-3.jpg)
+        <figcaption>Note the twist in the GND wire.</figcaption>
+        </figure>
+        </div>
+
+    === "Without Shelly"
+
+        Start by screwing down the 3 AC wires to the PSU terminals first. Then connect all 3 to the outlet. (Use the "With Shelly" option for photos if needed) 
+
     
-    ### A.12. Connect PSU to Controller Board
+    ### A.12. Mount the PSU Enclosure
 
-    - Connect 5V and GND wires from the LRS-75-5's output terminals to the controller board's power input terminals.
-    - Thread the wires through the hole on the back of the **left end cap**.
-    - Place the end cap into position over the controller board — **don't screw it down yet**.
-    - Route the 5V/GND wires through the corresponding hole in the PSU enclosure.
-    - Screw down the wires at the PSU's output terminals.
-    - **Double-check all wiring one last time** before closing the enclosure.
+    Screw the PSU enclosure to the back of the display using the **M3 × 12mm screws** through the two middle holes, connecting into the D.1 mounts. You'll need to pull the shelly to the side to install the second screw.
 
-    ### A.13. Mount the PSU Enclosure
+    pic
 
-    Screw the PSU enclosure to the back of the display using the **M3 × 12mm screws** through the middle holes of the D.1 mounts.
+    ### A.13. Connect PSU to Controller Board
+
+    Thread the ferrules end of the 5v wires under the shelly wires and through the output hole on the PSU enclosure, just next to the outlet mount.
+    Leaving the ring end of the 5v wires next to the +V/-V output terminals of the PSU. Screw them down. 
+
+    pic
+
+    Thread the ferrules ends through the hole on the end cap (part D.2). Don't connect the end cap to the end plate yet. First, screw the two ferrule ends into the +5v and GND Terminals on the Controller Board. 
+    
+    NOTE: **Double-check all wiring one last time** before closing the enclosure.
+
+    pic
+
+    Then line the end cap up over the end plate and close it be leave a small gap. Next place the wire cover end in the PSU enclosure, be sure the route the 5v wires in the cover, and align the other end over the hole on the end cap. Once aligned push the end cap all the way one, while simultaneously pushing the end of the wire cover into the hole. If done correctly the wire cover should be locked in place. 
+
+    pic
 
     ### A.14. Close the Enclosure
 
