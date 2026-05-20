@@ -1,6 +1,6 @@
 # Assembly
 
-Note: most of the build steps from the [original guide](../../original/index.md) still apply, so these steps won't go into detail for items already documented there. If something is missing, please [open an issue](https://github.com/DrewFerg11/Split-Flap-Display/issues) and it'll get addressed.
+Most of the build steps from the [original guide](../../original/index.md) still apply, so these steps won't go into detail for items already documented there. If something is missing, please [open an issue](https://github.com/DrewFerg11/Split-Flap-Display/issues) and it'll get addressed.
 
 I used a custom pcb module board for my setup, so these instructions will primarily focus on details specific to those boards, but this information is easily adaptable for the original diy boards.
 
@@ -226,9 +226,8 @@ The next steps depend on which power option you chose. Skip to the section that 
         ```mermaid
         graph TD
             SHELLY["Shelly 1PM Gen4"]
-
-            PSU["LRS-75-5 PSU"]
             OUTLET["AC Outlet"]
+            PSU["LRS-75-5 PSU"]
 
             OUTLET -- "GND · ~70mm · spade→ring" --> PSU
             OUTLET -- "LINE · ~80mm · spade→ferrule" --> SHELLY
@@ -281,8 +280,7 @@ The next steps depend on which power option you chose. Skip to the section that 
     | 5v | PSU (V+) | Controller Board (+5v Terminal) | ~280mm | M4 ring | Wire ferrule |
     | GND | PSU (V-) | Controller Board (GND Terminal) | ~280mm | M4 ring | Wire ferrule |
 
-    pic
-
+    ![5V wires](../../../assets/5v-wires-1.jpg){ width="500" .center }
 
     ### A.11. Wire the PSU
 
@@ -316,26 +314,66 @@ The next steps depend on which power option you chose. Skip to the section that 
     
     ### A.12. Mount the PSU Enclosure
 
-    Screw the PSU enclosure to the back of the display using the **M3 × 12mm screws** through the two middle holes, connecting into the D.1 mounts. You'll need to pull the shelly to the side to install the second screw.
+    Place the PSU enclosure on the back of the dual display and connect it using **M3 × 12mm screws** through the two middle holes, connecting into the D.1 mounts. You'll need to pull the Shelly to the side to install the second screw.
 
-    pic
+    <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Mount PSU enclosure step 1](../../../assets/mount-psu-enclosure-1.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Mount PSU enclosure step 2](../../../assets/mount-psu-enclosure-2.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Mount PSU enclosure step 3](../../../assets/mount-psu-enclosure-3.jpg)
+    </figure>
+    </div>
 
     ### A.13. Connect PSU to Controller Board
 
-    Thread the ferrules end of the 5v wires under the shelly wires and through the output hole on the PSU enclosure, just next to the outlet mount.
-    Leaving the ring end of the 5v wires next to the +V/-V output terminals of the PSU. Screw them down. 
+    Thread the ferrule end of the 5V wires under the Shelly wires and through the output hole on the PSU enclosure, just next to the outlet mount. Leave the ring end of the 5V wires next to the +V/−V output terminals of the PSU and screw them down.
 
-    pic
+    <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Connect PSU to controller step 1](../../../assets/connect-psu-controller-1.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Connect PSU to controller step 2](../../../assets/connect-psu-controller-2.jpg)
+    </figure>
+    </div>
 
-    Thread the ferrules ends through the hole on the end cap (part D.2). Don't connect the end cap to the end plate yet. First, screw the two ferrule ends into the +5v and GND Terminals on the Controller Board. 
-    
-    NOTE: **Double-check all wiring one last time** before closing the enclosure.
+    Thread the ferrule ends through the hole on the end cap (part D.2). Don't attach the end cap to the end plate yet. Screw the two ferrule ends into the +5V and GND terminals on the controller board.
 
-    pic
+    !!! warning
+        Double-check all wiring one last time before closing the enclosure.
 
-    Then line the end cap up over the end plate and close it be leave a small gap. Next place the wire cover end in the PSU enclosure, be sure the route the 5v wires in the cover, and align the other end over the hole on the end cap. Once aligned push the end cap all the way one, while simultaneously pushing the end of the wire cover into the hole. If done correctly the wire cover should be locked in place. 
+    <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Thread 5V wires step 1](../../../assets/thread-5v-wires-1.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Thread 5V wires step 2](../../../assets/thread-5v-wires-2.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Connect 5V to controller](../../../assets/connect-5v-controller-1.jpg)
+    </figure>
+    </div>
 
-    pic
+    Line the end cap up over the end plate and close it but leave a small gap. Place one end of the wire cover into the PSU enclosure, routing the 5V wires inside it, and align the other end over the hole on the end cap. Push the end cap all the way closed while simultaneously pushing the wire cover end into the hole — if done correctly the wire cover will be locked in place.
+
+    <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Install wire cover step 1](../../../assets/install-wire-cover-1.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Install wire cover step 2](../../../assets/install-wire-cover-2.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Install wire cover step 3](../../../assets/install-wire-cover-3.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Install wire cover step 4](../../../assets/install-wire-cover-4.jpg)
+    </figure>
+    </div>
 
     ### A.14. Close the Enclosure
 
