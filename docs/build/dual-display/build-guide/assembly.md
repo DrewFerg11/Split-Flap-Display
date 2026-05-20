@@ -284,7 +284,7 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     ### A.11. Wire the PSU
 
-    You can now correct all the power hardware together.
+    You can now connect all the power hardware together.
 
     === "With Shelly"
 
@@ -309,7 +309,10 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     === "Without Shelly"
 
-        Start by screwing down the 3 AC wires to the PSU terminals first. Then connect all 3 to the outlet. (Use the "With Shelly" option for photos if needed) 
+        Start by screwing down the 3 AC wires to the PSU terminals, then connect all 3 to the outlet.
+
+        !!! tip
+            Refer to the With Shelly tab for reference photos — the AC wiring at the PSU and outlet is the same.
 
     
     ### A.12. Mount the PSU Enclosure
@@ -343,9 +346,6 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     Thread the ferrule ends through the hole on the end cap (part D.2). Don't attach the end cap to the end plate yet. Screw the two ferrule ends into the +5V and GND terminals on the controller board.
 
-    !!! warning
-        Double-check all wiring one last time before closing the enclosure.
-
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
     ![Thread 5V wires step 1](../../../assets/thread-5v-wires-1.jpg)
@@ -357,6 +357,9 @@ The next steps depend on which power option you chose. Skip to the section that 
     ![Connect 5V to controller](../../../assets/connect-5v-controller-1.jpg)
     </figure>
     </div>
+
+    !!! warning
+        Double-check all wiring one last time before closing the end cap.
 
     Line the end cap up over the end plate and close it but leave a small gap. Place one end of the wire cover into the PSU enclosure, routing the 5V wires inside it, and align the other end over the hole on the end cap. Push the end cap all the way closed while simultaneously pushing the wire cover end into the hole — if done correctly the wire cover will be locked in place.
 
@@ -377,14 +380,32 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     ### A.14. Close the Enclosure
 
-    - Place the PSU cable cover into the PSU enclosure.
-    - Open the end cap just enough for the wire cover to slot into the end cap hole — the wire cover should be secure once the end cap is in place.
-    - Tighten down the end cap screws.
-    - Screw on the PSU enclosure top.
+    Place the PSU enclosure top onto the mounted bottom half. Be sure the Shelly is in its proper slot and push it shut. Screw all 4 screws in — M3 × 35mm for the bottom two holes and M3 × 30mm for the top two.
+
+    !!! warning
+        Double-check all wiring one last time before closing the enclosure top.
+
+    ![Close PSU top](../../../assets/close-psu-top-1.jpg){ width="500" .center }
+
+    Ensure the 8 threaded rod nuts on the right end plate are hand-tight. Add the right side end cap, then use 8 M3 × 6mm screws (4 each side) and secure both end caps.
+
+    <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Close end cap step 1](../../../assets/close-end-cap-1.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Close end cap step 2](../../../assets/close-end-cap-2.jpg)
+    </figure>
+    <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
+    ![Close end cap step 3](../../../assets/close-end-cap-3.jpg)
+    </figure>
+    </div>
 
     ### A.15. Power On & Test
 
     Plug in the power cord, flip the main switch, and verify the display boots and all modules respond.
+
+    ![Power the psu](../../../assets/psu-power-1.jpg){ width="500" .center }
 
 === "Option B — External Adapter"
 
