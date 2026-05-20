@@ -2,11 +2,11 @@
 
 Most of the build steps from the [original guide](../../original/index.md) still apply, so these steps won't go into detail for items already documented there. If something is missing, please [open an issue](https://github.com/DrewFerg11/Split-Flap-Display/issues) and it'll get addressed.
 
-I used a custom pcb module board for my setup, so these instructions will primarily focus on details specific to those boards, but this information is easily adaptable for the original diy boards.
+I used a [custom PCB module](../../../module-boards/custom-pcb/index.md) for my setup, so these instructions focus on details specific to those boards. The steps are easily adaptable to the original [DIY module board](../../../module-boards/diy-board.md) — let me know if anything is unclear for that path.
 
 ## 1. Build Modules
 
-Building each individual module is essentially the same as the original design. This includes:
+Building each module is essentially the same as the original design. This includes:
 
 - Installing the motor and hall sensor in the enclosure
 - Assembling the drum with flaps and magnet
@@ -16,7 +16,7 @@ Building each individual module is essentially the same as the original design. 
 
 ## 2. Solder Module Wires
 
-Regardless of the [module board](../../../module-boards/index.md) you're using, you'll want to solder wires of the correct length to the **first module board in each row** before connecting all modules together. I used **18 AWG** wire for 5V/GND and **24 AWG** wire for both I²C lines. Approximate wire lengths:
+Regardless of the [module board](../../../module-boards/index.md) you're using, solder wires to the **first module of each row** (the one that will sit closest to the controller board) before connecting all modules together. Use **18 AWG** wire for 5V/GND and **24 AWG** wire for both I²C lines. Approximate wire lengths:
 
 - Row 1 (top): 90mm
 - Row 2 (bottom): 140mm
@@ -39,12 +39,12 @@ Cut all 8 threaded rods down to about **230mm** (minimum 225mm). The cut doesn't
 
 ## 4. Install Heat Set Inserts
 
-Use a soldering iron to install the heat set inserts into the [printed end mounts](printed-parts.md):
+Use a soldering iron to install heat set inserts into the [printed parts](printed-parts.md):
 
-- **Left end mount** — M3 × 4 × 5 heat set inserts × 4
-- **Right end mount** — M3 × 4 × 5 heat set inserts × 4
-- **SFD enclosure mounts** (Option A only) — M3 × 6 × 5 heat set inserts × 4
-- **PSU enclosure mounts** (Option A only) — M3 × 4 × 5 heat set inserts × 2
+- **Left end plate** — 4× M3 × 4 × 5 heat set inserts
+- **Right end plate** — 4× M3 × 4 × 5 heat set inserts
+- **D.1 SFD enclosure mounts** (Option A only) — 4× M3 × 6 × 5 heat set inserts
+- **PSU enclosure** (Option A only) — 2× M3 × 4 × 5 heat set inserts
 
 !!! warning "Watch for melted plastic"
     As you sink the inserts, make sure no melted plastic is pushed up around them. Any plastic protruding above the surface will prevent the end caps from sitting flush and leave gaps in the enclosure. Use a sharp knife to trim any excess.
@@ -66,7 +66,7 @@ Use a soldering iron to install the heat set inserts into the [printed end mount
 
 ## 5. Install Controller Board
 
-Place the [controller board](controller-board.md) in the **left end mount** with the terminals facing down and the USB port facing forward. The fit should be snug — you may need to slightly flex the end mount to allow the board to slide in.
+Place the [controller board](controller-board.md) into the **left end plate** with the terminals facing down and the USB port facing forward. The fit should be snug — you may need to slightly flex the plate to slide the board in.
 
 <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
@@ -86,7 +86,7 @@ Connect all modules together in two rows of 8. **Set the DIP switches on each mo
 
 <a id="stackable-header-note"></a>
 !!! warning "Custom PCB — stackable header required"
-    If you are using the [dowjames v5.1 custom PCB](../../../module-boards/custom-pcb/dowjames-v5.1/index.md), you'll likely need a **2.54mm 4-pin stackable header** to connect the PCBs. By design, the PCBs are slightly narrower than the enclosure, which makes 8 consecutive boards hard to connect. Place this header between modules 4 & 5 or 5 & 6 on each row.
+    If you're using the [dowjames v5.1 custom PCB](../../../module-boards/custom-pcb/dowjames-v5.1/index.md), you'll likely need a **2.54mm 4-pin stackable header** to connect the PCBs. The PCBs are slightly narrower than the module enclosure by design, which makes connecting 8 consecutive boards directly difficult. Add this header between modules 4 & 5 or 5 & 6 on each row to take up the slack.
 
 The diagram below shows how the 16 modules are arranged, **viewed from the back**. Numbering runs 8→1 left to right (mirrored from the front).
 
@@ -137,7 +137,7 @@ For **Option A (Integrated PSU)**, modules 4 and 7 in **Row 2** use the **D.1 mo
 <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
 ![Connecting modules step 1](../../../assets/connect-modules-1.jpg)
-<figcaption>Backside/figcaption>
+<figcaption>Back side</figcaption>
 </figure>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
 ![Connecting modules step 2](../../../assets/connect-modules-2.jpg)
@@ -162,12 +162,12 @@ Connect the end plates to each side and insert the threaded rods into all 8 hole
 
 The [controller board](controller-board.md) provides two independent daisy-chain outputs:
 
-- **Bus 1** (GPIO 21/22 — left terminal) — connects to the first chain (top row) of up to 8 split-flap modules
-- **Bus 2** (GPIO 33/32 — right terminal) — connects to the second chain (bottom row) of up to 8 split-flap modules
+- **Bus 1** (GPIO 21/22 — left terminal) — drives the top row of up to 8 modules
+- **Bus 2** (GPIO 33/32 — right terminal) — drives the bottom row of up to 8 modules
 
-Each split-flap PCB has NEXT/PREV headers that daisy-chain along the row. The controller board's I²C outputs feed the first module in each chain; the modules then daisy-chain through their onboard headers.
+The controller board's I²C outputs feed the first module of each row; from there, the NEXT/PREV headers on each PCB daisy-chain power and I²C through the rest of the row.
 
-Connect the I²C wires you soldered in [step 2](#2-solder-module-wires) to the matching I²C output terminals on the controller board.
+Connect the I²C wires you soldered in [step 2](#2-solder-module-wires) to the matching terminals on the controller board.
 
 ![External wiring — controller to PSU and displays](../../../assets/esp32-controller-board-external-wiring.png){ width="500" .center }
 
@@ -196,14 +196,17 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     ### A.9. Install PSU Hardware
 
-    You'll end up removing these when you wire them up, but it's good to verify everything fits first.
+    Dry-fit each piece of hardware in the PSU enclosure first to confirm everything seats correctly. You'll remove them again before wiring.
 
-    - **Mount the LRS-75-5** into the PSU enclosure.
+    - **Mount the [LRS-75-5](../bom.md#power-supply)** into the PSU enclosure.
     - **(Optional)** Install the [Shelly 1PM Gen4](../bom.md#power-supply) for smart power monitoring.
-    - **Install the Main Power Switch** into its 3D-printed mount with the switch facing the bottom.
+    - **Install the main power switch** into its 3D-printed mount with the switch facing the bottom.
 
     !!! warning "Switch is hard to remove once installed"
         Once pressed in, the switch is nearly impossible to remove without breaking the printed mount. Verify the mount has no imperfections and that you have the correct orientation before installing.
+
+    !!! info "Shelly"
+        Shelly
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
@@ -223,19 +226,6 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     === "With Shelly"
 
-        ```mermaid
-        graph TD
-            SHELLY["Shelly 1PM Gen4"]
-            OUTLET["AC Outlet"]
-            PSU["LRS-75-5 PSU"]
-
-            OUTLET -- "GND · ~70mm · spade→ring" --> PSU
-            OUTLET -- "LINE · ~80mm · spade→ferrule" --> SHELLY
-            OUTLET -- "NEUTRAL · ~90mm · spade→ferrule" --> SHELLY
-            SHELLY -- "LINE · ~90mm · ferrule→ring" --> PSU
-            SHELLY -- "NEUTRAL · ~80mm · ferrule→ring" --> PSU
-        ```
-
         | Wire | From | To | Length | From Connector | To Connector |
         |---|---|---|---|---|---|
         | GND | Outlet (G) | PSU (G) | ~70mm | Female spade | M4 ring |
@@ -247,25 +237,15 @@ The next steps depend on which power option you chose. Skip to the section that 
         <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
         <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
         ![PSU outlet wires](../../../assets/psu-outlet-wires-1.jpg)
-        <figcaption>GND, LINE, and NEUTRAL from the Outlet</figcaption>
+        <figcaption>GND, LINE, and NEUTRAL from the outlet</figcaption>
         </figure>
         <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
         ![PSU wires](../../../assets/psu-wires-1.jpg)
-        <figcaption>LINE and NEUTRAL from PSU</figcaption>
+        <figcaption>LINE and NEUTRAL from the PSU</figcaption>
         </figure>
         </div>
 
     === "Without Shelly"
-
-        ```mermaid
-        graph TD
-            OUTLET["AC Outlet"]
-            PSU["LRS-75-5 PSU"]
-
-            OUTLET -- "GND · ~70mm · spade→ring" --> PSU
-            OUTLET -- "LINE · ~70mm · spade→ring" --> PSU
-            OUTLET -- "NEUTRAL · ~70mm · spade→ring" --> PSU
-        ```
 
         | Wire | From | To | Length | From Connector | To Connector |
         |---|---|---|---|---|---|
@@ -273,12 +253,12 @@ The next steps depend on which power option you chose. Skip to the section that 
         | LINE | Outlet (L) | PSU (L) | ~70mm | Female spade | M4 ring |
         | NEUTRAL | Outlet (N) | PSU (N) | ~70mm | Female spade | M4 ring |
 
-    Use **18 AWG** for 5V lines. I'd recommend keeping the wires paired and not separating them.
+    Use **18 AWG** for the 5V DC lines from the PSU to the controller board. Keep the two wires paired — don't separate them.
 
     | Wire | From | To | Length | From Connector | To Connector |
     |---|---|---|---|---|---|
-    | 5v | PSU (V+) | Controller Board (+5v Terminal) | ~280mm | M4 ring | Wire ferrule |
-    | GND | PSU (V-) | Controller Board (GND Terminal) | ~280mm | M4 ring | Wire ferrule |
+    | 5V | PSU (V+) | Controller board (+5V terminal) | ~280mm | M4 ring | Wire ferrule |
+    | GND | PSU (V−) | Controller board (GND terminal) | ~280mm | M4 ring | Wire ferrule |
 
     ![5V wires](../../../assets/5v-wires-1.jpg){ width="500" .center }
 
@@ -288,7 +268,7 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     === "With Shelly"
 
-        Start by screwing down the 3 AC wires to the PSU terminals first. Then connect the Line and Neutral wires to the outlet — use the same outlet pins as shown in the photo.
+        Screw down the 3 AC wires at the PSU terminals first, then connect the LINE and NEUTRAL wires to the outlet. Use the same outlet pins shown in the photo.
 
         ![PSU wired step 1](../../../assets/psu-wired-1.jpg){ width="500" .center }
 
@@ -309,15 +289,14 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     === "Without Shelly"
 
-        Start by screwing down the 3 AC wires to the PSU terminals, then connect all 3 to the outlet.
+        Screw down the 3 AC wires at the PSU terminals first, then connect all 3 to the outlet.
 
         !!! tip
-            Refer to the With Shelly tab for reference photos — the AC wiring at the PSU and outlet is the same.
+            See the With Shelly tab for reference photos — the AC wiring at the PSU and outlet is similar.
 
-    
     ### A.12. Mount the PSU Enclosure
 
-    Place the PSU enclosure on the back of the dual display and connect it using **M3 × 12mm screws** through the two middle holes, connecting into the D.1 mounts. You'll need to pull the Shelly to the side to install the second screw.
+    Place the PSU enclosure on the back of the display and secure it with **M3 × 12mm screws** through the two middle holes into the [D.1 mounts](printed-parts.md). You'll need to push the Shelly aside to access the second screw.
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
@@ -333,7 +312,7 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     ### A.13. Connect PSU to Controller Board
 
-    Thread the ferrule end of the 5V wires under the Shelly wires and through the output hole on the PSU enclosure, just next to the outlet mount. Leave the ring end of the 5V wires next to the +V/−V output terminals of the PSU and screw them down.
+    Thread the ferrule end of the 5V wires under the Shelly wires and out through the output hole on the PSU enclosure, just next to the outlet mount. Screw the ring end down at the PSU's +V and −V output terminals.
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
@@ -344,7 +323,7 @@ The next steps depend on which power option you chose. Skip to the section that 
     </figure>
     </div>
 
-    Thread the ferrule ends through the hole on the end cap (part D.2). Don't attach the end cap to the end plate yet. Screw the two ferrule ends into the +5V and GND terminals on the controller board.
+    Thread the ferrule ends through the hole on the [D.2 end cap](printed-parts.md). **Don't attach the end cap to the end plate yet.** Screw the two ferrule ends into the **+5V** and **GND** terminals on the controller board.
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
@@ -361,7 +340,7 @@ The next steps depend on which power option you chose. Skip to the section that 
     !!! warning
         Double-check all wiring one last time before closing the end cap.
 
-    Line the end cap up over the end plate and close it but leave a small gap. Place one end of the wire cover into the PSU enclosure, routing the 5V wires inside it, and align the other end over the hole on the end cap. Push the end cap all the way closed while simultaneously pushing the wire cover end into the hole — if done correctly the wire cover will be locked in place.
+    Position the end cap over the end plate, leaving a small gap. Place one end of the wire cover into the PSU enclosure (routing the 5V wires through it) and align the other end over the hole on the end cap. Push the end cap fully closed while simultaneously pressing the wire cover into the hole — done correctly, the wire cover will lock into place.
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
@@ -380,14 +359,14 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     ### A.14. Close the Enclosure
 
-    Place the PSU enclosure top onto the mounted bottom half. Be sure the Shelly is in its proper slot and push it shut. Screw all 4 screws in — M3 × 35mm for the bottom two holes and M3 × 30mm for the top two.
+    Place the PSU enclosure top onto the mounted bottom half. Make sure the Shelly is seated in its slot, then press the top fully closed. Secure with 4 screws — **M3 × 35mm** for the bottom two holes and **M3 × 30mm** for the top two.
 
     !!! warning
         Double-check all wiring one last time before closing the enclosure top.
 
     ![Close PSU top](../../../assets/close-psu-top-1.jpg){ width="500" .center }
 
-    Ensure the 8 threaded rod nuts on the right end plate are hand-tight. Add the right side end cap, then use 8 M3 × 6mm screws (4 each side) and secure both end caps.
+    Confirm the 8 threaded rod nuts on the right end plate are hand-tight. Place the right end cap over the plate, then secure both end caps with 8 **M3 × 6mm** screws (4 on each side).
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
@@ -405,19 +384,19 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     Plug in the power cord, flip the main switch, and verify the display boots and all modules respond.
 
-    ![Power the psu](../../../assets/psu-power-1.jpg){ width="500" .center }
+    ![Powered PSU](../../../assets/psu-power-1.jpg){ width="500" .center }
 
 === "Option B — External Adapter"
 
     ### B.9. Install Barrel Jack
 
-    Cut the 5V/GND wires to approximately 100mm. Connect one end to the controller board's 5V/GND input terminals, and the other end to the barrel jack. Place the barrel jack into the cutout in the **C.1 or C.2 left end cap** (matched to your jack size).
+    Cut the 5V and GND wires to approximately 100mm each. Connect one end of each wire to the controller board's 5V/GND input terminals, and the other end to the barrel jack. Seat the barrel jack into the cutout in the [**C.1 or C.2 left end cap**](printed-parts.md) (matched to your jack diameter).
 
     ![Installing barrel jack](../../../assets/install-barrel-jack-1.jpg){ width="500" .center }
 
     ### B.10. Close the Enclosure
 
-    Screw on the end caps. Make sure the barrel jack is seated properly in the cutout.
+    Confirm the 8 threaded rod nuts on the right end plate are hand-tight. Place both end caps over their plates and secure with 8 **M3 × 6mm** screws (4 on each side). Make sure the barrel jack remains seated in its cutout as you close the left end cap.
 
     ### B.11. Power On & Test
 
