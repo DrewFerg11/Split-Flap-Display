@@ -37,7 +37,7 @@ Choose one option. See the [Module Boards](../../module-boards/index.md) section
 
 === "Custom PCB"
 
-    *Parts listed assume the dowjames v5.1 design.*
+    *Parts listed assume a [custom PCB](../../module-boards/custom-pcb/index.md). Component counts may vary for other designs.*
 
     | Item | Qty | Notes | Link |
     |------|-----|-------|------|

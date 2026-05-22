@@ -5,11 +5,11 @@
 
 **Full documentation:** [drewferg11.github.io/Split-Flap-Display](https://drewferg11.github.io/Split-Flap-Display/)
 
-A fully 3D-printed, modular split-flap display with an ESP32-based web interface. Builds on the original hardware design by [Morgan Manly](https://github.com/ManlyMorgan/Split-Flap-Display) with extended firmware, an improved custom PCB, and support for a 16-module dual I²C configuration.
+A fully 3D-printed, modular split-flap display with an ESP32-based web interface. Forked from [jhoff/Split-Flap-Display](https://github.com/jhoff/Split-Flap-Display), which builds on the original hardware design by [Morgan Manly](https://github.com/ManlyMorgan/Split-Flap-Display). This fork adds extended firmware, an improved custom PCB, and support for a 16-module dual I²C configuration.
 
 ## Features
 
-- **16-module dual display** — two independent I²C buses driving two rows of 8 modules simultaneously (ESP32-WROOM only)
+- **8 or 16-module display** — single row of 8 modules, or dual row of 16 over an I²C bus(es)
 - **Web interface** — configure and control the display from any browser on your network
 - **Multiple display modes** — custom text, multi-word cycling, date, time, and random test
 - **37 or 48 character support** — standard or extended character set per module

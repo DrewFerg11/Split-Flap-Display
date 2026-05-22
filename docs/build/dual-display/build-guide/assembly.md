@@ -25,7 +25,7 @@ Regardless of the [module board](../../../module-boards/index.md) you're using, 
 - Row 2 (bottom): 140mm
 
 !!! tip "How I wired the first module"
-    I used the [dowjames v5.1 custom PCB](../../../module-boards/custom-pcb/dowjames-v5.1/index.md) and soldered the wires directly to the PREV header pins, then added heat shrink tubing for protection. You'll also notice the [pull-up resistors](../../../i2c.md#pull-up-resistors) soldered on.
+    I used the [custom PCB](../../../module-boards/custom-pcb/index.md) and soldered the wires directly to the PREV header pins, then added heat shrink tubing for protection. You'll also notice the [pull-up resistors](../../../i2c.md#pull-up-resistors) soldered on.
 
 <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>

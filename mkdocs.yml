@@ -97,6 +97,7 @@ nav:
     - index.md
     - FAQ: faq.md
     - I²C Reference: i2c.md
+    - Resources: resources.md
   - Module Boards:
     - module-boards/index.md
     - DIY Board: module-boards/diy-board.md
