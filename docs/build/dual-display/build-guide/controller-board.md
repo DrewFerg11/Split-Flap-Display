@@ -77,11 +77,18 @@ Flip the board over:
 
 *Bottom side solder joints and wiring — keep traces short and well-soldered to avoid intermittent I²C errors*
 
-### 4. Test Before Installation
+### 4. Flash the Firmware
 
-- Power on the controller board and check that the ESP32 boots
-- Use the firmware's I²C scanner (if available) to verify each bus can detect modules
+Before testing, flash the firmware to the ESP32. The board won't do anything useful without it. Follow the [Build & Flash guide](../../../firmware/setup.md) for full instructions.
+
+!!! tip
+    This is the easiest time to flash — the ESP32 is accessible via USB while it's mounted inside the enclosure, but not once the end caps are in place.
+
+### 5. Test Before Installation
+
+- Power on the controller board via USB or 5V supply and verify the ESP32 boots
 - Confirm no shorts between 5V and GND
+- Connect a module or two and verify they respond and home correctly
 
 <div style="display: flex; gap: 1.5rem; margin: 2rem 0;" markdown>
 <figure style="flex: 1; text-align: center;" markdown>
@@ -107,7 +114,3 @@ All power runs through the main 5V supply connected to the controller board's sc
 - Receiving 5V from the external PSU
 - Supplying 5V and GND to the split-flap daisy chains via the output terminals
 - The ESP32 itself draws minimal current (~80–100mA); most power goes directly to the motors
-
-## Next Steps
-
-Once the controller board is assembled and tested, proceed to [Assembly](assembly.md) to mount everything into the enclosure.

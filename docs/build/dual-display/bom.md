@@ -74,6 +74,24 @@ Choose one option. See [Power](power.md) for details on each.
     | Shelly 1PM Gen4 | 1 | ✅ | Smart power monitoring | [Amazon](https://a.co/d/0e8rYym1) |
     | 16 AWG Wire Ferrule Terminals (Shelly) | 4 | ✅ | Not needed without the Shelly | [Amazon](https://a.co/d/08AVfBJG) |
 
+    ??? info "Should I add the Shelly?"
+        The [Shelly 1PM Gen4](https://a.co/d/0e8rYym1) is a small smart relay that sits inline with the AC mains wiring inside the PSU enclosure. It's entirely optional — the display works perfectly without it.
+
+        **Reasons to add it:**
+
+        - **Remote on/off** — turn the display on or off from Home Assistant, an app, or an automation without touching the physical switch
+        - **Power monitoring** — see real-time wattage, daily/monthly energy usage in your Home Assistant dashboard
+        - **Automations** — schedule the display to turn on in the morning and off at night, or tie it to other smart home triggers
+
+        **Reasons to skip it:**
+
+        - Adds cost (~$20–25)
+        - Adds 4 extra wire connections inside an already tight enclosure
+        - Requires a Home Assistant instance (or Shelly cloud account) to be useful
+        - More complexity = more things that can go wrong during wiring
+
+        **Verdict:** If you're already a Home Assistant user and want to integrate the display into your smart home, it's worth it. If you just want a working display you control from the web interface, skip it.
+
 === "Option B — External Adapter"
 
     | Item | Qty | Notes | Link |

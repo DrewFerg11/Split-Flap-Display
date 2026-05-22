@@ -1,5 +1,8 @@
 # Assembly
 
+!!! warning "Disclaimer"
+    These instructions are provided by a hobbyist for educational purposes only. The author is not a licensed engineer or electrician. **Follow these steps at your own risk.** No liability is accepted for any damage, injury, or loss — including from AC mains wiring in Option A. If you are not comfortable working with mains voltage, please consult a qualified electrician.
+
 Most of the build steps from the [original guide](../../original/index.md) still apply, so these steps won't go into detail for items already documented there. If something is missing, please [open an issue](https://github.com/DrewFerg11/Split-Flap-Display/issues) and it'll get addressed.
 
 I used a [custom PCB module](../../../module-boards/custom-pcb/index.md) for my setup, so these instructions focus on details specific to those boards. The steps are easily adaptable to the original [DIY module board](../../../module-boards/diy-board.md) — let me know if anything is unclear for that path.
@@ -204,9 +207,6 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     !!! warning "Switch is hard to remove once installed"
         Once pressed in, the switch is nearly impossible to remove without breaking the printed mount. Verify the mount has no imperfections and that you have the correct orientation before installing.
-
-    !!! info "Shelly"
-        Shelly
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>

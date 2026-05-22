@@ -122,6 +122,11 @@ nav:
     - firmware/index.md
     - Build & Flash: firmware/setup.md
 
+copyright: >
+  This project is a personal hobby build shared for educational purposes. The author is not a licensed
+  engineer or electrician. Use these instructions at your own risk — no liability is accepted for any
+  damage, injury, or loss arising from following this guide.
+
 extra:
   analytics:
     provider: custom
