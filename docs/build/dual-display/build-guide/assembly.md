@@ -1,7 +1,7 @@
 # Assembly
 
 !!! warning "Disclaimer"
-    These instructions are provided by a hobbyist for educational purposes only. The author is not a licensed engineer or electrician. **Follow these steps at your own risk.** No liability is accepted for any damage, injury, or loss — including from AC mains wiring in Option A. If you are not comfortable working with mains voltage, please consult a qualified electrician.
+    These instructions are provided by a hobbyist for educational purposes only. **Follow these steps at your own risk.** Option A involves AC mains voltage — if you're not comfortable with that, use Option B or consult a qualified electrician. [Full disclaimer →](../../../disclaimer.md)
 
 Most of the build steps from the [original guide](../../original/index.md) still apply, so these steps won't go into detail for items already documented there. If something is missing, please [open an issue](https://github.com/DrewFerg11/Split-Flap-Display/issues) and it'll get addressed.
 

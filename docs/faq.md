@@ -100,6 +100,35 @@
 ??? question "My I²C errors appear under load but go away when motors are idle."
     A noisy or undersized power supply can corrupt I²C signal edges when motors are drawing current. Try a higher-quality dedicated 5V supply for the module chain. See the [I²C reference](i2c.md#i2c-error-codes-appear-under-load-but-vanish-on-a-different-power-supply).
 
+??? question "My display lands on the wrong character sometimes — is something broken?"
+    Almost certainly not — this is a known limitation of the design that every builder hits to some degree. The mechanism uses an open-loop stepper (no positional feedback during a flip), so accuracy depends on the magnet/hall sensor finding "home" reliably and the steps-per-character math holding up over many flap cycles. In practice the failure modes look like:
+
+    - **Off-by-one landings** — the display lands one character before or after the target
+    - **Drift over time** — accuracy decays the longer it runs between re-homings
+    - **Certain characters worse than others** — some transitions are consistently flakier
+
+    **What helps the most (mechanical):**
+
+    Print and assembly quality dominate firmware tweaks here. Most accuracy problems are fixable without touching code:
+
+    - Make sure the character drum sits **straight** on the shaft — even a slightly crooked drum throws off magnet detection
+    - Check for **flaps that catch on each other** as they fall — a flap that hangs up by even a fraction of a second causes the next one to land wrong
+    - Confirm the **enclosure is seated square** — a slightly misaligned enclosure changes the drum-to-wall gap and can affect both magnet detection and flap motion
+    - Print walls/tolerances cleanly — under- or over-extrusion on the drum or enclosure can be the root cause
+
+    **Design improvements already in this fork** (vs. the original):
+
+    - **Narrower enclosure** — reduces the gap between the drum and inner wall, giving the hall sensor a more reliable magnet read and tightening the visual appearance
+    - **Flap ramp** — adds just enough force to flip flaps forward on their own as they rotate past the front lip, instead of relying purely on gravity. Sticky/lazy flaps were a major source of accuracy issues, and this largely eliminates them.
+
+    **Diagnostic tool built into the firmware:**
+
+    Use the **Accuracy Test mode** (web UI → modes) to cycle through all characters at configurable timing. It makes mis-landing modules obvious so you can target the right one(s) for re-seating or rebuilding, rather than guessing which module is the culprit.
+
+    **The honest ceiling:**
+
+    Open-loop steppers plus a 3D-printed mechanism plus thermal expansion plus cumulative friction means there's a realistic floor below which firmware alone can't push. Firmware improvements (smarter homing, periodic re-zeroing) can close some of the remaining gap, but "perfect every time" isn't a realistic target with this style of mechanism. "Very good most of the time, with occasional misses" is the honest expectation.
+
 ---
 
 ## Expansion

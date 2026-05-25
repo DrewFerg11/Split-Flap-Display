@@ -98,6 +98,7 @@ nav:
     - FAQ: faq.md
     - I²C Reference: i2c.md
     - Resources: resources.md
+    - Disclaimer: disclaimer.md
   - Module Boards:
     - module-boards/index.md
     - DIY Board: module-boards/diy-board.md
@@ -123,10 +124,7 @@ nav:
     - firmware/index.md
     - Build & Flash: firmware/setup.md
 
-copyright: >
-  This project is a personal hobby build shared for educational purposes. The author is not a licensed
-  engineer or electrician. Use these instructions at your own risk — no liability is accepted for any
-  damage, injury, or loss arising from following this guide.
+copyright: Use at your own risk — <a href="/Split-Flap-Display/disclaimer/">Disclaimer</a>
 
 extra:
   analytics:
