@@ -12,3 +12,6 @@ site/
 
 # Discord export (local-only)
 Split_Flap_Display-JSON/
+
+*-PLAN.md
+plans/
