@@ -3,7 +3,7 @@
 ![format badge](https://github.com/DrewFerg11/Split-Flap-Display/actions/workflows/format-check.yml/badge.svg?branch=main)
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/RCvks4XXXH?style=flat)](https://discord.gg/RCvks4XXXH)
 
-![Split-flap display in action](docs/assets/split-flap.gif)
+![Split-flap display in action](docs/assets/display/split-flap.gif)
 
 **Full documentation:** [drewferg11.github.io/Split-Flap-Display](https://drewferg11.github.io/Split-Flap-Display/)
 

@@ -29,7 +29,7 @@ There are two build options for this project:
 
     Single ESP32 controlling up to :material-numeric-1-box::material-numeric-6-box: modules over two I²C buses. 
     
-    Enhanced version based on the original design.
+    Enhanced version by Drew Ferguson, based on the original design.
 
     [:octicons-arrow-right-24: Dual display guide](dual-display/index.md)
 

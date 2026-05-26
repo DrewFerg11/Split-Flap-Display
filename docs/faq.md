@@ -55,7 +55,7 @@
 
     **Original (up to 8 modules):** The community recommends a **5V supply with at least 5A** — the **Raspberry Pi 5 official power supply** (5.1V, 5A USB-C) is widely confirmed to work. A 5V 8A brick has also been used successfully. A Raspberry Pi 4 supply (5V, 3A) is fine for **testing 2–3 modules** but isn't enough for a full 8-module chain — boot inrush plus steady-state current starts exceeding 3A at 5+ modules.
 
-    **Dual Display (16 modules):** The **[MEAN WELL LRS-75-5](build/dual-display/power.md#option-a--integrated-psu-recommended)** (5V, 14A) is recommended. It's hardwired into the [printed PSU enclosure](build/dual-display/build-guide/printed-parts.md) and provides plenty of current headroom. A 5V 10A barrel jack adapter works in some setups but has [known cold-start reliability issues](build/dual-display/power.md#why-are-there-multiple-options) at full 16-module scale.
+    **Dual Display (16 modules):** The **[MEAN WELL LRS-75-5](build/dual-display/power.md#power-requirements)** (5V, 14A) is recommended. It's hardwired into the [printed PSU enclosure](build/dual-display/build-guide/printed-parts.md) and provides plenty of current headroom. A 5V 10A barrel jack adapter works in some setups but has [known cold-start reliability issues](build/dual-display/power.md#why-are-there-multiple-options) at full 16-module scale.
 
 ---
 
@@ -129,7 +129,7 @@
     See the [custom PCB common gotchas](module-boards/custom-pcb/index.md#common-gotchas).
 
 ??? question "My ESP32 won't boot reliably on a cold start."
-    Likely an inrush current issue with the power supply. This is a known limitation of lower-quality or lower-rated 5V adapters at full 16-module scale. Switching to the [integrated MEAN WELL PSU (Option A)](build/dual-display/power.md#option-a--integrated-psu-recommended) resolves this. See the [Power page](build/dual-display/power.md#why-are-there-multiple-options) for the full explanation.
+    Likely an inrush current issue with the power supply. This is a known limitation of lower-quality or lower-rated 5V adapters at full 16-module scale. Switching to the [integrated MEAN WELL PSU (Option A)](build/dual-display/power.md#power-requirements) resolves this. See the [Power page](build/dual-display/power.md#why-are-there-multiple-options) for the full explanation.
 
 ??? question "My I²C errors appear under load but go away when motors are idle."
     A noisy or undersized power supply can corrupt I²C signal edges when motors are drawing current. Try a higher-quality dedicated 5V supply for the module chain. See the [I²C reference](i2c.md#i2c-error-codes-appear-under-load-but-vanish-on-a-different-power-supply).

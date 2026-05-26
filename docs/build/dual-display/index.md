@@ -2,6 +2,10 @@
 
 The dual display configuration drives **up to 16 split-flap modules** from a single ESP32 using two independent I²C buses. I used [custom PCBs](../../module-boards/custom-pcb/index.md) in my build, but the [original DIY boards](../../module-boards/diy-board.md) *should* work.
 
+<figure markdown>
+  ![16-module dual split-flap display](../../assets/display/sfd-1.jpg)
+</figure>
+
 ## How it works
 
 - Two I²C buses (Bus 1 + Bus 2), each driving one row of up to 8 modules
