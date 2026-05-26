@@ -1,0 +1,156 @@
+site_name: Split Flap Display
+site_description: Documentation for the modular Split-Flap Display — firmware, custom PCB, wiring, and assembly.
+site_url: https://drewferg11.github.io/Split-Flap-Display/
+site_author: DrewFerg11
+
+repo_url: https://github.com/DrewFerg11/Split-Flap-Display
+repo_name: DrewFerg11/Split-Flap-Display
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+theme:
+  name: material
+  custom_dir: overrides
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - navigation.instant
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.action.edit
+    - content.tabs.link
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+  - glightbox:
+      touchNavigation: true
+      loop: false
+      effect: zoom
+      slide_effect: slide
+      width: 100%
+      height: auto
+      zoomable: true
+      draggable: true
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home:
+    - index.md
+    - FAQ: faq.md
+    - I²C Reference: i2c.md
+    - Resources: resources.md
+    - Site Map: sitemap.md
+    - Disclaimer: disclaimer.md
+  - Module Boards:
+    - module-boards/index.md
+    - DIY Board: module-boards/diy-board.md
+    - Custom PCBs:
+      - module-boards/custom-pcb/index.md
+      - dowjames v5.1:
+        - module-boards/custom-pcb/dowjames-v5.1/index.md
+        - Ordering: module-boards/custom-pcb/dowjames-v5.1/ordering.md
+  - Build & Assembly:
+    - Overview: build/index.md
+    - Original Display:
+      - build/original/index.md
+    - Dual Display:
+      - Overview: build/dual-display/index.md
+      - Power: build/dual-display/power.md
+      - BOM: build/dual-display/bom.md
+      - Build Guide:
+        - build/dual-display/build-guide/index.md
+        - 1. Printed Parts: build/dual-display/build-guide/printed-parts.md
+        - 2. Controller Board: build/dual-display/build-guide/controller-board.md
+        - 3. Assembly: build/dual-display/build-guide/assembly.md
+  - Firmware:
+    - firmware/index.md
+    - Build & Flash: firmware/setup.md
+
+copyright: Use at your own risk — <a href="/Split-Flap-Display/disclaimer/">Disclaimer</a>
+
+extra:
+  analytics:
+    provider: custom
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+            Thanks for your feedback! Help us improve this page by
+            <a href="https://github.com/DrewFerg11/Split-Flap-Display/issues/new/?title=[Feedback]+{title}&body={url}" target="_blank" rel="noopener">opening an issue</a>.
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/DrewFerg11/Split-Flap-Display
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/RCvks4XXXH
+    - icon: fontawesome/solid/heart
+      link: https://github.com/sponsors/DrewFerg11
+      name: Sponsor on GitHub
+    - icon: simple/kofi
+      link: https://ko-fi.com/drewferg11
+      name: Support on Ko-fi

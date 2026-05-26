@@ -16,7 +16,8 @@ bool hasErrored = false;
 
 // Default Constructor
 SplitFlapModule::SplitFlapModule()
-    : address(0), wire(&Wire), position(0), stepNumber(0), stepsPerRot(0), chars(StandardChars), numChars(37), charSetSize(37) {
+    : address(0), wire(&Wire), position(0), stepNumber(0), stepsPerRot(0), chars(StandardChars), numChars(37),
+      charSetSize(37) {
     magnetPosition = 710;
 }
 
@@ -24,7 +25,8 @@ SplitFlapModule::SplitFlapModule()
 SplitFlapModule::SplitFlapModule(
     uint8_t I2Caddress, int stepsPerFullRotation, int stepOffset, int magnetPos, int charsetSize, TwoWire *wireBus
 )
-    : address(I2Caddress), wire(wireBus), position(0), stepNumber(0), stepsPerRot(stepsPerFullRotation), charSetSize(charsetSize) {
+    : address(I2Caddress), wire(wireBus), position(0), stepNumber(0), stepsPerRot(stepsPerFullRotation),
+      charSetSize(charsetSize) {
     magnetPosition = magnetPos + stepOffset;
 
     chars = (charsetSize == 48) ? ExtendedChars : StandardChars;
@@ -139,8 +141,8 @@ bool SplitFlapModule::readHallEffectSensor() {
         uint16_t inputState = 0;
 
         // Read the two bytes and combine them into a 16-bit value
-        inputState = wire->read();             // Read the lower byte
-        inputState |= (wire->read() << 8);     // Read the upper byte and shift it left
+        inputState = wire->read();            // Read the lower byte
+        inputState |= (wire->read() << 8);    // Read the upper byte and shift it left
 
         return (inputState & (1 << 15)) != 0; // If bit is 15, return HIGH, else LOW
     }

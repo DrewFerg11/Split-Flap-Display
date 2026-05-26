@@ -5,3 +5,13 @@
 node_modules/
 build/web/*
 .idea
+
+# MkDocs build output
+site/
+.venv-docs/
+
+# Discord export (local-only)
+Split_Flap_Display-JSON/
+
+*-PLAN.md
+plans/

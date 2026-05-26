@@ -344,9 +344,8 @@ void SplitFlapWebServer::startWebServer() {
         this->attemptReconnect = true;
     });
 
-    server.addHandler(new AsyncCallbackJsonWebHandler(
-        "/settings",
-        [this](AsyncWebServerRequest *request, JsonVariant &json) {
+    server.addHandler(
+        new AsyncCallbackJsonWebHandler("/settings", [this](AsyncWebServerRequest *request, JsonVariant &json) {
         if (request->method() != HTTP_POST) {
             return request->send(405, "application/json", "{\"error\":\"Method Not Allowed\"}");
         }
@@ -372,16 +371,18 @@ void SplitFlapWebServer::startWebServer() {
             response["message"] = "Settings updated successfully, OTA Password has changed. Rebooting...";
         }
 
-        if (
-            (json["wireAddresses"].is<String>() && json["wireAddresses"].as<String>() != settings.getString("wireAddresses")) ||
-            (json["wireOffsets"].is<String>()   && json["wireOffsets"].as<String>()   != settings.getString("wireOffsets"))   ||
-            (json["wire1Addresses"].is<String>() && json["wire1Addresses"].as<String>() != settings.getString("wire1Addresses")) ||
-            (json["wire1Offsets"].is<String>()   && json["wire1Offsets"].as<String>()   != settings.getString("wire1Offsets"))   ||
-            (json["sdaPin"].is<int>()  && json["sdaPin"].as<int>()  != settings.getInt("sdaPin"))  ||
-            (json["sclPin"].is<int>()  && json["sclPin"].as<int>()  != settings.getInt("sclPin"))  ||
+        if ((json["wireAddresses"].is<String>() &&
+             json["wireAddresses"].as<String>() != settings.getString("wireAddresses")) ||
+            (json["wireOffsets"].is<String>() &&
+             json["wireOffsets"].as<String>() != settings.getString("wireOffsets")) ||
+            (json["wire1Addresses"].is<String>() &&
+             json["wire1Addresses"].as<String>() != settings.getString("wire1Addresses")) ||
+            (json["wire1Offsets"].is<String>() &&
+             json["wire1Offsets"].as<String>() != settings.getString("wire1Offsets")) ||
+            (json["sdaPin"].is<int>() && json["sdaPin"].as<int>() != settings.getInt("sdaPin")) ||
+            (json["sclPin"].is<int>() && json["sclPin"].as<int>() != settings.getInt("sclPin")) ||
             (json["sda2Pin"].is<int>() && json["sda2Pin"].as<int>() != settings.getInt("sda2Pin")) ||
-            (json["scl2Pin"].is<int>() && json["scl2Pin"].as<int>() != settings.getInt("scl2Pin"))
-        ) {
+            (json["scl2Pin"].is<int>() && json["scl2Pin"].as<int>() != settings.getInt("scl2Pin"))) {
             rebootRequired = true;
             response["message"] = "Hardware settings changed. Rebooting to apply...";
         }
@@ -394,8 +395,8 @@ void SplitFlapWebServer::startWebServer() {
             response["redirect"] = "http://" + json["mdns"].as<String>() + ".local/settings.html";
         }
 
-        if ((json["mqtt_server"].is<String>() && json["mqtt_server"].as<String>() != settings.getString("mqtt_server")
-            ) ||
+        if ((json["mqtt_server"].is<String>() &&
+             json["mqtt_server"].as<String>() != settings.getString("mqtt_server")) ||
             (json["mqtt_port"].is<int>() && json["mqtt_port"].as<int>() != settings.getInt("mqtt_port")) ||
             (json["mqtt_user"].is<String>() && json["mqtt_user"].as<String>() != settings.getString("mqtt_user")) ||
             (json["mqtt_pass"].is<String>() && json["mqtt_pass"].as<String>() != settings.getString("mqtt_pass"))) {
@@ -418,11 +419,11 @@ void SplitFlapWebServer::startWebServer() {
 
         this->rebootRequired = rebootRequired;
         this->attemptReconnect = reconnect;
-    }
-    ));
+    })
+    );
 
-    server
-        .addHandler(new AsyncCallbackJsonWebHandler("/text", [this](AsyncWebServerRequest *request, JsonVariant &json) {
+    server.addHandler(
+        new AsyncCallbackJsonWebHandler("/text", [this](AsyncWebServerRequest *request, JsonVariant &json) {
         if (request->method() != HTTP_POST) {
             return request->send(405, "application/json", "{\"error\":\"Method Not Allowed\"}");
         }
@@ -523,7 +524,7 @@ void SplitFlapWebServer::startWebServer() {
             int stepSize = json["stepSize"].as<int>();
             if (stepSize < 1) stepSize = 1;
             this->accuracyCharIndex = 0;
-            this->accuracyDelay = (int)(delay * 1000);
+            this->accuracyDelay = (int) (delay * 1000);
             this->accuracyStepSize = stepSize;
             this->lastAccuracyStepTime = 0;
             this->inputString = "";
@@ -538,7 +539,8 @@ void SplitFlapWebServer::startWebServer() {
         response["message"] = "Text updated successfully!";
         response["type"] = "success";
         request->send(200, "application/json", response.as<String>());
-    }));
+    })
+    );
 
     server.onNotFound(fourOhFour);
 

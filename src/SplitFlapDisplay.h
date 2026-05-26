@@ -6,9 +6,9 @@
 #include <Arduino.h>
 
 #ifdef ENABLE_DUAL_I2C
-    #define MAX_MODULES 16
+#define MAX_MODULES 16
 #else
-    #define MAX_MODULES 8
+#define MAX_MODULES 8
 #endif
 #define MAX_RPM 15.0f
 
@@ -43,19 +43,12 @@ class SplitFlapDisplay {
 
     // Static movement engine — operates on a subset of modules
     static void moveModules(
-        SplitFlapModule *mods, int count, int *targets,
-        float speed, bool releaseMotors, int stepsPerRot, float maxVel
+        SplitFlapModule *mods, int count, int *targets, float speed, bool releaseMotors, int stepsPerRot, float maxVel
     );
 
 #ifdef ENABLE_DUAL_I2C
-    void homeToStringDual(
-        String row1, String row2, float speed = MAX_RPM,
-        bool centering = true
-    );
-    void writeStringDual(
-        String row1, String row2, float speed = MAX_RPM,
-        bool centering = true
-    );
+    void homeToStringDual(String row1, String row2, float speed = MAX_RPM, bool centering = true);
+    void writeStringDual(String row1, String row2, float speed = MAX_RPM, bool centering = true);
 #endif
 
   private:

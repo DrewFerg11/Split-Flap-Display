@@ -1,0 +1,28 @@
+<script data-goatcounter="https://split-flap-display.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+<script>
+  function __md_analytics() {
+    document$.subscribe(function() {
+      var form = document.forms.feedback;
+      if (typeof form !== "undefined") {
+        for (var btn of form.querySelectorAll("[type=submit]")) {
+          btn.addEventListener("click", function(e) {
+            e.preventDefault();
+            var value = this.getAttribute("data-md-value");
+            if (window.goatcounter && window.goatcounter.count) {
+              window.goatcounter.count({
+                path:  "/feedback/" + value,
+                title: document.title,
+                event: true
+              });
+            }
+            form.firstElementChild.disabled = true;
+            var note = form.querySelector(".md-feedback__note [data-md-value='" + value + "']");
+            if (note) note.hidden = false;
+          });
+        }
+        form.hidden = false;
+      }
+    });
+  }
+</script>

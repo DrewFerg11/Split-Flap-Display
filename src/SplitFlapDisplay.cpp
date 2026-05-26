@@ -3,6 +3,7 @@
 #include "JsonSettings.h"
 #include "SplitFlapModule.h"
 #include "SplitFlapMqtt.h"
+
 #include <freertos/semphr.h>
 
 SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
@@ -15,22 +16,22 @@ void SplitFlapDisplay::init() {
     charSetSize = settings.getInt("charset");
 
     // Wire (Bus 1)
-    std::vector<int> wAddrs   = settings.getIntVector("wireAddresses");
+    std::vector<int> wAddrs = settings.getIntVector("wireAddresses");
     std::vector<int> wOffsets = settings.getIntVector("wireOffsets");
     wireCount = wAddrs.size();
     for (int i = 0; i < wireCount; i++) {
         wireAddresses[i] = (uint8_t) wAddrs[i];
-        wireOffsets[i]   = wOffsets[i];
+        wireOffsets[i] = wOffsets[i];
     }
 
 #ifdef ENABLE_DUAL_I2C
     // Wire1 (Bus 2)
-    std::vector<int> w1Addrs   = settings.getIntVector("wire1Addresses");
+    std::vector<int> w1Addrs = settings.getIntVector("wire1Addresses");
     std::vector<int> w1Offsets = settings.getIntVector("wire1Offsets");
     wire1Count = w1Addrs.size();
     for (int i = 0; i < wire1Count; i++) {
         wire1Addresses[i] = (uint8_t) w1Addrs[i];
-        wire1Offsets[i]   = w1Offsets[i];
+        wire1Offsets[i] = w1Offsets[i];
     }
 #else
     wire1Count = 0;
@@ -50,7 +51,7 @@ void SplitFlapDisplay::init() {
     SCL2Pin = settings.getInt("scl2Pin");
     bool wire1Ok = Wire1.begin(SDA2Pin, SCL2Pin);
     Wire1.setClock(400000);
-    if (!wire1Ok) {
+    if (! wire1Ok) {
         Serial.printf("[ERROR] Wire1.begin() failed (SDA=%d, SCL=%d)\n", SDA2Pin, SCL2Pin);
     }
 #endif
@@ -105,12 +106,13 @@ void SplitFlapDisplay::configI2cModules() {
 void SplitFlapDisplay::scanI2cModules() {
     Serial.println("\n=== I2C Scanner ===");
 
-    struct BusCfg {
-        TwoWire  *bus;
+    struct BusCfg
+    {
+        TwoWire *bus;
         const char *name;
-        uint8_t  *addrs;
-        int       count;
-        int       idxOffset;
+        uint8_t *addrs;
+        int count;
+        int idxOffset;
     };
 
     BusCfg buses[] = {
@@ -122,11 +124,11 @@ void SplitFlapDisplay::scanI2cModules() {
     int numBuses = sizeof(buses) / sizeof(buses[0]);
 
     for (int b = 0; b < numBuses; b++) {
-        TwoWire    *bus      = buses[b].bus;
-        const char *busName  = buses[b].name;
-        uint8_t    *cfgAddrs = buses[b].addrs;
-        int         cfgCount = buses[b].count;
-        int         idxOff   = buses[b].idxOffset;
+        TwoWire *bus = buses[b].bus;
+        const char *busName = buses[b].name;
+        uint8_t *cfgAddrs = buses[b].addrs;
+        int cfgCount = buses[b].count;
+        int idxOff = buses[b].idxOffset;
 
         // Full address range scan so we can see unexpected devices and diagnose
         // buses that appear dead vs modules at wrong addresses
@@ -159,12 +161,12 @@ void SplitFlapDisplay::scanI2cModules() {
             }
         }
 
-        if (!anyFound) Serial.print(" (none found)");
+        if (! anyFound) Serial.print(" (none found)");
         Serial.println();
 
         // Report any configured modules that did not respond
         for (int i = 0; i < cfgCount; i++) {
-            if (!cfgFound[i]) {
+            if (! cfgFound[i]) {
                 Serial.printf("  -> [%d]0x%02X MISSING\n", idxOff + i, cfgAddrs[i]);
             }
         }
@@ -345,8 +347,9 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
     moveModules(modules, numModules, targetPositions, speed, releaseMotors, stepsPerRot, maxVel);
 }
 
-void SplitFlapDisplay::moveModules(SplitFlapModule *mods, int count, int *targets, float speed, 
-                                   bool releaseMotors, int stepsPerRot, float maxVel) {
+void SplitFlapDisplay::moveModules(
+    SplitFlapModule *mods, int count, int *targets, float speed, bool releaseMotors, int stepsPerRot, float maxVel
+) {
     if (count == 0) return;
 
     speed = constrain(speed, 2.0f, maxVel);
@@ -362,16 +365,13 @@ void SplitFlapDisplay::moveModules(SplitFlapModule *mods, int count, int *target
 
     bool resetLatches[count] = {}; // Initialize to false //start with latch on to prevent case where the
     // motion starts with the magnet over the sensor
-    bool needsStepping[count] = {};             // Initialize to false; //modules that still require moving
-    unsigned long lastStepTimes[count] = {};    // Initialize to false; //track when each module was last stepped
+    bool needsStepping[count] = {};                  // Initialize to false; //modules that still require moving
+    unsigned long lastStepTimes[count] = {};         // Initialize to false; //track when each module was last stepped
     unsigned long lastSensorCheckTime = currentTime; // track when we last read all the hall effect sensors
 
     for (int i = 0; i < count; i++) {
-        targets[i] = constrain(
-            targets[i],
-            0,
-            stepsPerRot - 1
-        ); // Constrain to avoid errors with incorrect inputs
+        targets[i] = constrain(targets[i], 0,
+                               stepsPerRot - 1); // Constrain to avoid errors with incorrect inputs
         resetLatches[i] = true;
         lastStepTimes[i] = currentTime;
         needsStepping[i] = (mods[i].getPosition() != targets[i]);
@@ -434,10 +434,10 @@ void SplitFlapDisplay::moveModules(SplitFlapModule *mods, int count, int *target
 bool SplitFlapDisplay::checkAllFalse(bool array[], int size) {
     for (int i = 0; i < size; i++) {
         if (array[i] == true) {
-            return false;              // As soon as a true value is found, return false
+            return false; // As soon as a true value is found, return false
         }
     }
-    return true;                       // All values were false
+    return true;          // All values were false
 }
 
 void SplitFlapDisplay::startMotors(SplitFlapModule *mods, int count) {
@@ -463,7 +463,8 @@ void SplitFlapDisplay::setMqtt(SplitFlapMqtt *mqttHandler) {
 // =============================================================================
 #ifdef ENABLE_DUAL_I2C
 
-struct BusMoveParams {
+struct BusMoveParams
+{
     SplitFlapModule *modules;
     int count;
     int *targets;
@@ -477,8 +478,7 @@ struct BusMoveParams {
 static void busMovementTask(void *param) {
     BusMoveParams *p = static_cast<BusMoveParams *>(param);
     SplitFlapDisplay::moveModules(
-        p->modules, p->count, p->targets,
-        p->speed, p->releaseMotors, p->stepsPerRot, p->maxVel
+        p->modules, p->count, p->targets, p->speed, p->releaseMotors, p->stepsPerRot, p->maxVel
     );
     xSemaphoreGive(p->doneSem);
     vTaskDelete(NULL);
@@ -489,12 +489,10 @@ void SplitFlapDisplay::moveToDual(int *targetPositions, float speed, bool releas
     SemaphoreHandle_t doneSem = xSemaphoreCreateCounting(2, 0);
 
     BusMoveParams wireParams = {
-        modules, wireCount, targetPositions,
-        speed, releaseMotors, stepsPerRot, maxVel, doneSem
+        modules, wireCount, targetPositions, speed, releaseMotors, stepsPerRot, maxVel, doneSem
     };
     BusMoveParams wire1Params = {
-        modules + wireCount, wire1Count, targetPositions + wireCount,
-        speed, releaseMotors, stepsPerRot, maxVel, doneSem
+        modules + wireCount, wire1Count, targetPositions + wireCount, speed, releaseMotors, stepsPerRot, maxVel, doneSem
     };
 
     if (wireCount > 0) {
@@ -570,4 +568,4 @@ void SplitFlapDisplay::writeStringDual(String row1, String row2, float speed, bo
     }
 }
 
-#endif  // ENABLE_DUAL_I2C
+#endif // ENABLE_DUAL_I2C
