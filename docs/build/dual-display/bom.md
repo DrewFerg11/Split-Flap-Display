@@ -11,6 +11,7 @@ Required for all builds regardless of power or board option.
 | Item | Qty | Notes | Link |
 |------|-----|-------|------|
 | ESP32 DevKit V1 (ESP-WROOM-32) | 1 | | [Amazon](https://a.co/d/09N3pLDK) |
+| 5V 28BYJ-48 Stepper Motor | 16 | | [Amazon](https://a.co/d/0iAvSJma) |
 | A3144 Hall Effect Sensor | 16 | | [Amazon](https://a.co/d/0gNrxkEA) |
 | N52-D3x1mm magnet | 16 | Stronger than the original design magnets | [Amazon](https://a.co/d/032d6gsi) |
 | 40×60mm Perfboard | 1 | Controller board | [Amazon](https://a.co/d/0fF1662l) |
@@ -23,7 +24,7 @@ Required for all builds regardless of power or board option.
 | M3 × 30mm Countersunk Machine Screws | 64 | 4 per module | [Amazon](https://a.co/d/0dZ8LeA2) |
 | M3 × 6mm Countersink Machine Screws | 8 | End caps | [Amazon](https://a.co/d/0h6fTboP) |
 | M3 Nut | 72 | 8 for end caps; 64 for the modules | [Amazon](https://a.co/d/08b878Ls) |
-| M3 × 4 × 5 Heat Set Insert | 8 | End caps | [Amazon](https://a.co/d/01hBrO8S) |
+| M3 × 4 × 5 Heat Set Insert | 8 | End plates | [Amazon](https://a.co/d/01hBrO8S) |
 | 4mm × 18mm Dowel Pins | 16 | I recommend [Jordan Hoff's metal dowel mod](https://makerworld.com/en/models/1269780-split-flap-display-metal-dowel-mod#profileId-1296205) | [Amazon](https://a.co/d/0g9X6VVT) |
 | Black PETG Filament | ~2 kg | Everything except flaps | [Amazon](https://a.co/d/044ucNUs) |
 | Black PLA Filament | ~1 kg | Flaps | [Amazon](https://a.co/d/0aR8hNht) |
@@ -42,7 +43,6 @@ Choose one option. See the [Module Boards](../../module-boards/index.md) section
     | Item | Qty | Notes | Link |
     |------|-----|-------|------|
     | dowjames v5.1 Custom PCB | 16 | Ordered assembled from JLCPCB | [Ordering guide](../../module-boards/custom-pcb/dowjames-v5.1/ordering.md) |
-    | 5V 28BYJ-48 Stepper Motor | 16 | You don't need the separate driver board | [Amazon](https://a.co/d/02uVBov3) |
     | 3 Pin JST PH Female Connector | 16 | | [Amazon](https://a.co/d/0fr4haGp) |
     | 4.7kΩ Pull-Up Resistor | 2 | One per I²C bus — first board in each chain | [Amazon](https://a.co/d/0fgxiKNf) |
     | 2.54mm Pitch 4 Pin Stackable Header | 2 | [See assembly note](build-guide/assembly.md#stackable-header-note) | [Amazon](https://a.co/d/00aMJGHA) |
@@ -61,18 +61,19 @@ Choose one option. See [Power](power.md) for details on each.
 
     | Item | Qty | Optional | Notes | Link |
     |------|-----|----------|-------|------|
-    | MEAN WELL LRS-75-5 | 1 | | | [Amazon](https://a.co/d/08QuIBPq) |
+    | MEAN WELL LRS-75-5 | 1 | | | [Amazon](https://a.co/d/08QulBPq) |
     | Main Power Switch | 1 | | | [Amazon](https://a.co/d/03vKCmQP) |
     | 16 AWG 6ft Computer Power Cord | 1 | | | [Amazon](https://a.co/d/0bsVQSLV) |
-    | 16 AWG Wire Ferrule Terminals | 6 | | Recommended for 120V connections | [Amazon](https://a.co/d/08AVfBJG) |
-    | 4.8mm 16 AWG Female Spade Connector | 3 | | | [Amazon](https://a.co/d/0gb0nYzu) |
-    | M5 16 AWG Ring Connector | 5 | | | [Amazon](https://a.co/d/0dwV33gi) |
+    | 16 AWG Wire Ferrule Terminals | 6 | ✅ | 5V terminals | [Amazon](https://a.co/d/08AVfBJG) |
+    | 4.8mm 16 AWG Female Spade Connector | 3 | | 120V terminals | [Amazon](https://a.co/d/0gb0nYzu) |
+    | M4 16 AWG Ring Connector | 5 | | 3× 120V terminals, 2× 5V terminals | [Amazon](https://a.co/d/0dwV33gi) |
     | M3 × 35mm Countersunk Machine Screws | 2 | | | [Amazon](https://a.co/d/07yLTH74) |
     | M3 × 30mm Countersunk Machine Screws | 2 | | | [Amazon](https://a.co/d/0dZ8LeA2) |
     | M3 × 12mm Countersink Machine Screws | 2 | | | [Amazon](https://a.co/d/0gWgyT27) |
-    | M3 × 6 × 5 Heat Set Insert | 5 | | | [Amazon](https://a.co/d/01hBrO8S) |
+    | M3 × 6 × 5 Heat Set Insert | 4 | | Enclosure mount | [Amazon](https://a.co/d/01hBrO8S) |
+    | M3 × 4 × 5 Heat Set Insert | 2 | | End plates | [Amazon](https://a.co/d/01hBrO8S) |
     | Shelly 1PM Gen4 | 1 | ✅ | Smart power monitoring | [Amazon](https://a.co/d/0e8rYym1) |
-    | 16 AWG Wire Ferrule Terminals (Shelly) | 4 | ✅ | Not needed without the Shelly | [Amazon](https://a.co/d/08AVfBJG) |
+    | 16 AWG Wire Ferrule Terminals | 4 | ✅ | Not needed without the Shelly | [Amazon](https://a.co/d/08AVfBJG) |
 
     ??? info "Should I add the Shelly?"
         The [Shelly 1PM Gen4](https://a.co/d/0e8rYym1) is a small smart relay that sits inline with the AC mains wiring inside the PSU enclosure. It's entirely optional — the display works perfectly without it.

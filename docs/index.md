@@ -7,7 +7,7 @@
 A fully 3D-printed, modular split-flap display with an ESP32-based web interface. This project builds on the original hardware design by [Morgan Manly](https://github.com/ManlyMorgan/Split-Flap-Display) with extended firmware, an improved custom PCB, and support for a **16-module dual I²C configuration**.
 
 <figure markdown>
-  ![Split-flap display](assets/display/sfd-2.jpg)
+  ![Split-flap display](assets/display/sfd-main.jpg)
 </figure>
 
 <div class="grid cards" markdown>
