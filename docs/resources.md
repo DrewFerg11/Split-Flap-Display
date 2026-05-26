@@ -23,7 +23,7 @@ Links to the upstream projects, print files, and community mods this project bui
 | Blank spacer | Jordan Hoff | [MakerWorld](https://makerworld.com/en/models/1154515-split-flap-display-blank-spacer#profileId-1159344) |
 | Square enclosure | Drew Ferguson | [MakerWorld](https://makerworld.com/en/models/2489058-split-flap-display-square-enclosure#profileId-2734898) |
 | Character drum tools | Drew Ferguson | [MakerWorld](https://makerworld.com/en/models/2488534-split-flap-display-character-drum-tools#profileId-2734276) |
-| Dual display | Drew Ferguson | [MakerWorld](#) |
+| Dual display | Drew Ferguson | [MakerWorld](https://makerworld.com/en/models/2836400-split-flap-display-dual#profileId-3161341) |
 
 ---
 

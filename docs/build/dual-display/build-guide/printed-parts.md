@@ -2,7 +2,7 @@
 
 All print files are available on MakerWorld — each plate is pre-configured with the correct print settings for each object. You shouldn't need to adjust anything before slicing.
 
-[Download Print Files on MakerWorld](#){ .md-button }
+[Download Print Files on MakerWorld](https://makerworld.com/en/models/2836400-split-flap-display-dual#profileId-3161341){ .md-button }
 
 ![3D printed parts overview](../../../assets/3d-parts-1.png){ width="600" .center }
 

@@ -3,9 +3,9 @@
 ![format badge](https://github.com/DrewFerg11/Split-Flap-Display/actions/workflows/format-check.yml/badge.svg?branch=main)
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/RCvks4XXXH?style=flat)](https://discord.gg/RCvks4XXXH)
 
-**Full documentation:** [drewferg11.github.io/Split-Flap-Display](https://drewferg11.github.io/Split-Flap-Display/)
-
 ![Split-flap display in action](docs/assets/split-flap.gif)
+
+**Full documentation:** [drewferg11.github.io/Split-Flap-Display](https://drewferg11.github.io/Split-Flap-Display/)
 
 A fully 3D-printed, modular split-flap display with an ESP32-based web interface. Forked from [jhoff/Split-Flap-Display](https://github.com/jhoff/Split-Flap-Display), which builds on the original hardware design by [Morgan Manly](https://github.com/ManlyMorgan/Split-Flap-Display). This fork adds extended firmware, an improved custom PCB, and support for a 16-module dual I²C configuration.
 

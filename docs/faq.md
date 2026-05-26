@@ -91,15 +91,6 @@
 
 ## Troubleshooting
 
-??? question "My motors are getting hot immediately after powering on."
-    This is a known issue with the [PCF8575](i2c.md#how-its-used-in-this-project) — it pulls all output pins HIGH by default on power-up, energizing both motor coils continuously. **Flash the firmware before connecting motors.** With firmware running, the ESP32 de-energizes idle coils. See the [custom PCB common gotchas](module-boards/custom-pcb/index.md#common-gotchas).
-
-??? question "My ESP32 won't boot reliably on a cold start."
-    Likely an inrush current issue with the power supply. This is a known limitation of lower-quality or lower-rated 5V adapters at full 16-module scale. Switching to the [integrated MEAN WELL PSU (Option A)](build/dual-display/power.md#option-a--integrated-psu-recommended) resolves this. See the [Power page](build/dual-display/power.md#why-are-there-multiple-options) for the full explanation.
-
-??? question "My I²C errors appear under load but go away when motors are idle."
-    A noisy or undersized power supply can corrupt I²C signal edges when motors are drawing current. Try a higher-quality dedicated 5V supply for the module chain. See the [I²C reference](i2c.md#i2c-error-codes-appear-under-load-but-vanish-on-a-different-power-supply).
-
 ??? question "My display lands on the wrong character sometimes — is something broken?"
     Almost certainly not — this is a known limitation of the design that every builder hits to some degree. The mechanism uses an open-loop stepper (no positional feedback during a flip), so accuracy depends on the magnet/hall sensor finding "home" reliably and the steps-per-character math holding up over many flap cycles. In practice the failure modes look like:
 
@@ -128,6 +119,15 @@
     **The honest ceiling:**
 
     Open-loop steppers plus a 3D-printed mechanism plus thermal expansion plus cumulative friction means there's a realistic floor below which firmware alone can't push. Firmware improvements (smarter homing, periodic re-zeroing) can close some of the remaining gap, but "perfect every time" isn't a realistic target with this style of mechanism. "Very good most of the time, with occasional misses" is the honest expectation.
+
+??? question "My motors are getting hot immediately after powering on."
+    This is a known issue with the [PCF8575](i2c.md#how-its-used-in-this-project) — it pulls all output pins HIGH by default on power-up, energizing both motor coils continuously. **Flash the firmware before connecting motors.** With firmware running, the ESP32 de-energizes idle coils. See the [custom PCB common gotchas](module-boards/custom-pcb/index.md#common-gotchas).
+
+??? question "My ESP32 won't boot reliably on a cold start."
+    Likely an inrush current issue with the power supply. This is a known limitation of lower-quality or lower-rated 5V adapters at full 16-module scale. Switching to the [integrated MEAN WELL PSU (Option A)](build/dual-display/power.md#option-a--integrated-psu-recommended) resolves this. See the [Power page](build/dual-display/power.md#why-are-there-multiple-options) for the full explanation.
+
+??? question "My I²C errors appear under load but go away when motors are idle."
+    A noisy or undersized power supply can corrupt I²C signal edges when motors are drawing current. Try a higher-quality dedicated 5V supply for the module chain. See the [I²C reference](i2c.md#i2c-error-codes-appear-under-load-but-vanish-on-a-different-power-supply).
 
 ---
 
