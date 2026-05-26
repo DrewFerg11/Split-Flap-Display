@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - docs-site-setup  # TODO: remove this once initial docs setup is merged to main
     paths:
       - docs/**
       - overrides/**

@@ -114,8 +114,8 @@ nav:
       - build/original/index.md
     - Dual Display:
       - Overview: build/dual-display/index.md
-      - BOM: build/dual-display/bom.md
       - Power: build/dual-display/power.md
+      - BOM: build/dual-display/bom.md
       - Build Guide:
         - build/dual-display/build-guide/index.md
         - 1. Printed Parts: build/dual-display/build-guide/printed-parts.md
