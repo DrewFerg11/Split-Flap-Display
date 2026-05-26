@@ -227,9 +227,8 @@ void dateTimeMode() {
     if (millis() - webServer.getLastCheckDateTime() > webServer.getDateCheckInterval()) {
         webServer.setLastCheckDateTime(millis());
 
-        String timeUserFormat = settings.getString("timeFormat").length() > 0
-                                    ? settings.getString("timeFormat")
-                                    : "{HH}:{MM}";
+        String timeUserFormat =
+            settings.getString("timeFormat").length() > 0 ? settings.getString("timeFormat") : "{HH}:{MM}";
         String timeResult = renderTime(convertToStrftime(timeUserFormat));
         String dateResult = renderDate(convertToStrftime(settings.getString("dateFormat")));
 
@@ -256,9 +255,7 @@ void dualMultiInputMode() {
         String userInput = webServer.getMultiInputString();
         int idx = webServer.getMultiWordCurrentIndex();
         String row1 = extractFromCSV(userInput, idx);
-        String row2 = (idx + 1 < webServer.getNumMultiWords())
-                          ? extractFromCSV(userInput, idx + 1)
-                          : "";
+        String row2 = (idx + 1 < webServer.getNumMultiWords()) ? extractFromCSV(userInput, idx + 1) : "";
         String combined = row1 + "|" + row2;
         if (combined != webServer.getWrittenString()) {
             display.writeStringDual(row1, row2, MAX_RPM, webServer.getCentering());
@@ -274,8 +271,7 @@ void dualMultiInputMode() {
 
 void accuracyTestMode() {
     int charSetSize = display.getCharsetSize();
-    const char *charSet = (charSetSize == 48) ? SplitFlapModule::ExtendedChars
-                                               : SplitFlapModule::StandardChars;
+    const char *charSet = (charSetSize == 48) ? SplitFlapModule::ExtendedChars : SplitFlapModule::StandardChars;
     unsigned long now = millis();
     if (now - webServer.getLastAccuracyStepTime() >= (unsigned long) webServer.getAccuracyDelay()) {
         int idx = webServer.getAccuracyCharIndex();

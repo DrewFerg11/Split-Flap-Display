@@ -193,17 +193,18 @@ bool JsonSettings::validateCrossFields(const JsonDocument &doc) {
         return true;
     };
 
-    bool hasWireAddrs    = doc["wireAddresses"].is<String>();
-    bool hasWireOffsets  = doc["wireOffsets"].is<String>();
-    bool hasWire1Addrs   = doc["wire1Addresses"].is<String>();
+    bool hasWireAddrs = doc["wireAddresses"].is<String>();
+    bool hasWireOffsets = doc["wireOffsets"].is<String>();
+    bool hasWire1Addrs = doc["wire1Addresses"].is<String>();
     bool hasWire1Offsets = doc["wire1Offsets"].is<String>();
 
     // Bus 1: address and offset arrays must be the same length
     if (hasWireAddrs && hasWireOffsets) {
         int addrLen = csvLen(doc["wireAddresses"].as<String>());
-        int offLen  = csvLen(doc["wireOffsets"].as<String>());
+        int offLen = csvLen(doc["wireOffsets"].as<String>());
         if (addrLen != offLen) {
-            lastValidationError = "Bus 1 address count (" + String(addrLen) + ") must match offset count (" + String(offLen) + ")";
+            lastValidationError =
+                "Bus 1 address count (" + String(addrLen) + ") must match offset count (" + String(offLen) + ")";
             lastValidationKey = "wireAddresses";
             return false;
         }
@@ -212,9 +213,10 @@ bool JsonSettings::validateCrossFields(const JsonDocument &doc) {
     // Bus 2: address and offset arrays must be the same length
     if (hasWire1Addrs && hasWire1Offsets) {
         int addrLen = csvLen(doc["wire1Addresses"].as<String>());
-        int offLen  = csvLen(doc["wire1Offsets"].as<String>());
+        int offLen = csvLen(doc["wire1Offsets"].as<String>());
         if (addrLen != offLen) {
-            lastValidationError = "Bus 2 address count (" + String(addrLen) + ") must match offset count (" + String(offLen) + ")";
+            lastValidationError =
+                "Bus 2 address count (" + String(addrLen) + ") must match offset count (" + String(offLen) + ")";
             lastValidationKey = "wire1Addresses";
             return false;
         }
@@ -222,7 +224,7 @@ bool JsonSettings::validateCrossFields(const JsonDocument &doc) {
 
     // Total module count must not exceed MAX_MODULES
     if (hasWireAddrs || hasWire1Addrs) {
-        int wireCount  = hasWireAddrs  ? csvLen(doc["wireAddresses"].as<String>())  : 0;
+        int wireCount = hasWireAddrs ? csvLen(doc["wireAddresses"].as<String>()) : 0;
         int wire1Count = hasWire1Addrs ? csvLen(doc["wire1Addresses"].as<String>()) : 0;
 #ifdef ENABLE_DUAL_I2C
         const int maxModules = 16;
@@ -230,7 +232,8 @@ bool JsonSettings::validateCrossFields(const JsonDocument &doc) {
         const int maxModules = 8;
 #endif
         if (wireCount + wire1Count > maxModules) {
-            lastValidationError = "Total module count (" + String(wireCount + wire1Count) + ") exceeds maximum (" + String(maxModules) + ")";
+            lastValidationError = "Total module count (" + String(wireCount + wire1Count) + ") exceeds maximum (" +
+                String(maxModules) + ")";
             lastValidationKey = "wireAddresses";
             return false;
         }
@@ -245,8 +248,8 @@ bool JsonSettings::validateCrossFields(const JsonDocument &doc) {
     }
 
     // SDA/SCL pin conflict checks
-    int sda  = doc["sdaPin"].isNull()  ? -1 : doc["sdaPin"].as<int>();
-    int scl  = doc["sclPin"].isNull()  ? -1 : doc["sclPin"].as<int>();
+    int sda = doc["sdaPin"].isNull() ? -1 : doc["sdaPin"].as<int>();
+    int scl = doc["sclPin"].isNull() ? -1 : doc["sclPin"].as<int>();
     int sda2 = doc["sda2Pin"].isNull() ? -1 : doc["sda2Pin"].as<int>();
     int scl2 = doc["scl2Pin"].isNull() ? -1 : doc["scl2Pin"].as<int>();
 
