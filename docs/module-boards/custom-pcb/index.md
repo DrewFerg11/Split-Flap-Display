@@ -14,7 +14,7 @@ Each board listed here is a drop-in per-module driver, meaning one board per spl
 
     ---
 
-    ![dowjames v5.1 front](../../assets/pcb-v5.1-front.png){ width="180" align=right }
+    ![dowjames v5.1 front](../../assets/pcb/pcb-v5.1-front.png){ width="180" align=right }
 
     The first community-designed PCB. Compact, fully assembled by JLCPCB, and battle-tested across many community builds.
 

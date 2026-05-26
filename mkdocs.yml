@@ -98,6 +98,7 @@ nav:
     - FAQ: faq.md
     - I²C Reference: i2c.md
     - Resources: resources.md
+    - Site Map: sitemap.md
     - Disclaimer: disclaimer.md
   - Module Boards:
     - module-boards/index.md

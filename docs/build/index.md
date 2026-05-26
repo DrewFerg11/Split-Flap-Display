@@ -4,10 +4,10 @@ There are two build options for this project:
 
 <div style="display: flex; gap: 1.5rem; margin: 2rem 0 0.25rem;" markdown>
 <figure style="flex: 1; text-align: center; margin: 0;" markdown>
-![8-module split-flap display showing SUN16FEB](../assets/8-modules.png)
+![8-module split-flap display showing SUN16FEB](../assets/display/8-modules.png)
 </figure>
 <figure style="flex: 1; text-align: center; margin: 0;" markdown>
-![16-module dual split-flap display showing HELLO WORLD](../assets/16-modules.jpg)
+![16-module dual split-flap display showing HELLO WORLD](../assets/display/16-modules.jpg)
 </figure>
 </div>
 

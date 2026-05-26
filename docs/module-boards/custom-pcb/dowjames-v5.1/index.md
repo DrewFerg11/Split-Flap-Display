@@ -4,11 +4,11 @@ This is split-flap module PCB designed by dowjames. It integrates the PCF8575 I/
 
 <div style="display: flex; gap: 1.5rem; margin: 2rem 0;" markdown>
 <figure style="flex: 1; text-align: center;" markdown>
-![PCB v5.1 front](../../../assets/pcb-v5.1-front.png)
+![PCB v5.1 front](../../../assets/pcb/pcb-v5.1-front.png)
 <figcaption>Front</figcaption>
 </figure>
 <figure style="flex: 1; text-align: center;" markdown>
-![PCB v5.1 back](../../../assets/pcb-v5.1-back.png)
+![PCB v5.1 back](../../../assets/pcb/pcb-v5.1-back.png)
 <figcaption>Back</figcaption>
 </figure>
 </div>
@@ -48,7 +48,7 @@ All SMT components are pre-soldered by JLCPCB:
 
 Add **4.7kΩ pull-up resistors** on the **first board in each chain only** — one resistor from SDA to +5V, one from SCL to +5V.
 
-![Pull-up resistors soldered to the back of a PCB](../../../assets/pullup-resistors-back-1.jpg)
+![Pull-up resistors soldered to the back of a PCB](../../../assets/pcb/pullup-resistors-back-1.jpg)
 
 ### 2. Set DIP Switch Addresses
 

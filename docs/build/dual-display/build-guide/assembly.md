@@ -15,7 +15,7 @@ Building each module is essentially the same as the original design. This includ
 - Assembling the drum with flaps and magnet
 - Connecting the [DIY or custom PCB module board](../../../module-boards/index.md)
 
-![Building modules](../../../assets/building-modules.jpg){ width="500" .center }
+![Building modules](../../../assets/display/building-modules.jpg){ width="500" .center }
 
 ## 2. Solder Module Wires
 
@@ -29,10 +29,10 @@ Regardless of the [module board](../../../module-boards/index.md) you're using, 
 
 <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Module board wiring step 1](../../../assets/module-board-wire-1.jpg)
+![Module board wiring step 1](../../../assets/assembly/module-board-wire-1.jpg)
 </figure>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Module board wiring step 2](../../../assets/module-board-wire-2.jpg)
+![Module board wiring step 2](../../../assets/assembly/module-board-wire-2.jpg)
 </figure>
 </div>
 
@@ -54,15 +54,15 @@ Use a soldering iron to install heat set inserts into the [printed parts](printe
 
 <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Heat set inserts in end plates](../../../assets/heat-set-inserts-end-plates-1.jpg)
+![Heat set inserts in end plates](../../../assets/assembly/heat-set-inserts-end-plates-1.jpg)
 <figcaption>End plates</figcaption>
 </figure>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Heat set inserts in SFD enclosure mounts](../../../assets/heat-set-inserts-sfd-1.jpg)
+![Heat set inserts in SFD enclosure mounts](../../../assets/assembly/heat-set-inserts-sfd-1.jpg)
 <figcaption>SFD enclosure mounts</figcaption>
 </figure>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Heat set inserts in PSU enclosure mounts](../../../assets/heat-set-inserts-psu-1.jpg)
+![Heat set inserts in PSU enclosure mounts](../../../assets/psu/heat-set-inserts-psu-1.jpg)
 <figcaption>PSU enclosure mounts</figcaption>
 </figure>
 </div>
@@ -73,10 +73,10 @@ Place the [controller board](controller-board.md) into the **left end plate** wi
 
 <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Controller board installation step 1](../../../assets/install-controller-board-1.jpg)
+![Controller board installation step 1](../../../assets/assembly/install-controller-board-1.jpg)
 </figure>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Controller board installation step 2](../../../assets/install-controller-board-2.jpg)
+![Controller board installation step 2](../../../assets/assembly/install-controller-board-2.jpg)
 </figure>
 </div>
 
@@ -139,11 +139,11 @@ For **Option A (Integrated PSU)**, modules 4 and 7 in **Row 2** use the **D.1 mo
 
 <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Connecting modules step 1](../../../assets/connect-modules-1.jpg)
+![Connecting modules step 1](../../../assets/assembly/connect-modules-1.jpg)
 <figcaption>Back side</figcaption>
 </figure>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Connecting modules step 2](../../../assets/connect-modules-2.jpg)
+![Connecting modules step 2](../../../assets/assembly/connect-modules-2.jpg)
 <figcaption>End plates</figcaption>
 </figure>
 </div>
@@ -154,10 +154,10 @@ Connect the end plates to each side and insert the threaded rods into all 8 hole
 
 <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Connecting end plate step 1](../../../assets/connect-end-plate-1.jpg)
+![Connecting end plate step 1](../../../assets/assembly/connect-end-plate-1.jpg)
 </figure>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Connecting end plate step 2](../../../assets/connect-end-plate-2.jpg)
+![Connecting end plate step 2](../../../assets/assembly/connect-end-plate-2.jpg)
 </figure>
 </div>
 
@@ -172,16 +172,16 @@ The controller board's I²C outputs feed the first module of each row; from ther
 
 Connect the I²C wires you soldered in [step 2](#2-solder-module-wires) to the matching terminals on the controller board.
 
-![External wiring — controller to PSU and displays](../../../assets/esp32-controller-board-external-wiring.png){ width="500" .center }
+![External wiring — controller to PSU and displays](../../../assets/controller-board/esp32-controller-board-external-wiring.png){ width="500" .center }
 
 *External wiring — 5V power input from the PSU on one side, Bus 1 and Bus 2 outputs to the split-flap daisy chains on the other*
 
 <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Wiring controller board step 1](../../../assets/wire-control-board-1.jpg)
+![Wiring controller board step 1](../../../assets/assembly/wire-control-board-1.jpg)
 </figure>
 <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-![Wiring controller board step 2](../../../assets/wire-control-board-2.jpg)
+![Wiring controller board step 2](../../../assets/assembly/wire-control-board-2.jpg)
 </figure>
 </div>
 
@@ -210,13 +210,13 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![PSU hardware install step 1](../../../assets/psu-hardware-install-1.jpg)
+    ![PSU hardware install step 1](../../../assets/psu/psu-hardware-install-1.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![PSU hardware install step 2](../../../assets/psu-hardware-install-2.jpg)
+    ![PSU hardware install step 2](../../../assets/psu/psu-hardware-install-2.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![PSU hardware install step 3](../../../assets/psu-hardware-install-3.jpg)
+    ![PSU hardware install step 3](../../../assets/psu/psu-hardware-install-3.jpg)
     </figure>
     </div>
 
@@ -236,11 +236,11 @@ The next steps depend on which power option you chose. Skip to the section that 
 
         <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
         <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-        ![PSU outlet wires](../../../assets/psu-outlet-wires-1.jpg)
+        ![PSU outlet wires](../../../assets/psu/psu-outlet-wires-1.jpg)
         <figcaption>GND, LINE, and NEUTRAL from the outlet</figcaption>
         </figure>
         <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-        ![PSU wires](../../../assets/psu-wires-1.jpg)
+        ![PSU wires](../../../assets/psu/psu-wires-1.jpg)
         <figcaption>LINE and NEUTRAL from the PSU</figcaption>
         </figure>
         </div>
@@ -260,7 +260,7 @@ The next steps depend on which power option you chose. Skip to the section that 
     | 5V | PSU (V+) | Controller board (+5V terminal) | ~280mm | M4 ring | Wire ferrule |
     | GND | PSU (V−) | Controller board (GND terminal) | ~280mm | M4 ring | Wire ferrule |
 
-    ![5V wires](../../../assets/5v-wires-1.jpg){ width="500" .center }
+    ![5V wires](../../../assets/assembly/5v-wires-1.jpg){ width="500" .center }
 
     ### A.11. Wire the PSU
 
@@ -270,19 +270,19 @@ The next steps depend on which power option you chose. Skip to the section that 
 
         Screw down the 3 AC wires at the PSU terminals first, then connect the LINE and NEUTRAL wires to the outlet. Use the same outlet pins shown in the photo.
 
-        ![PSU wired step 1](../../../assets/psu-wired-1.jpg){ width="500" .center }
+        ![PSU wired step 1](../../../assets/psu/psu-wired-1.jpg){ width="500" .center }
 
         Next, place the LRS-75-5 into the enclosure and connect all the wires.
 
         <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
         <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-        ![PSU wired and installed step 1](../../../assets/psu-wired-installed-1.jpg)
+        ![PSU wired and installed step 1](../../../assets/psu/psu-wired-installed-1.jpg)
         </figure>
         <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-        ![PSU wired and installed step 2](../../../assets/psu-wired-installed-2.jpg)
+        ![PSU wired and installed step 2](../../../assets/psu/psu-wired-installed-2.jpg)
         </figure>
         <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-        ![PSU wired and installed step 3](../../../assets/psu-wired-installed-3.jpg)
+        ![PSU wired and installed step 3](../../../assets/psu/psu-wired-installed-3.jpg)
         <figcaption>Note the twist in the GND wire.</figcaption>
         </figure>
         </div>
@@ -300,13 +300,13 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Mount PSU enclosure step 1](../../../assets/mount-psu-enclosure-1.jpg)
+    ![Mount PSU enclosure step 1](../../../assets/psu/mount-psu-enclosure-1.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Mount PSU enclosure step 2](../../../assets/mount-psu-enclosure-2.jpg)
+    ![Mount PSU enclosure step 2](../../../assets/psu/mount-psu-enclosure-2.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Mount PSU enclosure step 3](../../../assets/mount-psu-enclosure-3.jpg)
+    ![Mount PSU enclosure step 3](../../../assets/psu/mount-psu-enclosure-3.jpg)
     </figure>
     </div>
 
@@ -316,10 +316,10 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Connect PSU to controller step 1](../../../assets/connect-psu-controller-1.jpg)
+    ![Connect PSU to controller step 1](../../../assets/psu/connect-psu-controller-1.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Connect PSU to controller step 2](../../../assets/connect-psu-controller-2.jpg)
+    ![Connect PSU to controller step 2](../../../assets/psu/connect-psu-controller-2.jpg)
     </figure>
     </div>
 
@@ -327,13 +327,13 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Thread 5V wires step 1](../../../assets/thread-5v-wires-1.jpg)
+    ![Thread 5V wires step 1](../../../assets/assembly/thread-5v-wires-1.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Thread 5V wires step 2](../../../assets/thread-5v-wires-2.jpg)
+    ![Thread 5V wires step 2](../../../assets/assembly/thread-5v-wires-2.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Connect 5V to controller](../../../assets/connect-5v-controller-1.jpg)
+    ![Connect 5V to controller](../../../assets/assembly/connect-5v-controller-1.jpg)
     </figure>
     </div>
 
@@ -344,16 +344,16 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Install wire cover step 1](../../../assets/install-wire-cover-1.jpg)
+    ![Install wire cover step 1](../../../assets/assembly/install-wire-cover-1.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Install wire cover step 2](../../../assets/install-wire-cover-2.jpg)
+    ![Install wire cover step 2](../../../assets/assembly/install-wire-cover-2.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Install wire cover step 3](../../../assets/install-wire-cover-3.jpg)
+    ![Install wire cover step 3](../../../assets/assembly/install-wire-cover-3.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Install wire cover step 4](../../../assets/install-wire-cover-4.jpg)
+    ![Install wire cover step 4](../../../assets/assembly/install-wire-cover-4.jpg)
     </figure>
     </div>
 
@@ -364,19 +364,19 @@ The next steps depend on which power option you chose. Skip to the section that 
     !!! warning
         Double-check all wiring one last time before closing the enclosure top.
 
-    ![Close PSU top](../../../assets/close-psu-top-1.jpg){ width="500" .center }
+    ![Close PSU top](../../../assets/psu/close-psu-top-1.jpg){ width="500" .center }
 
     Confirm the 8 threaded rod nuts on the right end plate are hand-tight. Place the right end cap over the plate, then secure both end caps with 8 **M3 × 6mm** screws (4 on each side).
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Close end cap step 1](../../../assets/close-end-cap-1.jpg)
+    ![Close end cap step 1](../../../assets/assembly/close-end-cap-1.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Close end cap step 2](../../../assets/close-end-cap-2.jpg)
+    ![Close end cap step 2](../../../assets/assembly/close-end-cap-2.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![Close end cap step 3](../../../assets/close-end-cap-3.jpg)
+    ![Close end cap step 3](../../../assets/assembly/close-end-cap-3.jpg)
     </figure>
     </div>
 
@@ -384,7 +384,7 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     Plug in the power cord, flip the main switch, and verify the display boots and all modules respond.
 
-    ![Powered PSU](../../../assets/psu-power-1.jpg){ width="500" .center }
+    ![Powered PSU](../../../assets/psu/psu-power-1.jpg){ width="500" .center }
 
 === "Option B — External Adapter"
 
@@ -392,7 +392,7 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     Cut the 5V and GND wires to approximately 100mm each. Connect one end of each wire to the controller board's 5V/GND input terminals, and the other end to the barrel jack. Seat the barrel jack into the cutout in the [**C.1 or C.2 left end cap**](printed-parts.md) (matched to your jack diameter).
 
-    ![Installing barrel jack](../../../assets/install-barrel-jack-1.jpg){ width="500" .center }
+    ![Installing barrel jack](../../../assets/assembly/install-barrel-jack-1.jpg){ width="500" .center }
 
     ### B.10. Close the Enclosure
 
@@ -404,9 +404,9 @@ The next steps depend on which power option you chose. Skip to the section that 
 
     <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;" markdown>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![External power setup 1](../../../assets/ext-power-1.jpg)
+    ![External power setup 1](../../../assets/assembly/ext-power-1.jpg)
     </figure>
     <figure style="flex: 1 1 200px; text-align: center; margin: 0;" markdown>
-    ![External power setup 2](../../../assets/ext-power2.jpg)
+    ![External power setup 2](../../../assets/assembly/ext-power2.jpg)
     </figure>
     </div>

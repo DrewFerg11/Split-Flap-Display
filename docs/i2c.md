@@ -1,6 +1,6 @@
 # I²C Reference
 
-![I2C bus logo](assets/I2C_bus_logo.svg.png){ width="220" .center }
+![I2C bus logo](assets/i2c/I2C_bus_logo.svg.png){ width="220" .center }
 
 I²C (Inter-Integrated Circuit) is the communication protocol used to control every split-flap module in this project. Understanding how it works explains many of the design decisions — including why a second bus is needed for 16 modules.
 
@@ -29,7 +29,7 @@ SDA and SCL must be pulled up to VCC through resistors (typically 4.7kΩ). Witho
 
 Each module's controller or PCB contains a **PCF8575** — a 16-bit I²C I/O expander that drives the stepper motor coils via a ULN2003 motor driver. The ESP32 sends I²C commands to each PCF8575 to step the motor and home the drum.
 
-![PCF8575 I²C I/O expander breakout board](assets/PCF8575-io-expander.jpg){ width="280" }
+![PCF8575 I²C I/O expander breakout board](assets/pcb/PCF8575-io-expander.jpg){ width="280" }
 
 *PCF8575 I/O expander — one per module, addressed via the onboard DIP switch*
 
@@ -50,7 +50,7 @@ The PCF8575 has three address pins — **A0, A1, A2** — that set its I²C addr
 
 Every module in a chain must have a different DIP switch setting. Modules sharing an address will conflict.
 
-![PCF8575 back — A0, A1, A2 address solder pads](assets/PCF8575-io-expander-back.jpg){ width="280" }
+![PCF8575 back — A0, A1, A2 address solder pads](assets/pcb/PCF8575-io-expander-back.jpg){ width="280" }
 
 *Back of the PCF8575 board — solder the A0, A1, A2 pads to either GND (logic 0) or VDD (logic 1) to set the address. Each unique combination maps to one address in the table above.*
 
@@ -151,7 +151,7 @@ flowchart LR
 
 The practical ceiling for **full-speed simultaneous updates on a single I²C bus is roughly 13 modules**. Beyond that the motors visibly slow down — they still step correctly, just at a fraction of normal speed. Idle current cost of the multiplexer itself is negligible (~30mA), so the bottleneck is purely bus bandwidth.
 
-![TCA9548A I²C multiplexer breakout board](assets/TCA9548A-mux.jpg){ width="280" }
+![TCA9548A I²C multiplexer breakout board](assets/i2c/TCA9548A-mux.jpg){ width="280" }
 
 *TCA9548A multiplexer — splits one I²C bus into 8 isolated channels*
 

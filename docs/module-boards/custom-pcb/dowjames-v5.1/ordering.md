@@ -53,12 +53,12 @@ Leave everything else at defaults.
 
 You should see **12 parts detected, 12 parts confirmed**:
 
-![Correct BOM matching — all 12 parts confirmed](../../../assets/jlcpcb-bom-parts-matched.png)
+![Correct BOM matching — all 12 parts confirmed](../../../assets/pcb/jlcpcb-bom-parts-matched.png)
 
 !!! warning "Only 3 parts matched?"
     If you see only 3 matched parts and many unmatched components, you uploaded the wrong files. Make sure you're using `bom.csv` and `positions.csv` from inside the `splitflapv5.1-pcb/` folder within the zip — not any other folder.
 
-    ![Wrong folder — only 3 parts matched](../../../assets/jlcpcb-bom-wrong-folder.png)
+    ![Wrong folder — only 3 parts matched](../../../assets/pcb/jlcpcb-bom-wrong-folder.png)
 
 **Make sure all parts are selected.** The two bypass capacitors — `C1` and `C2_BYPASS1` — may show quantity 0 and be unselected by default. **Select them.** Despite the `BYPASS` name they're capacitors, not resistors.
 
@@ -79,7 +79,7 @@ On the placement review page JLCPCB shows a 3D render of component positions. So
 2. **Change the shipping method** — JLCPCB defaults to the fastest (most expensive) option. Pick something more economical if you're not in a rush.
 3. **Check the [JLCPCB coupons page](https://jlcpcb.com/coupons)** before placing your order.
 
-![JLCPCB pricing example — ~$89 total including shipping and tax](../../../assets/jlcpcb-pricing-example.png)
+![JLCPCB pricing example — ~$89 total including shipping and tax](../../../assets/pcb/jlcpcb-pricing-example.png)
 
 *Price reference as of Nov 2025 — 10 assembled PCBs shipped to Germany*
 
@@ -93,13 +93,13 @@ JLCPCB may email you within a few hours with questions about component placement
 
 **Reply: Yes, the placement and polarities are correct.**
 
-![JLCPCB polarity confirmation](../../../assets/jlcpcb-polarity-confirmation.png)
+![JLCPCB polarity confirmation](../../../assets/pcb/jlcpcb-polarity-confirmation.png)
 
 ### "Do you want the header pins at a right angle?"
 
 **Reply: Yes, that is correct.** The right-angle headers are how the boards daisy-chain together.
 
-![JLCPCB header pin confirmation](../../../assets/jlcpcb-header-pin-confirmation.jpg)
+![JLCPCB header pin confirmation](../../../assets/pcb/jlcpcb-header-pin-confirmation.jpg)
 
 ---
 
