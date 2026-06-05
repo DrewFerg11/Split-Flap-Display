@@ -1,4 +1,4 @@
-# Split Flap Display <!-- preview test -->
+# Split Flap Display
 
 [![Discord](https://dcbadge.limes.pink/api/server/https://discord.gg/RCvks4XXXH?style=flat)](https://discord.gg/RCvks4XXXH)
 [![GitHub Stars](https://img.shields.io/github/stars/DrewFerg11/Split-Flap-Display?style=flat&logo=github)](https://github.com/DrewFerg11/Split-Flap-Display/stargazers)
