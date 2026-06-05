@@ -4,33 +4,36 @@ on:
   push:
     branches:
       - main
+      - 'docs/**'
+      - 'feature/**'
+    paths:
+      - docs/**
+      - overrides/**
+      - mkdocs.yml
+      - .github/workflows/docs.yml
+  pull_request:
     paths:
       - docs/**
       - overrides/**
       - mkdocs.yml
       - .github/workflows/docs.yml
   workflow_dispatch:
-    inputs:
-      branch:
-        description: Branch to deploy from
-        required: false
-        default: ''
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build site
+  build-and-deploy:
+    name: Build and Deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout source branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -45,22 +48,53 @@ jobs:
       - name: Install dependencies
         run: pip install -r docs/requirements.txt
 
+      - name: Set deploy path
+        id: path
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "deploy_dir=." >> $GITHUB_OUTPUT
+            echo "preview_url=https://drewferg11.github.io/Split-Flap-Display/" >> $GITHUB_OUTPUT
+          else
+            SAFE_BRANCH=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+            echo "deploy_dir=preview/${SAFE_BRANCH}" >> $GITHUB_OUTPUT
+            echo "preview_url=https://drewferg11.github.io/Split-Flap-Display/preview/${SAFE_BRANCH}/" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build MkDocs site
         run: mkdocs build --strict
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
         with:
-          path: site
+          ref: gh-pages
+          path: gh-pages-dir
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy:
-    name: Deploy to GitHub Pages
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy to gh-pages
+        run: |
+          DEPLOY_DIR="${{ steps.path.outputs.deploy_dir }}"
+
+          cd gh-pages-dir
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ "$DEPLOY_DIR" = "." ]; then
+            # Main branch: replace everything except the preview folder
+            find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'preview' -exec rm -rf {} +
+            cp -r ../site/. .
+          else
+            # Feature branch: deploy into preview subdirectory only
+            rm -rf "$DEPLOY_DIR"
+            mkdir -p "$(dirname "$DEPLOY_DIR")"
+            cp -r ../site "$DEPLOY_DIR"
+          fi
+
+          git add -A
+          git diff --cached --quiet && echo "No changes to deploy" && exit 0
+          git commit -m "Deploy ${{ github.ref_name }} @ ${{ github.sha }}"
+          git push
+
+      - name: Summary
+        run: echo "### Deployed to [${{ steps.path.outputs.preview_url }}](${{ steps.path.outputs.preview_url }})" >> $GITHUB_STEP_SUMMARY
