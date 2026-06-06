@@ -1,0 +1,35 @@
+name: Cleanup Preview Deployment
+
+on:
+  delete:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: Remove preview folder
+    runs-on: ubuntu-latest
+    if: github.event.ref_type == 'branch' && (startsWith(github.event.ref, 'docs/') || startsWith(github.event.ref, 'feature/'))
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete preview folder
+        run: |
+          SAFE_BRANCH=$(echo "${{ github.event.ref }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          PREVIEW_DIR="preview/${SAFE_BRANCH}"
+
+          if [ -d "$PREVIEW_DIR" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git rm -rf "$PREVIEW_DIR"
+            git commit -m "Cleanup preview for deleted branch ${{ github.event.ref }}"
+            git push
+            echo "Removed $PREVIEW_DIR"
+          else
+            echo "No preview found at $PREVIEW_DIR, nothing to clean up"
+          fi
