@@ -1,0 +1,52 @@
+name: Feature Request
+description: Suggest an enhancement to the firmware, web interface, PCB, or documentation
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to improve the project? Describe it below. Check the [FAQ](https://drewferg11.github.io/Split-Flap-Display/faq/) and open issues first to avoid duplicates.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the project would this improve?
+      options:
+        - Firmware
+        - Web interface
+        - Custom PCB
+        - 3D printed parts / hardware
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the limitation or gap you're running into.
+      placeholder: "e.g. There's no way to set a message schedule, so I have to manually update the display every morning."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like to see this addressed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or other approaches you've tried or thought about?
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Mockups, links, references to similar implementations, etc.

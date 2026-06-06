@@ -1,0 +1,75 @@
+name: Bug Report
+description: Report a firmware, hardware, or documentation issue
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue. Please fill out as much detail as possible to help diagnose the problem.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: What part of the project is affected?
+      options:
+        - Firmware
+        - Web interface
+        - Custom PCB (dowjames v5.1)
+        - DIY module board
+        - Wiring / hardware
+        - 3D printed parts
+        - Documentation
+    validations:
+      required: true
+
+  - type: dropdown
+    id: board
+    attributes:
+      label: ESP32 board
+      description: Which board are you using? (firmware issues only)
+      options:
+        - ESP32-C3 SuperMini / Waveshare C3-Zero
+        - ESP32-S3 SuperMini / Waveshare S3-Zero
+        - ESP32-WROOM DevKit V1
+        - Not applicable
+    validations:
+      required: true
+
+  - type: input
+    id: firmware-version
+    attributes:
+      label: Firmware version
+      description: Found in the web interface under Settings, or the git commit/tag.
+      placeholder: "e.g. v1.2.0 or abc1234"
+
+  - type: input
+    id: module-count
+    attributes:
+      label: Number of modules
+      placeholder: "e.g. 8 (single I²C) or 16 (dual I²C)"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: What happened? What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Power on the display
+        2. Open the web interface
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Serial output, photos, wiring details, or anything else that might help.
