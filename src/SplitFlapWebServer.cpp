@@ -332,6 +332,14 @@ void SplitFlapWebServer::startWebServer() {
         request->send(200, "application/json", settings.toJson().as<String>());
     });
 
+    server.on("/version", HTTP_GET, [](AsyncWebServerRequest *request) {
+        JsonDocument response;
+        response["version"] = FIRMWARE_VERSION;
+        String output;
+        serializeJson(response, output);
+        request->send(200, "application/json", output);
+    });
+
     server.on("/settings/reset", HTTP_POST, [this](AsyncWebServerRequest *request) {
         settings.reset();
 
