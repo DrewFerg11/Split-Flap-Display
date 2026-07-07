@@ -8,13 +8,18 @@
 # TODO(Step 3): once the ESP Web Tools install page exists, replace the
 # INSTALL_PAGE_URL placeholder below with the real page URL.
 #
-# Usage: render_release_notes.py <version> <prerelease: true|false> <meta-dir> <out-file>
+# Usage: render_release_notes.py <version> <prerelease: true|false> <meta-dir> <out-file> [ai-summary-file]
 #
 # <meta-dir> holds flash-<env>.txt files, one per board, each a single line:
 #   <env>|<used-bytes>|<total-bytes>
 # produced by the release workflow parsing PlatformIO's "Flash: ... (used X from Y)"
 # output. We use PlatformIO's reported figure (not the on-disk firmware.bin size,
 # which includes chip-specific MMU-alignment padding and overstates usage).
+#
+# [ai-summary-file], if given and non-empty, is a short AI-generated summary of the
+# commit log (see release.yml's "AI release summary" step). Best-effort only - if
+# the AI step failed or was skipped, the file is missing/empty and this section is
+# omitted entirely. Never blocks a release.
 
 import os
 import sys
@@ -84,15 +89,29 @@ def flash_table(meta_dir):
     )
 
 
+def ai_summary_section(summary_file):
+    if not summary_file or not os.path.exists(summary_file):
+        return ""
+    with open(summary_file, encoding="utf-8") as f:
+        text = f.read().strip()
+    if not text:
+        return ""
+    return "\n### Summary\n\n%s\n" % text
+
+
 def main():
-    if len(sys.argv) != 5:
-        print("Usage: render_release_notes.py <version> <prerelease> <meta-dir> <out-file>")
+    if len(sys.argv) not in (5, 6):
+        print(
+            "Usage: render_release_notes.py <version> <prerelease> <meta-dir> "
+            "<out-file> [ai-summary-file]"
+        )
         sys.exit(1)
 
     version = sys.argv[1]
     prerelease = sys.argv[2] == "true"
     meta_dir = sys.argv[3]
     out_file = sys.argv[4]
+    summary_file = sys.argv[5] if len(sys.argv) == 6 else None
 
     prerelease_note = (
         "\n> ⚠️ This is a **pre-release / release candidate** - expect rough edges.\n"
@@ -102,6 +121,7 @@ def main():
 
     body = """## Split Flap Display {version}
 {prerelease_note}
+{summary}
 ### Boards supported
 - ESP32 (WROOM)
 - ESP32-C3
@@ -119,6 +139,7 @@ def main():
 """.format(
         version=version,
         prerelease_note=prerelease_note,
+        summary=ai_summary_section(summary_file),
         install_section=install_section() % version,
         flash_table=flash_table(meta_dir),
         docs=DOCS_URL,

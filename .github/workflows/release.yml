@@ -144,11 +144,15 @@ jobs:
     needs: [tag, build]
     if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      models: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.tag.outputs.version || github.ref }}
+          fetch-depth: 0
 
       - name: Determine version & prerelease flag
         id: meta
@@ -160,6 +164,42 @@ jobs:
           else
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Collect commit log since previous tag
+        id: commitlog
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          PREV=$(git tag --sort=-creatordate | grep -v "^${VERSION}$" | head -1)
+          echo "prev=$PREV" >> "$GITHUB_OUTPUT"
+          if [ -n "$PREV" ]; then
+            LOG=$(git log "${PREV}..${VERSION}" --pretty=format:"%B---")
+          else
+            LOG=$(git log "${VERSION}" --pretty=format:"%B---")
+          fi
+          {
+            echo "log<<COMMITLOG_EOF"
+            echo "$LOG"
+            echo "COMMITLOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: AI release summary
+        id: ai_summary
+        if: steps.commitlog.outputs.log != ''
+        continue-on-error: true
+        uses: actions/ai-inference@v1
+        with:
+          model: openai/gpt-4o-mini
+          system-prompt: |
+            You summarize firmware release commit logs for end users of an open-source
+            ESP32 split-flap display project. Write 2-4 plain-prose sentences describing
+            what changed, in end-user terms. No markdown headings, no bullet list, no
+            preamble like "This release includes" - just the summary itself.
+          prompt: ${{ steps.commitlog.outputs.log }}
+
+      - name: Save AI summary
+        if: always()
+        run: |
+          echo "${{ steps.ai_summary.outcome == 'success' && steps.ai_summary.outputs.response || '' }}" > ai-summary.txt
 
       - name: Download binaries
         uses: actions/download-artifact@v4
@@ -192,7 +232,8 @@ jobs:
             "${{ steps.meta.outputs.version }}" \
             "${{ steps.meta.outputs.prerelease }}" \
             meta \
-            release-notes.md
+            release-notes.md \
+            ai-summary.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
