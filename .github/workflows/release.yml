@@ -1,0 +1,205 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. v1.2.0 or v1.2.0-rc.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Create tag
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate version input
+        run: |
+          if ! [[ "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::Invalid version '${{ inputs.version }}' - expected vX.Y.Z or vX.Y.Z-rc.N"
+            exit 1
+          fi
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ inputs.version }}" -m "${{ inputs.version }}"
+          git push origin "${{ inputs.version }}"
+
+      - id: resolve
+        run: echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (${{ matrix.env }})
+    needs: [tag]
+    if: always() && (needs.tag.result == 'success' || needs.tag.result == 'skipped')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - env: esp32_wroom
+            chip: esp32
+            bootloader_offset: "0x1000"
+          - env: esp32_c3
+            chip: esp32c3
+            bootloader_offset: "0x0"
+          - env: esp32_s3
+            chip: esp32s3
+            bootloader_offset: "0x0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.version || github.ref }}
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: meta
+        run: echo "version=${{ needs.tag.outputs.version || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: pip install -U platformio
+
+      - name: Build firmware
+        run: pio run -e ${{ matrix.env }} | tee build.log
+
+      - name: Extract flash usage
+        run: |
+          LINE=$(grep -oE 'Flash:[^(]*\(used [0-9]+ bytes from [0-9]+ bytes\)' build.log | tail -1)
+          USED=$(echo "$LINE" | grep -oE 'used [0-9]+' | grep -oE '[0-9]+')
+          TOTAL=$(echo "$LINE" | grep -oE 'from [0-9]+' | grep -oE '[0-9]+')
+          mkdir -p meta
+          echo "${{ matrix.env }}|${USED}|${TOTAL}" > meta/flash-${{ matrix.env }}.txt
+          cat meta/flash-${{ matrix.env }}.txt
+
+      - name: Build filesystem image
+        run: pio run -e ${{ matrix.env }} -t buildfs
+
+      - name: Locate framework tools
+        id: tools
+        run: |
+          PKG_DIR=$(find "$HOME/.platformio/packages" -maxdepth 1 -iname 'framework-arduinoespressif32*' -type d | head -1)
+          echo "boot_app0=$PKG_DIR/tools/partitions/boot_app0.bin" >> "$GITHUB_OUTPUT"
+          ESPTOOL=$(find "$HOME/.platformio/packages" -maxdepth 3 -iname 'esptool.py' -path '*tool-esptoolpy*' | head -1)
+          echo "esptool=$ESPTOOL" >> "$GITHUB_OUTPUT"
+
+      - name: Build merged factory image
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          python "${{ steps.tools.outputs.esptool }}" --chip ${{ matrix.chip }} merge_bin \
+            -o "splitflap-${{ matrix.env }}-${VERSION}-factory.bin" \
+            --flash_mode keep --flash_freq keep --flash_size keep \
+            ${{ matrix.bootloader_offset }} .pio/build/${{ matrix.env }}/bootloader.bin \
+            0x8000 .pio/build/${{ matrix.env }}/partitions.bin \
+            0xe000 "${{ steps.tools.outputs.boot_app0 }}" \
+            0x10000 .pio/build/${{ matrix.env }}/firmware.bin \
+            0x290000 .pio/build/${{ matrix.env }}/littlefs.bin
+
+      - name: Copy app-only image
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          cp .pio/build/${{ matrix.env }}/firmware.bin "splitflap-${{ matrix.env }}-${VERSION}-app.bin"
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: bins-${{ matrix.env }}
+          path: splitflap-${{ matrix.env }}-*.bin
+          retention-days: 5
+
+      - name: Upload flash metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashmeta-${{ matrix.env }}
+          path: meta/flash-${{ matrix.env }}.txt
+          retention-days: 5
+
+  release:
+    name: Publish release
+    needs: [tag, build]
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.version || github.ref }}
+
+      - name: Determine version & prerelease flag
+        id: meta
+        run: |
+          VERSION="${{ needs.tag.outputs.version || github.ref_name }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-rc.* || "$VERSION" == *-beta* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bins-*
+          path: dist
+          merge-multiple: true
+
+      - name: Download flash metadata
+        uses: actions/download-artifact@v4
+        with:
+          pattern: flashmeta-*
+          path: meta
+          merge-multiple: true
+
+      - name: Generate manifests
+        run: |
+          python3 build/scripts/generate_manifest.py \
+            "${{ steps.meta.outputs.version }}" \
+            "https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.version }}" \
+            dist
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum *.bin > checksums.txt
+
+      - name: Render release notes
+        run: |
+          python3 build/scripts/render_release_notes.py \
+            "${{ steps.meta.outputs.version }}" \
+            "${{ steps.meta.outputs.prerelease }}" \
+            meta \
+            release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.version }}
+          name: ${{ steps.meta.outputs.version }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          body_path: release-notes.md
+          generate_release_notes: true
+          files: dist/*

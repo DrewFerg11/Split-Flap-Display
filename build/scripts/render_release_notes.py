@@ -1,0 +1,136 @@
+# RENDER THE RELEASE BODY FROM THE LOCKED TEMPLATE (see plans/RELEASE-AUTOMATION-PLAN.md)
+#
+# `generate_release_notes: true` in release.yml supplies the "Changes" section
+# (GitHub auto-generates it and appends it after this body). This script only
+# renders the fixed sections around it. The "### Changes" heading must be LAST
+# so GitHub's auto-generated PR list lands directly beneath it.
+#
+# TODO(Step 3): once the ESP Web Tools install page exists, replace the
+# INSTALL_PAGE_URL placeholder below with the real page URL.
+#
+# Usage: render_release_notes.py <version> <prerelease: true|false> <meta-dir> <out-file>
+#
+# <meta-dir> holds flash-<env>.txt files, one per board, each a single line:
+#   <env>|<used-bytes>|<total-bytes>
+# produced by the release workflow parsing PlatformIO's "Flash: ... (used X from Y)"
+# output. We use PlatformIO's reported figure (not the on-disk firmware.bin size,
+# which includes chip-specific MMU-alignment padding and overstates usage).
+
+import os
+import sys
+
+INSTALL_PAGE_URL = None  # set once the install page (Step 3) is live
+
+DOCS_URL = "https://drewferg11.github.io/Split-Flap-Display/"
+DISCORD_URL = "https://discord.gg/RCvks4XXXH"
+ISSUES_URL = "https://github.com/DrewFerg11/Split-Flap-Display/issues"
+
+BOARDS = [
+    ("esp32_wroom", "ESP32 (WROOM)"),
+    ("esp32_c3", "ESP32-C3"),
+    ("esp32_s3", "ESP32-S3"),
+]
+
+
+def install_section():
+    if INSTALL_PAGE_URL:
+        lines = [
+            "- **Pre-built binaries:** [flash via the web installer](%s) - no "
+            "toolchain required, and it auto-detects your board." % INSTALL_PAGE_URL
+        ]
+    else:
+        lines = [
+            "- **Pre-built binaries:** grab the `-factory.bin` (full install, erases "
+            "settings) or `-app.bin` (update only, keeps settings) for your board "
+            "below, then flash with `esptool.py write_flash` or the "
+            "[ESP Web Tools](https://esphome.github.io/esp-web-tools/) browser flasher "
+            "using the attached `manifest.json`."
+        ]
+    lines.append(
+        "- **Not sure which board you have?** Match your ESP32 chip: original "
+        "ESP32 → `wroom`, ESP32-C3 → `c3`, ESP32-S3 → `s3`. (The web installer "
+        "picks the right one for you automatically.)"
+    )
+    lines.append(
+        "- **Build from source:** see the firmware setup docs, or `git checkout %s`."
+    )
+    return "\n".join(lines)
+
+
+def flash_table(meta_dir):
+    rows = []
+    for env, label in BOARDS:
+        path = os.path.join(meta_dir, "flash-%s.txt" % env)
+        if not os.path.exists(path):
+            continue
+        with open(path) as f:
+            parts = f.read().strip().split("|")
+        if len(parts) != 3:
+            continue
+        try:
+            used, total = int(parts[1]), int(parts[2])
+        except ValueError:
+            continue  # malformed/empty usage line - skip rather than fail the release
+        if total <= 0:
+            continue
+        pct = used / total * 100
+        rows.append("| %s | %d KB | %.1f%% |" % (label, used // 1024, pct))
+    if not rows:
+        return ""
+    return (
+        "\n### Flash usage\n\n"
+        "| Board | Firmware size | % of app partition |\n"
+        "|---|---|---|\n" + "\n".join(rows) + "\n"
+    )
+
+
+def main():
+    if len(sys.argv) != 5:
+        print("Usage: render_release_notes.py <version> <prerelease> <meta-dir> <out-file>")
+        sys.exit(1)
+
+    version = sys.argv[1]
+    prerelease = sys.argv[2] == "true"
+    meta_dir = sys.argv[3]
+    out_file = sys.argv[4]
+
+    prerelease_note = (
+        "\n> ⚠️ This is a **pre-release / release candidate** - expect rough edges.\n"
+        if prerelease
+        else ""
+    )
+
+    body = """## Split Flap Display {version}
+{prerelease_note}
+### Boards supported
+- ESP32 (WROOM)
+- ESP32-C3
+- ESP32-S3
+
+### Installation
+{install_section}
+{flash_table}
+### Links
+- \U0001f4d6 [Documentation]({docs})
+- \U0001f4ac [Discord]({discord})
+- \U0001f41b [Report an issue]({issues})
+
+### Changes
+""".format(
+        version=version,
+        prerelease_note=prerelease_note,
+        install_section=install_section() % version,
+        flash_table=flash_table(meta_dir),
+        docs=DOCS_URL,
+        discord=DISCORD_URL,
+        issues=ISSUES_URL,
+    )
+
+    with open(out_file, "w", encoding="utf-8") as f:
+        f.write(body)
+
+    print("Rendered release notes for " + version)
+
+
+if __name__ == "__main__":
+    main()
