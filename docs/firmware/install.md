@@ -75,6 +75,19 @@ After flashing, the display boots into setup mode:
 - **Driver issues on Windows** — most boards use a CP2102 or CH340 USB-serial chip. If the port never appears in the browser's device picker, install the [CP210x](https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers) or [CH340](https://www.wch.cn/downloads/CH341SER_EXE.html) driver for your OS.
 - **Flashed, but nothing happens** — reconnect the cable and check that `Split Flap Display` appears in your Wi-Fi list within about 30 seconds of power-up.
 
+## Erase the board completely (advanced)
+
+Wipe the ESP32 back to a blank chip with **no firmware at all**. This is different from **Full Install** above (which erases *and* reinstalls) — use this only if you want to repurpose the board for something else, or hand it off blank.
+
+<div class="install-button-row" markdown>
+<button id="erase-button" class="md-button">Erase Device</button>
+</div>
+
+<div id="erase-status" hidden></div>
+
+!!! warning "This leaves the board with nothing on it"
+    A full erase removes the firmware itself — the board will do nothing until you flash it again. To reset a board you intend to keep using, use **Full Install** at the top of the page instead.
+
 ## Building a specific version from source
 
 Every release corresponds to a git tag with the exact source it was built from:
@@ -87,6 +100,75 @@ git checkout vX.Y.Z
 Then follow the [Build & Flash](setup.md) guide. See the [Releases page](https://github.com/DrewFerg11/Split-Flap-Display/releases) for the full version list and changelogs.
 
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js"></script>
+
+<!--
+  Standalone "Erase Device" using esptool-js directly. ESP Web Tools' install
+  button can't do erase-only, so this is a separate, fully isolated module: if
+  esptool-js fails to load or its API differs, only this button breaks - the
+  install buttons and version picker (which use ESP Web Tools, a different
+  module) are unaffected.
+-->
+<script type="module">
+  import { ESPLoader, Transport } from "https://unpkg.com/esptool-js@0.6.0/bundle.js";
+
+  const eraseBtn = document.getElementById("erase-button");
+  const statusEl = document.getElementById("erase-status");
+
+  function setStatus(msg) {
+    statusEl.hidden = false;
+    statusEl.textContent = msg;
+  }
+
+  if (eraseBtn) {
+    eraseBtn.addEventListener("click", async () => {
+      if (!("serial" in navigator)) {
+        setStatus("Web Serial isn't supported here. Use Chrome, Edge, or Opera on desktop.");
+        return;
+      }
+      if (
+        !window.confirm(
+          "This completely erases the ESP32 - all firmware and settings - and leaves it blank. " +
+            "The board won't run anything until you flash it again. Continue?"
+        )
+      ) {
+        return;
+      }
+
+      let transport;
+      try {
+        eraseBtn.disabled = true;
+        setStatus("Select your device in the browser popup…");
+        const port = await navigator.serial.requestPort();
+        transport = new Transport(port, false);
+        const loader = new ESPLoader({
+          transport,
+          baudrate: 115200,
+          romBaudrate: 115200,
+        });
+        setStatus("Connecting to the board…");
+        // main() in newer esptool-js, main_fn() in older releases.
+        const connect = loader.main || loader.main_fn;
+        await connect.call(loader);
+        setStatus("Erasing… this can take up to a minute. Keep this page open.");
+        await loader.eraseFlash();
+        setStatus("✅ Done — the ESP32 is now blank. Flash firmware above to use it again.");
+      } catch (err) {
+        console.error(err);
+        setStatus("Erase failed: " + (err && err.message ? err.message : String(err)));
+      } finally {
+        eraseBtn.disabled = false;
+        if (transport) {
+          try {
+            await transport.disconnect();
+          } catch (e) {
+            /* ignore */
+          }
+        }
+      }
+    });
+  }
+</script>
+
 <script>
 (function () {
   const REPO = "DrewFerg11/Split-Flap-Display";
@@ -195,5 +277,10 @@ Then follow the [Build & Flash](setup.md) guide. See the [Releases page](https:/
   gap: 0.75rem;
   flex-wrap: wrap;
   margin: 1rem 0;
+}
+#erase-status {
+  margin: 0.5rem 0 1rem;
+  font-size: 0.9rem;
+  font-family: var(--md-code-font-family, monospace);
 }
 </style>
