@@ -6,6 +6,11 @@
 
 #include <freertos/semphr.h>
 
+// Defined in SplitFlapDisplay.ino - services Improv Wi-Fi. Only ever called
+// from the main thread (see moveTo()/moveToDual() below), never from the
+// dual-I2C busMovementTask threads.
+extern void backgroundTick();
+
 SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
 
 void SplitFlapDisplay::init() {
@@ -344,11 +349,14 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
         return;
     }
 #endif
-    moveModules(modules, numModules, targetPositions, speed, releaseMotors, stepsPerRot, maxVel);
+    // Runs directly on the main thread (no background task here), so it's
+    // safe to service Improv Wi-Fi during the move.
+    moveModules(modules, numModules, targetPositions, speed, releaseMotors, stepsPerRot, maxVel, backgroundTick);
 }
 
 void SplitFlapDisplay::moveModules(
-    SplitFlapModule *mods, int count, int *targets, float speed, bool releaseMotors, int stepsPerRot, float maxVel
+    SplitFlapModule *mods, int count, int *targets, float speed, bool releaseMotors, int stepsPerRot, float maxVel,
+    void (*idleCallback)()
 ) {
     if (count == 0) return;
 
@@ -384,6 +392,8 @@ void SplitFlapDisplay::moveModules(
     bool isFinished = checkAllFalse(needsStepping, count);
 
     while (! isFinished) {
+        if (idleCallback) idleCallback();
+
         currentTime = micros();
         for (int i = 0; i < count; i++) {
             if (needsStepping[i] && ((currentTime - lastStepTimes[i]) > timePerStep)) {
@@ -477,6 +487,10 @@ struct BusMoveParams
 
 static void busMovementTask(void *param) {
     BusMoveParams *p = static_cast<BusMoveParams *>(param);
+    // No idleCallback here (defaults to nullptr) - this runs on a background
+    // task, and ImprovWiFi::handleSerial() isn't safe to call concurrently
+    // from two threads. Improv is serviced from moveToDual()'s wait loop on
+    // the main thread instead.
     SplitFlapDisplay::moveModules(
         p->modules, p->count, p->targets, p->speed, p->releaseMotors, p->stepsPerRot, p->maxVel
     );
@@ -504,8 +518,13 @@ void SplitFlapDisplay::moveToDual(int *targetPositions, float speed, bool releas
         tasksToWait++;
     }
 
+    // Poll with a short timeout (rather than block indefinitely) so Improv
+    // Wi-Fi stays responsive here on the main thread while the background bus
+    // tasks above do the actual stepping.
     for (int i = 0; i < tasksToWait; i++) {
-        xSemaphoreTake(doneSem, portMAX_DELAY);
+        while (xSemaphoreTake(doneSem, pdMS_TO_TICKS(20)) != pdTRUE) {
+            backgroundTick();
+        }
     }
 
     vSemaphoreDelete(doneSem);

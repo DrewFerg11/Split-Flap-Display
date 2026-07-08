@@ -82,6 +82,15 @@ void improvOnError(ImprovTypes::Error err) {
     Serial.printf("Improv: error %d\n", (int) err);
 }
 
+// Services Improv Wi-Fi during long blocking operations (motor homing, Wi-Fi
+// connect retry) that would otherwise run to completion before loop() - and
+// therefore improv.handleSerial() - ever gets called. Only ever call this from
+// the main thread: the dual-I2C bus tasks (busMovementTask) must NOT call it,
+// since ImprovWiFi's internal frame-parse state isn't thread-safe.
+void backgroundTick() {
+    improv.handleSerial();
+}
+
 // Forward declarations for functions defined after loop()
 void singleInputMode();
 void multiInputMode();

@@ -3,6 +3,10 @@
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
 
+// Defined in SplitFlapDisplay.ino - services Improv Wi-Fi. Safe to call here:
+// connectToWifi() only ever runs on the main thread.
+extern void backgroundTick();
+
 #define AP_SSID "Split Flap Display"
 
 #ifndef WIFI_SSID
@@ -245,6 +249,7 @@ bool SplitFlapWebServer::connectToWifi() {
         unsigned long lastPrintTime = startAttemptTime;
 
         while (WiFi.status() != WL_CONNECTED) {
+            backgroundTick();
             if (millis() - startAttemptTime >= timeout) {
                 Serial.println("_");
                 Serial.println("Wi-Fi connection failed! Timeout reached.");
