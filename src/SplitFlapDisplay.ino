@@ -11,7 +11,9 @@
 #include "Version.h"
 
 #include <Arduino.h>
+#include <WiFi.h>
 #include <WiFiClient.h>
+#include <esp_system.h>
 
 // clang-format off
 JsonSettings settings = JsonSettings("config", {
@@ -72,6 +74,22 @@ void dualMultiInputMode();
 void dateTimeMode();
 #endif
 
+const char *resetReasonToString(esp_reset_reason_t reason) {
+    switch (reason) {
+        case ESP_RST_POWERON: return "power-on";
+        case ESP_RST_EXT: return "external pin";
+        case ESP_RST_SW: return "software reset";
+        case ESP_RST_PANIC: return "crash/panic";
+        case ESP_RST_INT_WDT: return "interrupt watchdog";
+        case ESP_RST_TASK_WDT: return "task watchdog";
+        case ESP_RST_WDT: return "other watchdog";
+        case ESP_RST_DEEPSLEEP: return "deep sleep wake";
+        case ESP_RST_BROWNOUT: return "brownout";
+        case ESP_RST_SDIO: return "SDIO";
+        default: return "unknown";
+    }
+}
+
 void setup() {
     // put your setup code here, to run once:
     Serial.begin(SERIAL_SPEED);
@@ -83,6 +101,8 @@ void setup() {
     Serial.println("=== Split Flap Display ===");
     Serial.printf("Firmware: %s (%s)\n", FIRMWARE_VERSION, FIRMWARE_BUILD_SOURCE);
     Serial.printf("Chip: %s rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
+    Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
+    Serial.printf("Reset reason: %s\n", resetReasonToString(esp_reset_reason()));
     Serial.println("===========================");
 
     Serial.println("Init Web Server");
