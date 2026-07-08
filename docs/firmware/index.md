@@ -4,7 +4,8 @@ ESP32-based firmware for driving the split-flap modules over I²C. Built on Plat
 
 ## Sections
 
-- [Build & Flash](setup.md) — installing dependencies, building, and uploading to the ESP32.
+- [Install (Web Flasher)](install.md) — flash pre-built firmware straight from your browser, no toolchain required.
+- [Build & Flash](setup.md) — installing dependencies, building, and uploading to the ESP32 from source.
 
 ## Supported boards
 

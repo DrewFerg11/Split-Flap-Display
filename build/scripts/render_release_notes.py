@@ -5,9 +5,6 @@
 # renders the fixed sections around it. The "### Changes" heading must be LAST
 # so GitHub's auto-generated PR list lands directly beneath it.
 #
-# TODO(Step 3): once the ESP Web Tools install page exists, replace the
-# INSTALL_PAGE_URL placeholder below with the real page URL.
-#
 # Usage: render_release_notes.py <version> <prerelease: true|false> <meta-dir> <out-file> [ai-summary-file]
 #
 # <meta-dir> holds flash-<env>.txt files, one per board, each a single line:
@@ -24,7 +21,7 @@
 import os
 import sys
 
-INSTALL_PAGE_URL = None  # set once the install page (Step 3) is live
+INSTALL_PAGE_URL = "https://drewferg11.github.io/Split-Flap-Display/firmware/install/"
 
 DOCS_URL = "https://drewferg11.github.io/Split-Flap-Display/"
 DISCORD_URL = "https://discord.gg/RCvks4XXXH"

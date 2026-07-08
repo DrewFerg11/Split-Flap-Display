@@ -13,6 +13,14 @@ on:
 permissions:
   contents: write
 
+env:
+  # GitHub Release asset URLs don't send CORS headers, so ESP Web Tools (running
+  # in the browser) can't fetch manifests/binaries from github.com/.../releases/download/.
+  # We publish a same-origin copy to GitHub Pages instead; see the "Publish binaries
+  # to GitHub Pages" step below and docs/firmware/install.md.
+  PAGES_BASE_URL: https://drewferg11.github.io/Split-Flap-Display
+  RELEASES_KEEP_COUNT: 5
+
 jobs:
   tag:
     name: Create tag
@@ -219,12 +227,44 @@ jobs:
         run: |
           python3 build/scripts/generate_manifest.py \
             "${{ steps.meta.outputs.version }}" \
-            "https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.version }}" \
+            "${{ env.PAGES_BASE_URL }}/releases/${{ steps.meta.outputs.version }}" \
             dist
 
       - name: Generate checksums
         working-directory: dist
         run: sha256sum *.bin > checksums.txt
+
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-dir
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish binaries to GitHub Pages
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+
+          mkdir -p "gh-pages-dir/releases/${VERSION}"
+          cp dist/* "gh-pages-dir/releases/${VERSION}/"
+
+          cd gh-pages-dir
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Rolling window: keep only the most recently published N version folders.
+          # Sorted by directory mtime (publish order), not by version string parsing,
+          # so it works correctly across RCs and full releases alike.
+          ls -1dt releases/*/ 2>/dev/null | tail -n +$(( ${{ env.RELEASES_KEEP_COUNT }} + 1 )) | xargs -r rm -rf
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to publish"
+          else
+            git commit -m "Publish firmware binaries for ${VERSION}"
+            git push
+          fi
 
       - name: Render release notes
         run: |
