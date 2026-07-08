@@ -28,7 +28,7 @@ Installing **:material-tag-outline: <span id="install-version"></span>**. [Choos
 
 <div class="install-button-row" markdown>
 
-<esp-web-install-button id="factory-install" erase-first>
+<esp-web-install-button id="factory-install">
   <button slot="activate" class="md-button md-button--primary">Full Install</button>
   <span slot="unsupported">Your browser doesn't support this. Use Chrome, Edge, or Opera on desktop.</span>
   <span slot="not-allowed">This page must be served over HTTPS to flash firmware.</span>
@@ -43,7 +43,7 @@ Installing **:material-tag-outline: <span id="install-version"></span>**. [Choos
 </div>
 
 !!! danger "Full Install erases everything"
-    **Full Install** performs a complete chip erase first, then installs clean firmware + web UI. Every setting is wiped — Wi-Fi credentials, MQTT config, module calibration, everything. Use this for a brand-new board, or if you want a totally fresh start.
+    **Full Install** writes a complete firmware + web UI image covering the whole chip, which wipes every setting — Wi-Fi credentials, MQTT config, module calibration, everything — regardless of what you choose next. You'll see a confirmation dialog with an **"Erase device"** checkbox: it's unchecked by default, but check it anyway for the cleanest possible install (it also clears old crash-dump data that a normal install doesn't touch). Use this for a brand-new board, or if you want a totally fresh start.
 
 !!! tip "Update Firmware Only keeps your settings"
     **Update Firmware Only** replaces just the application code. Your Wi-Fi, MQTT, and calibration settings are preserved. Use this for routine updates on a board you've already set up. It assumes the board already has a compatible install on it.
