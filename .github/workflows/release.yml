@@ -253,6 +253,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Skip Jekyll processing (see docs.yml for the same fix + rationale).
+          touch .nojekyll
+
           # Rolling window: keep only the most recently published N version folders.
           # Sorted by directory mtime (publish order), not by version string parsing,
           # so it works correctly across RCs and full releases alike.
