@@ -8,6 +8,7 @@
 #include "SplitFlapDisplay.h"
 #include "SplitFlapMqtt.h"
 #include "SplitFlapWebServer.h"
+#include "Version.h"
 
 #include <Arduino.h>
 #include <WiFiClient.h>
@@ -78,6 +79,11 @@ void setup() {
 #ifdef STARTUP_DELAY
     delay(STARTUP_DELAY);
 #endif
+
+    Serial.println("=== Split Flap Display ===");
+    Serial.printf("Firmware: %s (%s)\n", FIRMWARE_VERSION, FIRMWARE_BUILD_SOURCE);
+    Serial.printf("Chip: %s rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
+    Serial.println("===========================");
 
     Serial.println("Init Web Server");
     webServer.init();
