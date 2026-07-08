@@ -11,6 +11,7 @@
 #include "Version.h"
 
 #include <Arduino.h>
+#include <ImprovWiFiLibrary.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <esp_system.h>
@@ -58,6 +59,28 @@ WiFiClient wifiClient;
 SplitFlapDisplay display(settings);
 SplitFlapWebServer webServer(settings);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
+ImprovWiFi improv(&Serial);
+
+// Improv Wi-Fi Serial callbacks. These are plain C-style function pointers
+// (not class methods/std::function), so they reference the globals above
+// directly rather than taking `this` - same free-function style already used
+// for the mode handlers below.
+bool improvConnectWifi(const char *ssid, const char *password) {
+    // Persist first, then reuse the existing connectToWifi()/loadWiFiCredentials()
+    // path as-is - same softAP disconnect, autoreconnect, and timeout handling
+    // as a normal boot-time connect.
+    settings.putString("ssid", ssid);
+    settings.putString("password", password);
+    return webServer.connectToWifi();
+}
+
+void improvOnConnected(const char *ssid, const char *password) {
+    Serial.printf("Improv: connected to Wi-Fi network \"%s\"\n", ssid);
+}
+
+void improvOnError(ImprovTypes::Error err) {
+    Serial.printf("Improv: error %d\n", (int) err);
+}
 
 // Forward declarations for functions defined after loop()
 void singleInputMode();
@@ -108,6 +131,18 @@ void setup() {
     Serial.println("Init Web Server");
     webServer.init();
 
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_C3;
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_S3;
+#else
+    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32;
+#endif
+    improv.setDeviceInfo(improvChipFamily, "Split Flap Display", FIRMWARE_VERSION, settings.getString("name").c_str());
+    improv.onImprovError(improvOnError);
+    improv.onImprovConnected(improvOnConnected);
+    improv.setCustomConnectWiFi(improvConnectWifi);
+
     if (! webServer.connectToWifi()) {
         webServer.startAccessPoint();
         webServer.enableOta();
@@ -147,6 +182,7 @@ void setup() {
 }
 
 void loop() {
+    improv.handleSerial();
     splitflapMqtt.loop();
 
     // check what mode the display is in, this value is updated by the web server

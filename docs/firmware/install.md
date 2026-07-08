@@ -46,12 +46,17 @@ Plug the ESP32 into your computer with a USB cable. You don't need to know which
 
 ## 3. Connect to Wi-Fi
 
-After flashing, the display boots into setup mode:
+Right after flashing finishes, **stay on this page** — a Wi-Fi setup form appears automatically, in the same browser tab, over the same USB cable. Pick your network, enter your password, and the display connects immediately. No second device, no unplugging.
 
-1. On your phone or computer, connect to the Wi-Fi network **`Split Flap Display`**.
-2. Open `http://192.168.4.1` in a browser.
-3. Enter your home Wi-Fi credentials and save. The display will reboot and connect.
-4. Once connected, find it on your network via `http://<name>.local` (shown in the settings page), or check your router's client list.
+Once connected, you'll get a link straight to the device's IP address to open its settings page.
+
+??? note "Browser doesn't support this, or the form doesn't appear"
+    Some browsers can flash firmware but not do live Wi-Fi setup, and very old firmware won't support it either. Fall back to manual setup:
+
+    1. On your phone or computer, connect to the Wi-Fi network **`Split Flap Display`**.
+    2. Open `http://192.168.4.1` in a browser.
+    3. Enter your home Wi-Fi credentials and save. The display will reboot and connect.
+    4. Once connected, find it on your network via `http://<name>.local` (shown in the settings page), or check your router's client list.
 
 !!! tip "See the live serial log"
     With the board still plugged in, click **Install** again and choose **Logs & Console** from the menu. This opens a live serial monitor right in your browser — handy for watching the boot sequence or diagnosing a board that isn't behaving.
