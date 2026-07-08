@@ -28,7 +28,7 @@ Installing **:material-tag-outline: <span id="install-version"></span>**. [Choos
 
 <div class="install-button-row" markdown>
 
-<esp-web-install-button id="factory-install">
+<esp-web-install-button id="factory-install" erase-first>
   <button slot="activate" class="md-button md-button--primary">Full Install</button>
   <span slot="unsupported">Your browser doesn't support this. Use Chrome, Edge, or Opera on desktop.</span>
   <span slot="not-allowed">This page must be served over HTTPS to flash firmware.</span>
@@ -43,7 +43,7 @@ Installing **:material-tag-outline: <span id="install-version"></span>**. [Choos
 </div>
 
 !!! danger "Full Install erases everything"
-    **Full Install** wipes all settings — Wi-Fi credentials, MQTT config, module calibration, everything — and installs a completely clean firmware + web UI. Use this for a brand-new board, or if you want a totally fresh start.
+    **Full Install** performs a complete chip erase first, then installs clean firmware + web UI. Every setting is wiped — Wi-Fi credentials, MQTT config, module calibration, everything. Use this for a brand-new board, or if you want a totally fresh start.
 
 !!! tip "Update Firmware Only keeps your settings"
     **Update Firmware Only** replaces just the application code. Your Wi-Fi, MQTT, and calibration settings are preserved. Use this for routine updates on a board you've already set up. It assumes the board already has a compatible install on it.
@@ -64,6 +64,9 @@ After flashing, the display boots into setup mode:
 2. Open `http://192.168.4.1` in a browser.
 3. Enter your home Wi-Fi credentials and save. The display will reboot and connect.
 4. Once connected, find it on your network via `http://<name>.local` (shown in the settings page), or check your router's client list.
+
+!!! tip "See the live serial log"
+    With the board still plugged in, click **Full Install** (or **Update Firmware Only**) again and choose **Logs & Console** from the menu. This opens a live serial monitor right in your browser — handy for watching the boot sequence or diagnosing a board that isn't behaving.
 
 ## Troubleshooting
 
