@@ -24,37 +24,25 @@ Plug the ESP32 into your computer with a USB cable. You don't need to know which
 
 <div id="install-buttons" hidden markdown>
 
-Installing **:material-tag-outline: <span id="install-version"></span>**. [Choose a different version](#choose-a-specific-version) below.
+**Version:**
+<select id="version-picker" disabled>
+  <option>Loading versions…</option>
+</select>
 
 <div class="install-button-row" markdown>
 
 <esp-web-install-button id="factory-install">
-  <button slot="activate" class="md-button md-button--primary">Full Install</button>
-  <span slot="unsupported">Your browser doesn't support this. Use Chrome, Edge, or Opera on desktop.</span>
-  <span slot="not-allowed">This page must be served over HTTPS to flash firmware.</span>
-</esp-web-install-button>
-
-<esp-web-install-button id="app-install">
-  <button slot="activate" class="md-button">Update Firmware Only</button>
+  <button slot="activate" class="md-button md-button--primary">Install</button>
   <span slot="unsupported">Your browser doesn't support this. Use Chrome, Edge, or Opera on desktop.</span>
   <span slot="not-allowed">This page must be served over HTTPS to flash firmware.</span>
 </esp-web-install-button>
 
 </div>
 
-!!! danger "Full Install erases everything"
-    **Full Install** writes a complete firmware + web UI image covering the whole chip, which wipes every setting — Wi-Fi credentials, MQTT config, module calibration, everything — regardless of what you choose next. You'll see a confirmation dialog with an **"Erase device"** checkbox: it's unchecked by default, but check it anyway for the cleanest possible install (it also clears old crash-dump data that a normal install doesn't touch). Use this for a brand-new board, or if you want a totally fresh start.
-
-!!! tip "Update Firmware Only keeps your settings"
-    **Update Firmware Only** replaces just the application code. Your Wi-Fi, MQTT, and calibration settings are preserved. Use this for routine updates on a board you've already set up. It assumes the board already has a compatible install on it.
+!!! danger "Installing erases the board"
+    Installing writes a clean firmware image and **erases everything** first — Wi-Fi credentials, MQTT config, module calibration, all of it. You'll get a confirmation prompt before anything happens. This is the right choice for a brand-new board or a fresh start.
 
 </div>
-
-### Choose a specific version
-
-<select id="version-picker" disabled>
-  <option>Loading versions…</option>
-</select>
 
 ## 3. Connect to Wi-Fi
 
@@ -66,7 +54,7 @@ After flashing, the display boots into setup mode:
 4. Once connected, find it on your network via `http://<name>.local` (shown in the settings page), or check your router's client list.
 
 !!! tip "See the live serial log"
-    With the board still plugged in, click **Full Install** (or **Update Firmware Only**) again and choose **Logs & Console** from the menu. This opens a live serial monitor right in your browser — handy for watching the boot sequence or diagnosing a board that isn't behaving.
+    With the board still plugged in, click **Install** again and choose **Logs & Console** from the menu. This opens a live serial monitor right in your browser — handy for watching the boot sequence or diagnosing a board that isn't behaving.
 
 ## Troubleshooting
 
@@ -77,7 +65,7 @@ After flashing, the display boots into setup mode:
 
 ## Erase the board completely (advanced)
 
-Wipe the ESP32 back to a blank chip with **no firmware at all**. This is different from **Full Install** above (which erases *and* reinstalls) — use this only if you want to repurpose the board for something else, or hand it off blank.
+Wipe the ESP32 back to a blank chip with **no firmware at all**. This is different from **Install** above (which erases *and* reinstalls) — use this only if you want to repurpose the board for something else, or hand it off blank.
 
 <div class="install-button-row" markdown>
 <button id="erase-button" class="md-button">Erase Device</button>
@@ -86,18 +74,7 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
 <div id="erase-status" hidden></div>
 
 !!! warning "This leaves the board with nothing on it"
-    A full erase removes the firmware itself — the board will do nothing until you flash it again. To reset a board you intend to keep using, use **Full Install** at the top of the page instead.
-
-## Building a specific version from source
-
-Every release corresponds to a git tag with the exact source it was built from:
-
-```bash
-git fetch --tags
-git checkout vX.Y.Z
-```
-
-Then follow the [Build & Flash](setup.md) guide. See the [Releases page](https://github.com/DrewFerg11/Split-Flap-Display/releases) for the full version list and changelogs.
+    A full erase removes the firmware itself — the board will do nothing until you flash it again. To reset a board you intend to keep using, use **Install** at the top of the page instead.
 
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js"></script>
 
@@ -184,21 +161,15 @@ Then follow the [Build & Flash](setup.md) guide. See the [Releases page](https:/
   const unavailableEl = document.getElementById("install-unavailable");
   const unavailableTextEl = document.getElementById("install-unavailable-text");
   const buttonsEl = document.getElementById("install-buttons");
-  const versionEl = document.getElementById("install-version");
   const factoryBtn = document.getElementById("factory-install");
-  const appBtn = document.getElementById("app-install");
   const picker = document.getElementById("version-picker");
 
-  function manifestUrls(tag) {
-    const base = PAGES_RELEASES_BASE + "/" + tag + "/";
-    return { factory: base + "manifest.json", app: base + "manifest-app.json" };
+  function factoryManifestUrl(tag) {
+    return PAGES_RELEASES_BASE + "/" + tag + "/manifest.json";
   }
 
   function showRelease(tag) {
-    const urls = manifestUrls(tag);
-    factoryBtn.manifest = urls.factory;
-    appBtn.manifest = urls.app;
-    versionEl.textContent = tag;
+    factoryBtn.manifest = factoryManifestUrl(tag);
     loadingEl.hidden = true;
     unavailableEl.hidden = true;
     buttonsEl.hidden = false;
@@ -214,7 +185,7 @@ Then follow the [Build & Flash](setup.md) guide. See the [Releases page](https:/
 
   async function hasManifest(tag) {
     try {
-      const res = await fetch(manifestUrls(tag).factory, { method: "HEAD" });
+      const res = await fetch(factoryManifestUrl(tag), { method: "HEAD" });
       return res.ok;
     } catch (e) {
       return false;

@@ -34,8 +34,14 @@ def build_manifest(version, download_base_url, kind, offset):
         )
     return {
         "name": "Split Flap Display",
-        "version": version,
-        "new_install_prompt_erase": kind == "factory",
+        # With no Improv support yet (Step 4), ESP Web Tools can't detect the
+        # running firmware, so new_install_prompt_erase=false makes it force a
+        # full-chip erase + full write - a clean install with a single confirm
+        # dialog. The factory image includes the bootloader, so this is safe.
+        # (The app-only manifest is generated for Step 4 but not yet linked from
+        # the install page: without Improv it would full-erase then write only
+        # the app, leaving no bootloader.)
+        "new_install_prompt_erase": False,
         "builds": builds,
     }
 
