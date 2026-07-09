@@ -81,6 +81,32 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
 !!! warning "This leaves the board with nothing on it"
     A full erase removes the firmware itself — the board will do nothing until you flash it again. To reset a board you intend to keep using, use **Install** at the top of the page instead.
 
+<!--
+  Works around a known MkDocs Material bug (squidfunk/mkdocs-material#6652):
+  Material's global "press any key to search" keyboard shortcut checks
+  document.activeElement to decide whether you're typing in a form field, but
+  that check doesn't see through Shadow DOM. ESP Web Tools' Wi-Fi password
+  field lives inside a Shadow-DOM custom element, so Material can't tell it's
+  focused and hijacks keystrokes (e.g. "p") as navigation shortcuts instead of
+  letting you type. Fix: intercept in the capture phase - which runs before
+  Material's document-level listener - and use composedPath() (which, unlike
+  activeElement, does see through shadow boundaries) to detect a real form
+  field and stop the keystroke from ever reaching Material's handler.
+-->
+<script>
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      const origin = e.composedPath()[0];
+      const tag = origin && origin.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (origin && origin.isContentEditable)) {
+        e.stopPropagation();
+      }
+    },
+    true,
+  );
+</script>
+
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js"></script>
 
 <!--
