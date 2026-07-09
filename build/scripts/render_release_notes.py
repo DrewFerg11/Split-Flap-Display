@@ -23,6 +23,11 @@ import os
 import sys
 
 INSTALL_PAGE_URL = "https://drewferg11.github.io/Split-Flap-Display/firmware/install/"
+# TODO: this points at the general firmware setup page, which is currently
+# written for source builds (PlatformIO/npm). Refine once that page has a
+# proper manual-install (pre-built binary, no toolchain) walkthrough - see
+# plans/GH-PAGES-PLAN.md.
+MANUAL_INSTALL_URL = "https://drewferg11.github.io/Split-Flap-Display/firmware/setup/"
 
 DOCS_URL = "https://drewferg11.github.io/Split-Flap-Display/"
 DISCORD_URL = "https://discord.gg/RCvks4XXXH"
@@ -38,9 +43,8 @@ BOARDS = [
 def install_section():
     return "\n".join(
         [
-            "- \U0001f310 [Flash via web installer](%s) - no toolchain required"
-            % INSTALL_PAGE_URL,
-            "- \U0001f4d6 [Full documentation](%s)" % DOCS_URL,
+            "- \U0001f310 [Flash via web installer](%s)" % INSTALL_PAGE_URL,
+            "- \U0001f6e0️ [Manual install instructions](%s)" % MANUAL_INSTALL_URL,
         ]
     )
 
@@ -114,6 +118,7 @@ def main():
 {install_section}
 {flash_table}
 ### Links
+- \U0001f4d6 [Documentation]({docs})
 - \U0001f4ac [Discord]({discord})
 - \U0001f41b [Report an issue]({issues})
 
@@ -122,6 +127,7 @@ def main():
         prerelease_note=prerelease_note,
         summary=ai_summary_section(summary_file),
         install_section=install_section(),
+        docs=DOCS_URL,
         flash_table=flash_table(meta_dir),
         discord=DISCORD_URL,
         issues=ISSUES_URL,
