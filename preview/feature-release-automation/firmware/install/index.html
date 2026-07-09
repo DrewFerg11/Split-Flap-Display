@@ -1553,6 +1553,32 @@
 <p class="admonition-title">This leaves the board with nothing on it</p>
 <p>A full erase removes the firmware itself — the board will do nothing until you flash it again. To reset a board you intend to keep using, use <strong>Install</strong> at the top of the page instead.</p>
 </div>
+<!--
+  Works around a known MkDocs Material bug (squidfunk/mkdocs-material#6652):
+  Material's global "press any key to search" keyboard shortcut checks
+  document.activeElement to decide whether you're typing in a form field, but
+  that check doesn't see through Shadow DOM. ESP Web Tools' Wi-Fi password
+  field lives inside a Shadow-DOM custom element, so Material can't tell it's
+  focused and hijacks keystrokes (e.g. "p") as navigation shortcuts instead of
+  letting you type. Fix: intercept in the capture phase - which runs before
+  Material's document-level listener - and use composedPath() (which, unlike
+  activeElement, does see through shadow boundaries) to detect a real form
+  field and stop the keystroke from ever reaching Material's handler.
+-->
+<script>
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      const origin = e.composedPath()[0];
+      const tag = origin && origin.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (origin && origin.isContentEditable)) {
+        e.stopPropagation();
+      }
+    },
+    true,
+  );
+</script>
+
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js"></script>
 
 <!--
@@ -1754,7 +1780,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-07-08T22:16:08+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-07-08</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-07-09T00:27:59+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-07-09</span>
   </span>
 
     
