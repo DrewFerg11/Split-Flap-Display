@@ -4,6 +4,7 @@
 // Thom Koopman 03/30/2025
 
 // Enjoy :)
+#include "BackgroundTick.h"
 #include "JsonSettings.h"
 #include "SplitFlapDisplay.h"
 #include "SplitFlapMqtt.h"
@@ -88,7 +89,13 @@ void improvOnError(ImprovTypes::Error err) {
 // the main thread: the dual-I2C bus tasks (busMovementTask) must NOT call it,
 // since ImprovWiFi's internal frame-parse state isn't thread-safe.
 void backgroundTick() {
-    improv.handleSerial();
+    // handleSerial() consumes at most one byte per call, so drain everything
+    // pending. Callers may only tick every ~20ms (see moveModules), and one
+    // byte per 20ms would take seconds to parse a single Improv frame; the
+    // UART driver's RX buffer comfortably holds 20ms of traffic between ticks.
+    while (Serial.available() > 0) {
+        improv.handleSerial();
+    }
 }
 
 // Forward declarations for functions defined after loop()

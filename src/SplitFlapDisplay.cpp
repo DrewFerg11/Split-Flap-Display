@@ -6,10 +6,7 @@
 
 #include <freertos/semphr.h>
 
-// Defined in SplitFlapDisplay.ino - services Improv Wi-Fi. Only ever called
-// from the main thread (see moveTo()/moveToDual() below), never from the
-// dual-I2C busMovementTask threads.
-extern void backgroundTick();
+#include "BackgroundTick.h"
 
 SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
 
@@ -392,8 +389,6 @@ void SplitFlapDisplay::moveModules(
     bool isFinished = checkAllFalse(needsStepping, count);
 
     while (! isFinished) {
-        if (idleCallback) idleCallback();
-
         currentTime = micros();
         for (int i = 0; i < count; i++) {
             if (needsStepping[i] && ((currentTime - lastStepTimes[i]) > timePerStep)) {
@@ -407,6 +402,12 @@ void SplitFlapDisplay::moveModules(
         }
 
         if ((currentTime - lastSensorCheckTime) > checkIntervalUs) { // check hall effect sensor every checkIntervalMs
+            // Service Improv here (every ~20ms) rather than every loop
+            // iteration, to keep the microsecond-timed stepping path free of
+            // any extra work. backgroundTick() drains all pending serial
+            // bytes, so this cadence is enough to stay responsive.
+            if (idleCallback) idleCallback();
+
             // check every modules sensor
             for (int i = 0; i < count; i++) {
                 if (needsStepping[i] && mods[i].readHallEffectSensor()) {
