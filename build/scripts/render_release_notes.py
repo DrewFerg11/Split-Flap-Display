@@ -36,28 +36,13 @@ BOARDS = [
 
 
 def install_section():
-    if INSTALL_PAGE_URL:
-        lines = [
-            "- **Pre-built binaries:** [flash via the web installer](%s) - no "
-            "toolchain required, and it auto-detects your board." % INSTALL_PAGE_URL
+    return "\n".join(
+        [
+            "- \U0001f310 [Flash via web installer](%s) - no toolchain required"
+            % INSTALL_PAGE_URL,
+            "- \U0001f4d6 [Full documentation](%s)" % DOCS_URL,
         ]
-    else:
-        lines = [
-            "- **Pre-built binaries:** grab the `-factory.bin` (full install, erases "
-            "settings) or `-app.bin` (update only, keeps settings) for your board "
-            "below, then flash with `esptool.py write_flash` or the "
-            "[ESP Web Tools](https://esphome.github.io/esp-web-tools/) browser flasher "
-            "using the attached `manifest.json`."
-        ]
-    lines.append(
-        "- **Not sure which board you have?** Match your ESP32 chip: original "
-        "ESP32 → `wroom`, ESP32-C3 → `c3`, ESP32-S3 → `s3`. (The web installer "
-        "picks the right one for you automatically.)"
     )
-    lines.append(
-        "- **Build from source:** see the firmware setup docs, or `git checkout %s`."
-    )
-    return "\n".join(lines)
 
 
 def flash_table(meta_dir):
@@ -129,7 +114,6 @@ def main():
 {install_section}
 {flash_table}
 ### Links
-- \U0001f4d6 [Documentation]({docs})
 - \U0001f4ac [Discord]({discord})
 - \U0001f41b [Report an issue]({issues})
 
@@ -137,9 +121,8 @@ def main():
         version=version,
         prerelease_note=prerelease_note,
         summary=ai_summary_section(summary_file),
-        install_section=install_section() % version,
+        install_section=install_section(),
         flash_table=flash_table(meta_dir),
-        docs=DOCS_URL,
         discord=DISCORD_URL,
         issues=ISSUES_URL,
     )
