@@ -1,4 +1,5 @@
 #include "SplitFlapMqtt.h"
+
 #include "Version.h"
 
 SplitFlapMqtt::SplitFlapMqtt(JsonSettings &settings, WiFiClient &wifiClient)

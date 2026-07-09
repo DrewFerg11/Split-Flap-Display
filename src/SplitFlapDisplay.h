@@ -47,8 +47,8 @@ class SplitFlapDisplay {
     // Pass nullptr (the default) when called from a background task (see
     // busMovementTask) — the callback is not thread-safe for concurrent calls.
     static void moveModules(
-        SplitFlapModule *mods, int count, int *targets, float speed, bool releaseMotors, int stepsPerRot,
-        float maxVel, void (*idleCallback)() = nullptr
+        SplitFlapModule *mods, int count, int *targets, float speed, bool releaseMotors, int stepsPerRot, float maxVel,
+        void (*idleCallback)() = nullptr
     );
 
 #ifdef ENABLE_DUAL_I2C
