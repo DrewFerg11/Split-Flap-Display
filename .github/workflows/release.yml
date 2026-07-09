@@ -79,6 +79,18 @@ jobs:
         id: meta
         run: echo "version=${{ needs.tag.outputs.version || github.ref_name }}" >> "$GITHUB_OUTPUT"
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run assets
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
