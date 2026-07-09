@@ -107,7 +107,7 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   );
 </script>
 
-<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js"></script>
+<script type="module" src="https://unpkg.com/esp-web-tools@10.2.1/dist/web/install-button.js"></script>
 
 <!--
   Standalone "Erase Device" using esptool-js directly. ESP Web Tools' install
