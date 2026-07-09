@@ -41,8 +41,20 @@ body:
     id: firmware-version
     attributes:
       label: Firmware version
-      description: Found in the web interface under Settings, or the git commit/tag.
-      placeholder: "e.g. v1.2.0 or abc1234"
+      description: Found on the Settings page, or via GET /version on the device.
+      placeholder: "e.g. v1.1.0-rc.7 (release build) or v1.1.0-rc.7-3-gabc1234 (dev build)"
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How was the firmware installed?
+      description: The browser-based web flasher and a local PlatformIO build can behave differently, which helps narrow things down.
+      options:
+        - Web flasher (browser install page)
+        - Built locally with PlatformIO
+        - Not sure / N/A
+    validations:
+      required: true
 
   - type: input
     id: module-count
@@ -73,4 +85,7 @@ body:
     id: extra
     attributes:
       label: Additional context
-      description: Serial output, photos, wiring details, or anything else that might help.
+      description: |
+        Photos, wiring details, or anything else that might help.
+
+        A serial log is especially useful - connect, reproduce the issue (or just power-cycle the board), and paste or attach the output. If you flashed with the web installer, click Install again and choose "Logs & Console" for a live serial monitor right in the browser, no separate tools needed.
