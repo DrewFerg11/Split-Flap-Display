@@ -8,9 +8,13 @@
 #include "SplitFlapDisplay.h"
 #include "SplitFlapMqtt.h"
 #include "SplitFlapWebServer.h"
+#include "Version.h"
 
 #include <Arduino.h>
+#include <ImprovWiFiLibrary.h>
+#include <WiFi.h>
 #include <WiFiClient.h>
+#include <esp_system.h>
 
 // clang-format off
 JsonSettings settings = JsonSettings("config", {
@@ -55,6 +59,35 @@ WiFiClient wifiClient;
 SplitFlapDisplay display(settings);
 SplitFlapWebServer webServer(settings);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
+ImprovWiFi improv(&Serial);
+
+// Improv Wi-Fi Serial callbacks. These are plain C-style function pointers
+// (not class methods/std::function), so they reference the globals above
+// directly rather than taking `this` - same free-function style already used
+// for the mode handlers below.
+bool improvConnectWifi(const char *ssid, const char *password) {
+    // Persist first, then reuse the existing connectToWifi()/loadWiFiCredentials()
+    // path as-is - same softAP disconnect, autoreconnect, and timeout handling
+    // as a normal boot-time connect.
+    settings.putString("ssid", ssid);
+    settings.putString("password", password);
+    return webServer.connectToWifi();
+}
+
+void improvOnConnected(const char *ssid, const char *password) {
+    Serial.printf("Improv: connected to Wi-Fi network \"%s\"\n", ssid);
+}
+
+void improvOnError(ImprovTypes::Error err) {
+    Serial.printf("Improv: error %d\n", (int) err);
+}
+
+// Improv Wi-Fi is only needed to (re)configure Wi-Fi over USB, which is a
+// setup-time action - a deployed display runs on its 5V supply with USB
+// disconnected, so there's nothing on the serial port to service. We therefore
+// only listen for the first IMPROV_ACTIVE_MS after a reboot, then stop. To
+// reconfigure Wi-Fi later, reboot the board with USB connected.
+const unsigned long IMPROV_ACTIVE_MS = 5 * 60 * 1000; // 5 minutes
 
 // Forward declarations for functions defined after loop()
 void singleInputMode();
@@ -71,6 +104,22 @@ void dualMultiInputMode();
 void dateTimeMode();
 #endif
 
+const char *resetReasonToString(esp_reset_reason_t reason) {
+    switch (reason) {
+        case ESP_RST_POWERON: return "power-on";
+        case ESP_RST_EXT: return "external pin";
+        case ESP_RST_SW: return "software reset";
+        case ESP_RST_PANIC: return "crash/panic";
+        case ESP_RST_INT_WDT: return "interrupt watchdog";
+        case ESP_RST_TASK_WDT: return "task watchdog";
+        case ESP_RST_WDT: return "other watchdog";
+        case ESP_RST_DEEPSLEEP: return "deep sleep wake";
+        case ESP_RST_BROWNOUT: return "brownout";
+        case ESP_RST_SDIO: return "SDIO";
+        default: return "unknown";
+    }
+}
+
 void setup() {
     // put your setup code here, to run once:
     Serial.begin(SERIAL_SPEED);
@@ -79,8 +128,27 @@ void setup() {
     delay(STARTUP_DELAY);
 #endif
 
+    Serial.println("=== Split Flap Display ===");
+    Serial.printf("Firmware: %s (%s)\n", FIRMWARE_VERSION, FIRMWARE_BUILD_SOURCE);
+    Serial.printf("Chip: %s rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
+    Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
+    Serial.printf("Reset reason: %s\n", resetReasonToString(esp_reset_reason()));
+    Serial.println("===========================");
+
     Serial.println("Init Web Server");
     webServer.init();
+
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_C3;
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_S3;
+#else
+    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32;
+#endif
+    improv.setDeviceInfo(improvChipFamily, "Split Flap Display", FIRMWARE_VERSION, settings.getString("name").c_str());
+    improv.onImprovError(improvOnError);
+    improv.onImprovConnected(improvOnConnected);
+    improv.setCustomConnectWiFi(improvConnectWifi);
 
     if (! webServer.connectToWifi()) {
         webServer.startAccessPoint();
@@ -121,6 +189,19 @@ void setup() {
 }
 
 void loop() {
+    // Listen for Improv Wi-Fi only during the window after boot (see
+    // IMPROV_ACTIVE_MS). The static latch means this stops for good once the
+    // window closes and never re-arms - including across the millis() rollover
+    // at ~49 days, which would otherwise briefly re-enter the window.
+    static bool improvActive = true;
+    if (improvActive) {
+        if (millis() < IMPROV_ACTIVE_MS) {
+            improv.handleSerial();
+        } else {
+            improvActive = false;
+        }
+    }
+
     splitflapMqtt.loop();
 
     // check what mode the display is in, this value is updated by the web server

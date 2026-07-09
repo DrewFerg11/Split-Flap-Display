@@ -248,7 +248,7 @@ bool SplitFlapWebServer::connectToWifi() {
             if (millis() - startAttemptTime >= timeout) {
                 Serial.println("_");
                 Serial.println("Wi-Fi connection failed! Timeout reached.");
-                return false; // Return false if unable to connect in 30 seconds
+                return false; // Return false if unable to connect within the timeout
             }
             if ((millis() - lastPrintTime) > 1000) {
                 Serial.print(".");
@@ -330,6 +330,14 @@ void SplitFlapWebServer::startWebServer() {
 
     server.on("/settings", HTTP_GET, [this](AsyncWebServerRequest *request) {
         request->send(200, "application/json", settings.toJson().as<String>());
+    });
+
+    server.on("/version", HTTP_GET, [](AsyncWebServerRequest *request) {
+        JsonDocument response;
+        response["version"] = FIRMWARE_VERSION;
+        String output;
+        serializeJson(response, output);
+        request->send(200, "application/json", output);
     });
 
     server.on("/settings/reset", HTTP_POST, [this](AsyncWebServerRequest *request) {

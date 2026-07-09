@@ -397,6 +397,7 @@ void SplitFlapDisplay::moveModules(
         }
 
         if ((currentTime - lastSensorCheckTime) > checkIntervalUs) { // check hall effect sensor every checkIntervalMs
+
             // check every modules sensor
             for (int i = 0; i < count; i++) {
                 if (needsStepping[i] && mods[i].readHallEffectSensor()) {

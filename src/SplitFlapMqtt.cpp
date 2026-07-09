@@ -1,5 +1,7 @@
 #include "SplitFlapMqtt.h"
 
+#include "Version.h"
+
 SplitFlapMqtt::SplitFlapMqtt(JsonSettings &settings, WiFiClient &wifiClient)
     : settings(settings), wifiClient(wifiClient), mqttClient(wifiClient), display(nullptr) {}
 
@@ -73,7 +75,7 @@ void SplitFlapMqtt::connectToMqtt() {
                     "\"name\":\"" + name + "\","
                     "\"manufacturer\":\"SplitFlap\","
                     "\"model\":\"SplitFlap Display\","
-                    "\"sw_version\":\"1.0.0\""
+                    "\"sw_version\":\"" FIRMWARE_VERSION "\""
                 "}"
             "}";
 
@@ -88,7 +90,7 @@ void SplitFlapMqtt::connectToMqtt() {
                     "\"name\":\"" + name + "\","
                     "\"manufacturer\":\"SplitFlap\","
                     "\"model\":\"SplitFlap Display\","
-                    "\"sw_version\":\"1.0.0\""
+                    "\"sw_version\":\"" FIRMWARE_VERSION "\""
                 "}"
             "}";
             // clang-format on

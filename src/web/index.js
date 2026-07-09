@@ -11,6 +11,7 @@ document.addEventListener("alpine:init", () => {
             settings: true,
             timezones: true,
         },
+        firmwareVersion: "",
         saving: false,
         dialog: {
             show: false,
@@ -272,9 +273,19 @@ document.addEventListener("alpine:init", () => {
 
         init() {
             this.loadSettings();
+            this.loadVersion();
             if (type === "Settings") {
                 this.loadTimezones();
             }
+        },
+
+        loadVersion() {
+            fetch("/version")
+                .then((res) => res.json())
+                .then((data) => {
+                    this.firmwareVersion = data.version;
+                })
+                .catch(() => {});
         },
 
         loadSettings() {

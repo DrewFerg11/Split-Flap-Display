@@ -1,6 +1,7 @@
 #pragma once
 
 #include "JsonSettings.h"
+#include "Version.h"
 
 #include <Arduino.h>
 #include <ArduinoJson.h>

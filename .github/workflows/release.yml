@@ -1,0 +1,310 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. v1.2.0 or v1.2.0-rc.0"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  # GitHub Release asset URLs don't send CORS headers, so ESP Web Tools (running
+  # in the browser) can't fetch manifests/binaries from github.com/.../releases/download/.
+  # We publish a same-origin copy to GitHub Pages instead; see the "Publish binaries
+  # to GitHub Pages" step below and docs/firmware/install.md.
+  PAGES_BASE_URL: https://drewferg11.github.io/Split-Flap-Display
+  RELEASES_KEEP_COUNT: 5
+
+jobs:
+  tag:
+    name: Create tag
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate version input
+        run: |
+          if ! [[ "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::Invalid version '${{ inputs.version }}' - expected vX.Y.Z or vX.Y.Z-rc.N"
+            exit 1
+          fi
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ inputs.version }}" -m "${{ inputs.version }}"
+          git push origin "${{ inputs.version }}"
+
+      - id: resolve
+        run: echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (${{ matrix.env }})
+    needs: [tag]
+    if: always() && (needs.tag.result == 'success' || needs.tag.result == 'skipped')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - env: esp32_wroom
+            chip: esp32
+            bootloader_offset: "0x1000"
+          - env: esp32_c3
+            chip: esp32c3
+            bootloader_offset: "0x0"
+          - env: esp32_s3
+            chip: esp32s3
+            bootloader_offset: "0x0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.version || github.ref }}
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: meta
+        run: echo "version=${{ needs.tag.outputs.version || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run assets
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: pip install -U platformio
+
+      - name: Build firmware
+        run: pio run -e ${{ matrix.env }} | tee build.log
+
+      - name: Extract flash usage
+        run: |
+          LINE=$(grep -oE 'Flash:[^(]*\(used [0-9]+ bytes from [0-9]+ bytes\)' build.log | tail -1)
+          USED=$(echo "$LINE" | grep -oE 'used [0-9]+' | grep -oE '[0-9]+')
+          TOTAL=$(echo "$LINE" | grep -oE 'from [0-9]+' | grep -oE '[0-9]+')
+          mkdir -p meta
+          echo "${{ matrix.env }}|${USED}|${TOTAL}" > meta/flash-${{ matrix.env }}.txt
+          cat meta/flash-${{ matrix.env }}.txt
+
+      - name: Build filesystem image
+        run: pio run -e ${{ matrix.env }} -t buildfs
+
+      - name: Locate framework tools
+        id: tools
+        run: |
+          PKG_DIR=$(find "$HOME/.platformio/packages" -maxdepth 1 -iname 'framework-arduinoespressif32*' -type d | head -1)
+          echo "boot_app0=$PKG_DIR/tools/partitions/boot_app0.bin" >> "$GITHUB_OUTPUT"
+          ESPTOOL=$(find "$HOME/.platformio/packages" -maxdepth 3 -iname 'esptool.py' -path '*tool-esptoolpy*' | head -1)
+          echo "esptool=$ESPTOOL" >> "$GITHUB_OUTPUT"
+
+      - name: Build merged factory image
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          python "${{ steps.tools.outputs.esptool }}" --chip ${{ matrix.chip }} merge_bin \
+            -o "splitflap-${{ matrix.env }}-${VERSION}-factory.bin" \
+            --flash_mode keep --flash_freq keep --flash_size keep \
+            ${{ matrix.bootloader_offset }} .pio/build/${{ matrix.env }}/bootloader.bin \
+            0x8000 .pio/build/${{ matrix.env }}/partitions.bin \
+            0xe000 "${{ steps.tools.outputs.boot_app0 }}" \
+            0x10000 .pio/build/${{ matrix.env }}/firmware.bin \
+            0x290000 .pio/build/${{ matrix.env }}/littlefs.bin
+
+      - name: Copy app-only image
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          cp .pio/build/${{ matrix.env }}/firmware.bin "splitflap-${{ matrix.env }}-${VERSION}-app.bin"
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: bins-${{ matrix.env }}
+          path: splitflap-${{ matrix.env }}-*.bin
+          retention-days: 5
+
+      - name: Upload flash metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: flashmeta-${{ matrix.env }}
+          path: meta/flash-${{ matrix.env }}.txt
+          retention-days: 5
+
+  release:
+    name: Publish release
+    needs: [tag, build]
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      models: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.version || github.ref }}
+          fetch-depth: 0
+
+      - name: Determine version & prerelease flag
+        id: meta
+        run: |
+          VERSION="${{ needs.tag.outputs.version || github.ref_name }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-rc.* || "$VERSION" == *-beta* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Collect commit log since previous tag
+        id: commitlog
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          if [[ "$VERSION" == *-rc.* || "$VERSION" == *-beta* ]]; then
+            # Prerelease: diff against whatever tag came immediately before
+            # (RC or full), so iterative RC-to-RC testing stays incremental.
+            PREV=$(git tag --sort=-creatordate | grep -v "^${VERSION}$" | head -1)
+          else
+            # Full release: skip past any RCs/betas to the last full release,
+            # so the changelog/AI summary covers everything since then, not
+            # just the (often trivial) diff from the final RC.
+            PREV=$(git tag --sort=-creatordate | grep -v "^${VERSION}$" | grep -vE -- '-rc\.|-beta' | head -1)
+          fi
+          echo "prev=$PREV" >> "$GITHUB_OUTPUT"
+          if [ -n "$PREV" ]; then
+            LOG=$(git log "${PREV}..${VERSION}" --pretty=format:"%B---")
+          else
+            LOG=$(git log "${VERSION}" --pretty=format:"%B---")
+          fi
+          {
+            echo "log<<COMMITLOG_EOF"
+            echo "$LOG"
+            echo "COMMITLOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: AI release summary
+        id: ai_summary
+        if: steps.commitlog.outputs.log != ''
+        continue-on-error: true
+        uses: actions/ai-inference@v1
+        with:
+          model: openai/gpt-4o-mini
+          system-prompt: |
+            You summarize firmware release commit logs for end users of an open-source
+            ESP32 split-flap display project. Write 2-4 plain-prose sentences describing
+            what changed, in end-user terms. No markdown headings, no bullet list, no
+            preamble like "This release includes" - just the summary itself.
+          prompt: ${{ steps.commitlog.outputs.log }}
+
+      - name: Save AI summary
+        if: always()
+        run: |
+          echo "${{ steps.ai_summary.outcome == 'success' && steps.ai_summary.outputs.response || '' }}" > ai-summary.txt
+
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bins-*
+          path: dist
+          merge-multiple: true
+
+      - name: Download flash metadata
+        uses: actions/download-artifact@v4
+        with:
+          pattern: flashmeta-*
+          path: meta
+          merge-multiple: true
+
+      - name: Generate manifests
+        run: |
+          python3 build/scripts/generate_manifest.py \
+            "${{ steps.meta.outputs.version }}" \
+            "${{ env.PAGES_BASE_URL }}/releases/${{ steps.meta.outputs.version }}" \
+            dist
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum *.bin > checksums.txt
+
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-dir
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish binaries to GitHub Pages
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+
+          mkdir -p "gh-pages-dir/releases/${VERSION}"
+          cp dist/* "gh-pages-dir/releases/${VERSION}/"
+
+          cd gh-pages-dir
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Skip Jekyll processing (see docs.yml for the same fix + rationale).
+          touch .nojekyll
+
+          # Rolling window: keep only the most recently published N version folders.
+          # Sorted by directory mtime (publish order), not by version string parsing,
+          # so it works correctly across RCs and full releases alike.
+          ls -1dt releases/*/ 2>/dev/null | tail -n +$(( ${{ env.RELEASES_KEEP_COUNT }} + 1 )) | xargs -r rm -rf
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to publish"
+          else
+            git commit -m "Publish firmware binaries for ${VERSION}"
+            git push
+          fi
+
+      - name: Render release notes
+        run: |
+          python3 build/scripts/render_release_notes.py \
+            "${{ steps.meta.outputs.version }}" \
+            "${{ steps.meta.outputs.prerelease }}" \
+            meta \
+            release-notes.md \
+            ai-summary.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.version }}
+          name: ${{ steps.meta.outputs.version }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          body_path: release-notes.md
+          generate_release_notes: true
+          files: dist/*
