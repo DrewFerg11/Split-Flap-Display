@@ -1,9 +1,10 @@
 # RENDER THE RELEASE BODY FROM THE LOCKED TEMPLATE (see plans/RELEASE-AUTOMATION-PLAN.md)
 #
-# `generate_release_notes: true` in release.yml supplies the "Changes" section
-# (GitHub auto-generates it and appends it after this body). This script only
-# renders the fixed sections around it. The "### Changes" heading must be LAST
-# so GitHub's auto-generated PR list lands directly beneath it.
+# `generate_release_notes: true` in release.yml appends GitHub's own change list
+# after this body - its own "## What's Changed" heading, the categorized PR
+# bullets (grouped per .github/release.yml), and the "Full Changelog" link. This
+# script renders only the fixed sections that precede it; we deliberately do NOT
+# emit our own "### Changes" heading, since GitHub supplies "## What's Changed".
 #
 # Usage: render_release_notes.py <version> <prerelease: true|false> <meta-dir> <out-file> [ai-summary-file]
 #
@@ -132,7 +133,6 @@ def main():
 - \U0001f4ac [Discord]({discord})
 - \U0001f41b [Report an issue]({issues})
 
-### Changes
 """.format(
         version=version,
         prerelease_note=prerelease_note,
