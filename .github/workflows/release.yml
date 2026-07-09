@@ -189,7 +189,16 @@ jobs:
         id: commitlog
         run: |
           VERSION="${{ steps.meta.outputs.version }}"
-          PREV=$(git tag --sort=-creatordate | grep -v "^${VERSION}$" | head -1)
+          if [[ "$VERSION" == *-rc.* || "$VERSION" == *-beta* ]]; then
+            # Prerelease: diff against whatever tag came immediately before
+            # (RC or full), so iterative RC-to-RC testing stays incremental.
+            PREV=$(git tag --sort=-creatordate | grep -v "^${VERSION}$" | head -1)
+          else
+            # Full release: skip past any RCs/betas to the last full release,
+            # so the changelog/AI summary covers everything since then, not
+            # just the (often trivial) diff from the final RC.
+            PREV=$(git tag --sort=-creatordate | grep -v "^${VERSION}$" | grep -vE -- '-rc\.|-beta' | head -1)
+          fi
           echo "prev=$PREV" >> "$GITHUB_OUTPUT"
           if [ -n "$PREV" ]; then
             LOG=$(git log "${PREV}..${VERSION}" --pretty=format:"%B---")
