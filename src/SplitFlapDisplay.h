@@ -41,14 +41,9 @@ class SplitFlapDisplay {
     int getCharsetSize() const { return charSetSize; }
     void setMqtt(SplitFlapMqtt *mqttHandler);
 
-    // Static movement engine — operates on a subset of modules.
-    // `idleCallback`, if given, is invoked each polling interval so long-running
-    // moves don't starve other subsystems (e.g. Improv Wi-Fi) of Serial time.
-    // Pass nullptr (the default) when called from a background task (see
-    // busMovementTask) — the callback is not thread-safe for concurrent calls.
+    // Static movement engine — operates on a subset of modules
     static void moveModules(
-        SplitFlapModule *mods, int count, int *targets, float speed, bool releaseMotors, int stepsPerRot, float maxVel,
-        void (*idleCallback)() = nullptr
+        SplitFlapModule *mods, int count, int *targets, float speed, bool releaseMotors, int stepsPerRot, float maxVel
     );
 
 #ifdef ENABLE_DUAL_I2C
