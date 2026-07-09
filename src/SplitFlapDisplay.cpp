@@ -1,12 +1,11 @@
 #include "SplitFlapDisplay.h"
 
+#include "BackgroundTick.h"
 #include "JsonSettings.h"
 #include "SplitFlapModule.h"
 #include "SplitFlapMqtt.h"
 
 #include <freertos/semphr.h>
-
-#include "BackgroundTick.h"
 
 SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
 
@@ -406,6 +405,11 @@ void SplitFlapDisplay::moveModules(
             // iteration, to keep the microsecond-timed stepping path free of
             // any extra work. backgroundTick() drains all pending serial
             // bytes, so this cadence is enough to stay responsive.
+            //
+            // idleCallback is a param (rather than calling backgroundTick()
+            // directly, as moveToDual()/connectToWifi() do) so busMovementTask
+            // can opt out by passing nullptr - Improv's parser isn't
+            // thread-safe, so it must never run on the background bus tasks.
             if (idleCallback) idleCallback();
 
             // check every modules sensor
