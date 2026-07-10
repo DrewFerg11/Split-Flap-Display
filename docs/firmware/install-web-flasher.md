@@ -13,6 +13,9 @@ Flash the latest firmware directly from this page over USB. No PlatformIO, no de
 
 Plug the ESP32 into your computer with a USB cable. You don't need to know which board you have — the installer detects it automatically (WROOM, C3, or S3).
 
+!!! tip "Give the board ~20 seconds after any reboot"
+    Both live Wi-Fi setup and **Update Firmware Only**'s same-firmware detection depend on Improv, which only starts responding once the board finishes booting — after its Wi-Fi connect attempt and module homing complete. That's roughly 20 seconds, sometimes longer. If you just restarted the board (including via the **Restart Device** option under **Logs & Console**) and the options you expect aren't showing up yet, wait a bit and reconnect — watching the serial log (see the tip below) lets you confirm the board has reached homing, so you know it's almost ready.
+
 ## 2. Install
 
 <div id="install-loading">Checking for the latest release…</div>
@@ -192,9 +195,12 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   // CORS headers, so the browser can't fetch() them - not even to check they
   // exist. ESP Web Tools needs to fetch() the manifest and binaries directly, so
   // release.yml publishes a same-origin copy here on every release (rolling
-  // window - see RELEASES_KEEP_COUNT in release.yml). api.github.com itself IS
+  // window - see RC_KEEP_COUNT/STABLE_KEEP_COUNT in release.yml, which must
+  // match RC_KEEP_COUNT/STABLE_KEEP_COUNT below). api.github.com itself IS
   // CORS-enabled, so it's still used below just to discover recent tag names.
   const PAGES_RELEASES_BASE = "https://drewferg11.github.io/Split-Flap-Display/releases";
+  const RC_KEEP_COUNT = 3;
+  const STABLE_KEEP_COUNT = 5;
 
   const loadingEl = document.getElementById("install-loading");
   const unavailableEl = document.getElementById("install-unavailable");
@@ -237,7 +243,7 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
     }
   }
 
-  fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=10")
+  fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=30")
     .then((res) => {
       if (!res.ok) throw new Error("GitHub API returned " + res.status);
       return res.json();
@@ -248,14 +254,26 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
         return;
       }
 
-      // Only list releases that actually have a same-origin (Pages) copy -
-      // the API may return older tags that have aged out of the rolling
-      // window, or v1.0.0-style source-only releases with no binaries at all.
+      // Only list the latest RC_KEEP_COUNT prereleases and the latest
+      // STABLE_KEEP_COUNT stable releases, each capped independently so a
+      // burst of RCs can't crowd stable versions out of the list (or vice
+      // versa) - and only those that actually have a same-origin (Pages)
+      // copy, since the API may return tags that have aged out of the Pages
+      // rolling window, or v1.0.0-style source-only releases with no
+      // binaries at all. Releases come back newest-first, so this also
+      // preserves that order.
       const available = [];
+      let rcCount = 0;
+      let stableCount = 0;
       for (const r of releases) {
-        if (await hasManifest(r.tag_name)) {
-          available.push(r);
-        }
+        if (rcCount >= RC_KEEP_COUNT && stableCount >= STABLE_KEEP_COUNT) break;
+        if (r.prerelease && rcCount >= RC_KEEP_COUNT) continue;
+        if (!r.prerelease && stableCount >= STABLE_KEEP_COUNT) continue;
+        if (!(await hasManifest(r.tag_name))) continue;
+
+        available.push(r);
+        if (r.prerelease) rcCount++;
+        else stableCount++;
       }
 
       if (available.length === 0) {
