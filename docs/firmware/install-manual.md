@@ -1,5 +1,8 @@
 # Build & Flash
 
+!!! info "Contributing to this repo?"
+    This local setup is required if you plan to submit a PR — you'll need it to build, flash, and test your changes before opening one. If you just want to run the firmware, the [web installer](install-web-flasher.md) is faster and needs no toolchain.
+
 ## Prerequisites
 
 Install the following before getting started:

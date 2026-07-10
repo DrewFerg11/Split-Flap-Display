@@ -123,8 +123,9 @@ nav:
         - 3. Assembly: build/dual-display/build-guide/assembly.md
   - Firmware:
     - firmware/index.md
-    - Install (Web Flasher): firmware/install.md
-    - Build & Flash: firmware/setup.md
+    - Install (Web Flasher): firmware/install-web-flasher.md
+    - Troubleshooting: firmware/install-troubleshooting.md
+    - Install (Manual): firmware/install-manual.md
 
 copyright: Use at your own risk — <a href="/Split-Flap-Display/disclaimer/">Disclaimer</a>
 

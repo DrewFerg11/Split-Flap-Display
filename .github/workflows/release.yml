@@ -17,7 +17,7 @@ env:
   # GitHub Release asset URLs don't send CORS headers, so ESP Web Tools (running
   # in the browser) can't fetch manifests/binaries from github.com/.../releases/download/.
   # We publish a same-origin copy to GitHub Pages instead; see the "Publish binaries
-  # to GitHub Pages" step below and docs/firmware/install.md.
+  # to GitHub Pages" step below and docs/firmware/install-web-flasher.md.
   PAGES_BASE_URL: https://drewferg11.github.io/Split-Flap-Display
   RELEASES_KEEP_COUNT: 5
 

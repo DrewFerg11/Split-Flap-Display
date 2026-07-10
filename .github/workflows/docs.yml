@@ -88,7 +88,7 @@ jobs:
           if [ "$DEPLOY_DIR" = "." ]; then
             # Main branch: replace everything except the preview and releases folders
             # (releases/ holds firmware binaries published by release.yml for the
-            # ESP Web Tools install page - see docs/firmware/install.md)
+            # ESP Web Tools install page - see docs/firmware/install-web-flasher.md)
             find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'preview' ! -name 'releases' ! -name '.nojekyll' -exec rm -rf {} +
             cp -r ../site/. .
           else

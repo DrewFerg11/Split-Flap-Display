@@ -19,7 +19,7 @@ Plug the ESP32 into your computer with a USB cable. You don't need to know which
 
 <div id="install-unavailable" hidden markdown>
 !!! warning "No pre-built firmware available yet"
-    <span id="install-unavailable-text"></span> You can still [build from source](setup.md), or browse the [Releases page](https://github.com/DrewFerg11/Split-Flap-Display/releases) for other versions.
+    <span id="install-unavailable-text"></span> You can still [build from source](install-manual.md), or browse the [Releases page](https://github.com/DrewFerg11/Split-Flap-Display/releases) for other versions.
 </div>
 
 <div id="install-buttons" hidden markdown>
@@ -37,10 +37,21 @@ Plug the ESP32 into your computer with a USB cable. You don't need to know which
   <span slot="not-allowed">This page must be served over HTTPS to flash firmware.</span>
 </esp-web-install-button>
 
+<esp-web-install-button id="app-install">
+  <button slot="activate" class="md-button">Update Firmware Only</button>
+  <span slot="unsupported">Your browser doesn't support this. Use Chrome, Edge, or Opera on desktop.</span>
+  <span slot="not-allowed">This page must be served over HTTPS to flash firmware.</span>
+</esp-web-install-button>
+
 </div>
 
+There are two ways to flash, depending on what you're starting from:
+
+- **Install** — a full factory flash. Writes a clean firmware image and **erases everything first**: Wi-Fi credentials, MQTT config, module calibration, all of it. Use this for a brand-new board or if you want a fresh start.
+- **Update Firmware Only** — an in-place app update. Keeps your Wi-Fi/MQTT settings and module calibration intact. Use this on a board that's already running this firmware and just needs the latest version.
+
 !!! danger "Installing erases the board"
-    Installing writes a clean firmware image and **erases everything** first — Wi-Fi credentials, MQTT config, module calibration, all of it. You'll get a confirmation prompt before anything happens. This is the right choice for a brand-new board or a fresh start.
+    Both buttons show a confirmation prompt before anything happens. **Install** always erases first. **Update Firmware Only** only skips the erase when the board reports it's already running this same firmware (via Improv) — on any other board it falls back to a full erase-and-reinstall, same as **Install**.
 
 </div>
 
@@ -63,10 +74,7 @@ Once connected, you'll get a link straight to the device's IP address to open it
 
 ## Troubleshooting
 
-- **No device shows up when you click Install** — make sure you're using a **data** USB cable, not a charge-only one. Try a different USB port or cable.
-- **Board isn't detected / install fails immediately** — some boards (notably several ESP32-S3 minis) need to be put into upload mode manually: hold **BOOT**, press and release **RESET**, then release **BOOT**, then try again.
-- **Driver issues on Windows** — most boards use a CP2102 or CH340 USB-serial chip. If the port never appears in the browser's device picker, install the [CP210x](https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers) or [CH340](https://www.wch.cn/downloads/CH341SER_EXE.html) driver for your OS.
-- **Flashed, but nothing happens** — reconnect the cable and check that `Split Flap Display` appears in your Wi-Fi list within about 30 seconds of power-up.
+Device not detected, driver issues, or nothing happens after flashing? See the [troubleshooting page](install-troubleshooting.md).
 
 ## Erase the board completely (advanced)
 
@@ -193,14 +201,20 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   const unavailableTextEl = document.getElementById("install-unavailable-text");
   const buttonsEl = document.getElementById("install-buttons");
   const factoryBtn = document.getElementById("factory-install");
+  const appBtn = document.getElementById("app-install");
   const picker = document.getElementById("version-picker");
 
   function factoryManifestUrl(tag) {
     return PAGES_RELEASES_BASE + "/" + tag + "/manifest.json";
   }
 
+  function appManifestUrl(tag) {
+    return PAGES_RELEASES_BASE + "/" + tag + "/manifest-app.json";
+  }
+
   function showRelease(tag) {
     factoryBtn.manifest = factoryManifestUrl(tag);
+    appBtn.manifest = appManifestUrl(tag);
     loadingEl.hidden = true;
     unavailableEl.hidden = true;
     buttonsEl.hidden = false;

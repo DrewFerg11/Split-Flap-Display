@@ -46,4 +46,6 @@ Every page in this documentation at a glance.
 ## Firmware
 
 - [Firmware Overview](firmware/index.md)
-- [Build & Flash](firmware/setup.md)
+- [Install (Web Flasher)](firmware/install-web-flasher.md)
+- [Troubleshooting](firmware/install-troubleshooting.md)
+- [Install (Manual)](firmware/install-manual.md)
