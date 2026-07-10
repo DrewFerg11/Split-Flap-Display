@@ -32,6 +32,9 @@ jobs:
   build-and-deploy:
     name: Build and Deploy
     runs-on: ubuntu-latest
+    # Fork PRs get a read-only GITHUB_TOKEN, so the gh-pages push below would
+    # fail (cosmetic red X on every fork PR touching docs/). Skip cleanly.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Checkout source branch
         uses: actions/checkout@v4
