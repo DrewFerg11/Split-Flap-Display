@@ -1551,8 +1551,10 @@
 <li><strong>Update Firmware Only</strong> — an in-place app update. Keeps your Wi-Fi/MQTT settings and module calibration intact. Use this on a board that's already running this firmware and just needs the latest version.</li>
 </ul>
 <div class="admonition danger">
-<p class="admonition-title">Installing erases the board</p>
-<p>Both buttons show a confirmation prompt before anything happens. <strong>Install</strong> always erases first. <strong>Update Firmware Only</strong> only skips the erase when the board reports it's already running this same firmware (via Improv) — on any other board it falls back to a full erase-and-reinstall, same as <strong>Install</strong>.</p>
+<p class="admonition-title">Read this before using Update Firmware Only</p>
+<p>Both buttons show a confirmation prompt before anything happens. <strong>Install</strong> always erases first and is always safe — its image includes the bootloader.</p>
+<p><strong>Update Firmware Only is only safe on a board that was rebooted within the last ~5 minutes, with USB still connected.</strong> It relies on Improv to detect that the board is already running this firmware and skip the erase — but the firmware only listens for Improv for the first 5 minutes after boot, then stops. If Improv isn't responding (board powered on longer than that, or not freshly rebooted), the flasher can't detect the running firmware, so it <strong>erases the whole chip and then writes only the app</strong> — leaving no bootloader and an <strong>unbootable board</strong>, recoverable only with <strong>Install</strong>.</p>
+<p><strong>So: unplug and replug (or use Restart Device), wait for the board to finish booting, then use Update Firmware Only promptly.</strong> If you're not sure the board is inside the window, use <strong>Install</strong> instead — it's always safe (but wipes your settings).</p>
 </div>
 </div>
 <h2 id="3-connect-to-wi-fi">3. Connect to Wi-Fi<a class="headerlink" href="#3-connect-to-wi-fi" title="Permanent link">&para;</a></h2>
@@ -1833,7 +1835,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-07-10T21:32:00+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-07-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-07-11T01:07:39+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-07-11</span>
   </span>
 
     
