@@ -17,9 +17,9 @@ Plug the ESP32 into your computer. The installer auto-detects which board you ha
 
 === "WROOM / C3"
 
-    Just plug it in with a USB data cable. Nothing else to do — continue to the wait note below, then flash.
+    Just plug it in with a USB data cable. Nothing else to do — continue to **Flash the firmware**.
 
-=== "ESP32-S3 (extra step)"
+=== "S3 (extra step)"
 
     Many ESP32-S3 boards won't show up in the browser's device picker until you manually put them into **download mode**:
 
@@ -27,23 +27,19 @@ Plug the ESP32 into your computer. The installer auto-detects which board you ha
     2. While holding BOOT, **press and release** **RESET** (sometimes labelled **EN**).
     3. **Release** BOOT.
 
-    The board is now waiting for a flash. Continue to **Flash the firmware** — you don't need to wait 20 seconds when the S3 is held in download mode this way. After flashing finishes, press **RESET** once to boot the new firmware.
+    The board is now waiting for a flash. Continue to **Flash the firmware**. After flashing finishes, press **RESET** once to boot the new firmware.
 
     !!! tip "Still not detected?"
         Install the [CP210x](https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers) or [CH340](https://www.wch.cn/downloads/CH341SER_EXE.html) USB-serial driver for your OS, then retry. More fixes on the [troubleshooting page](install-troubleshooting.md).
 
-!!! danger "Connecting restarts the board — wait for `homing`. This is the #1 gotcha."
-    **Clicking Install or Update opens the serial connection, and that restarts the board.** This is expected — but it means the board needs ~20 seconds to boot *after you connect*, not after you plug in. Waiting before you click doesn't help, because connecting resets the clock.
+!!! tip "If Wi-Fi / Update options are missing: Logs & Console, then Back"
+    Clicking **Install** or **Update Firmware Only** opens the serial connection, and that **restarts the board** — expected, but it means the flasher checks for the running firmware while the board is still booting, and occasionally loses that race. When it does, the menu only shows **Install** and **Logs & Console**.
 
-    Until the board finishes booting, the flasher only offers **Install** and **Logs & Console**. The **Update Firmware Only**, **Visit Device**, and **Wi-Fi** options depend on Improv, which can't respond until the board finishes its Wi-Fi attempt and homes the modules.
+    **The fix takes two clicks:** choose **Logs & Console**, give it a beat, then press **Back**. The **Update Firmware Only**, **Wi-Fi**, and **Visit Device** options will be there.
 
-    **The reliable way to reach Update / Wi-Fi / Visit Device:**
+    Don't close the dialog and re-click Install to retry — closing it resets the board again, restarting the same race. Logs & Console → Back re-checks over the open connection without a reset, so it works every time.
 
-    1. Click **Install** and pick your device (this connects — and restarts the board).
-    2. Choose **Logs & Console** and watch the serial log until you see the **`homing`** line (~20 seconds, sometimes longer).
-    3. Press **Back**. The **Update Firmware Only**, **Wi-Fi**, and **Visit Device** options are now there.
-
-    _(A plain factory **Install** is always available and needs none of this — just click it. Skip straight to **Flash the firmware** if that's all you're doing.)_
+    _(A plain factory **Install** is always available and needs none of this — just click it.)_
 
 ## Flash the firmware
 
@@ -97,10 +93,8 @@ Right after flashing finishes, **stay on this page** — a Wi-Fi setup form appe
 
 Once connected, you'll get a link straight to the device's IP address to open its settings page.
 
-!!! warning "The `homing` wait applies here too"
-    The Wi-Fi form is driven by the same Improv service as the Update/Visit Device options, so it only appears **once the board has finished booting to the `homing` line** — roughly 20 seconds after the flash completes, sometimes longer. If the form doesn't show up right away, give it a moment; open **Logs & Console** to watch for `homing` and confirm the board is ready, then press **Back**.
-
-    **If it still doesn't appear — reboot the board once.** This applies to **both** paths (**Install** and **Update Firmware Only**): unplug and replug, or use **Restart Device** under **Logs & Console** (remember, reconnecting restarts the board on its own too), then wait for `homing`. A fresh boot restarts the 5-minute Improv window and is the most reliable way to get the Wi-Fi form (or the manual fallback below).
+!!! tip "Form didn't appear? Same two-click fix"
+    The Wi-Fi form is driven by the same service as the Update/Visit Device options, so the same trick applies: choose **Logs & Console**, give it a beat, then press **Back**. If it still doesn't show, reboot the board once (unplug/replug, or **Restart Device** under **Logs & Console**) and try again — a fresh boot restarts the 5-minute window the flasher relies on. Failing that, use the manual fallback below.
 
 ??? note "Browser doesn't support this, or the form doesn't appear"
     Some browsers can flash firmware but not do live Wi-Fi setup, and very old firmware won't support it either. Fall back to manual setup:
