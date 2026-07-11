@@ -53,8 +53,12 @@ There are two ways to flash, depending on what you're starting from:
 - **Install** — a full factory flash. Writes a clean firmware image and **erases everything first**: Wi-Fi credentials, MQTT config, module calibration, all of it. Use this for a brand-new board or if you want a fresh start.
 - **Update Firmware Only** — an in-place app update. Keeps your Wi-Fi/MQTT settings and module calibration intact. Use this on a board that's already running this firmware and just needs the latest version.
 
-!!! danger "Installing erases the board"
-    Both buttons show a confirmation prompt before anything happens. **Install** always erases first. **Update Firmware Only** only skips the erase when the board reports it's already running this same firmware (via Improv) — on any other board it falls back to a full erase-and-reinstall, same as **Install**.
+!!! danger "Read this before using Update Firmware Only"
+    Both buttons show a confirmation prompt before anything happens. **Install** always erases first and is always safe — its image includes the bootloader.
+
+    **Update Firmware Only is only safe on a board that was rebooted within the last ~5 minutes, with USB still connected.** It relies on Improv to detect that the board is already running this firmware and skip the erase — but the firmware only listens for Improv for the first 5 minutes after boot, then stops. If Improv isn't responding (board powered on longer than that, or not freshly rebooted), the flasher can't detect the running firmware, so it **erases the whole chip and then writes only the app** — leaving no bootloader and an **unbootable board**, recoverable only with **Install**.
+
+    **So: unplug and replug (or use Restart Device), wait for the board to finish booting, then use Update Firmware Only promptly.** If you're not sure the board is inside the window, use **Install** instead — it's always safe (but wipes your settings).
 
 </div>
 

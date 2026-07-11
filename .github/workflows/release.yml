@@ -283,12 +283,31 @@ jobs:
           # Skip Jekyll processing (see docs.yml for the same fix + rationale).
           touch .nojekyll
 
-          # Type-aware rolling window: walk folders newest-published first (mtime,
-          # not semver parsing, so it works across interleaved RCs/stables) and
-          # prune once each type's independent cap is exceeded.
+          # Type-aware rolling window: order folders newest-published first, then
+          # prune once each type's independent cap is exceeded (RCs and stables
+          # counted separately, so frequent RCs can't evict stables). Ordering
+          # comes from each folder's last git-commit time - durable publication
+          # metadata - NOT filesystem mtime: `git checkout` resets every file's
+          # mtime to checkout time, so `ls -t` would order these arbitrarily and
+          # could prune a newer folder while keeping an older one. The version
+          # published by this run isn't committed yet, so it's forced to newest.
+          ordered=()
+          for dir in releases/*/; do
+            [ -d "$dir" ] || continue
+            tag="$(basename "$dir")"
+            if [ "$tag" = "$VERSION" ]; then
+              ts=9999999999
+            else
+              ts="$(git log -1 --format=%ct -- "$dir")"
+              ts="${ts:-0}"
+            fi
+            ordered+=("$ts $dir")
+          done
+
           rc_count=0
           stable_count=0
-          for dir in $(ls -1dt releases/*/ 2>/dev/null); do
+          while read -r _ dir; do
+            [ -n "$dir" ] || continue
             tag="$(basename "$dir")"
             if [[ "$tag" == *-rc.* || "$tag" == *-beta* ]]; then
               rc_count=$((rc_count + 1))
@@ -297,7 +316,7 @@ jobs:
               stable_count=$((stable_count + 1))
               [ "$stable_count" -gt "${{ env.STABLE_KEEP_COUNT }}" ] && rm -rf "$dir"
             fi
-          done
+          done < <(printf '%s\n' "${ordered[@]}" | sort -rn -k1,1)
 
           git add -A
           if git diff --cached --quiet; then
