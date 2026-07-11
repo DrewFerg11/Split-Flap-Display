@@ -201,17 +201,18 @@ void setup() {
 
     Serial.println("Init Web Server");
     webServer.init();
-    backgroundTick(); // stay responsive between boot stages
 
+    // No further explicit ticks needed below: the long blocking sections all
+    // service Improv themselves (connectToWifi's retry loop, and homing via
+    // moveModules/moveToDual), and the remaining gaps between stages are tens
+    // of milliseconds - shorter than the flasher's own polling cadence.
     if (! webServer.connectToWifi()) {
         webServer.startAccessPoint();
         webServer.enableOta();
         webServer.startMDNS();
         webServer.startWebServer();
-        backgroundTick();
 
         display.init();
-        backgroundTick();
         display.homeToString("");
 
         if (display.getNumModules() == 8) {
@@ -223,14 +224,11 @@ void setup() {
         webServer.enableOta();
         webServer.startMDNS();
         webServer.startWebServer();
-        backgroundTick();
 
         display.init();
-        backgroundTick();
         splitflapMqtt.setDisplay(&display);
         splitflapMqtt.setup();
         display.setMqtt(&splitflapMqtt);
-        backgroundTick();
 
 #ifdef ENABLE_DUAL_I2C
         if (display.getWire1Count() > 0) {
