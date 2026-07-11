@@ -130,3 +130,12 @@
     transform: translateX(340%);
   }
 }
+
+/* Respect reduced-motion: drop the sliding animation but keep a static bar so
+   there's still a visible "in progress" indicator. */
+@media (prefers-reduced-motion: reduce) {
+  .flasher-progress__fill {
+    animation: none;
+    width: 100%;
+  }
+}
