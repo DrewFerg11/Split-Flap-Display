@@ -116,9 +116,13 @@ jobs:
 
       - name: Extract flash usage
         run: |
-          LINE=$(grep -oE 'Flash:[^(]*\(used [0-9]+ bytes from [0-9]+ bytes\)' build.log | tail -1)
-          USED=$(echo "$LINE" | grep -oE 'used [0-9]+' | grep -oE '[0-9]+')
-          TOTAL=$(echo "$LINE" | grep -oE 'from [0-9]+' | grep -oE '[0-9]+')
+          # Use the APPSIZE line (actual firmware.bin size vs app partition,
+          # from build/scripts/check_app_size.py) - NOT PlatformIO's "Flash:"
+          # figure, which omits MMU-alignment padding and understates the
+          # image the bootloader actually validates against the partition.
+          LINE=$(grep -oE 'APPSIZE: firmware\.bin is [0-9]+ bytes, app partition is [0-9]+ bytes' build.log | tail -1)
+          USED=$(echo "$LINE" | grep -oE '[0-9]+' | head -1)
+          TOTAL=$(echo "$LINE" | grep -oE '[0-9]+' | tail -1)
           mkdir -p meta
           echo "${{ matrix.env }}|${USED}|${TOTAL}" > meta/flash-${{ matrix.env }}.txt
           cat meta/flash-${{ matrix.env }}.txt
@@ -144,7 +148,7 @@ jobs:
             0x8000 .pio/build/${{ matrix.env }}/partitions.bin \
             0xe000 "${{ steps.tools.outputs.boot_app0 }}" \
             0x10000 .pio/build/${{ matrix.env }}/firmware.bin \
-            0x290000 .pio/build/${{ matrix.env }}/littlefs.bin
+            0x310000 .pio/build/${{ matrix.env }}/littlefs.bin
 
       - name: Copy app-only image
         run: |
