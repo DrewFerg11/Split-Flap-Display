@@ -34,6 +34,17 @@ def build_manifest(version, download_base_url, kind, offset):
         )
     return {
         "name": "Split Flap Display",
+        # Release tag (e.g. "v1.2.1"). ESP Web Tools shows this in the flash
+        # dialog and compares it against the version Improv reports from the
+        # running board, which is what powers the "already on this firmware"
+        # detection the Update Firmware Only flow relies on.
+        "version": version,
+        # After a fresh factory install, ESP Web Tools reboots the board and
+        # waits this many seconds for Improv to come up before showing the
+        # Wi-Fi setup form. The board needs ~20s to finish booting to homing,
+        # so the ESP Web Tools default of 10s is too short and the form gets
+        # skipped - bump it to comfortably cover the boot.
+        "new_install_improv_wait_time": 30,
         # With no Improv support yet (Step 4), ESP Web Tools can't detect the
         # running firmware, so new_install_prompt_erase=false makes it force a
         # full-chip erase + full write - a clean install with a single confirm

@@ -93,6 +93,11 @@ Right after flashing finishes, **stay on this page** — a Wi-Fi setup form appe
 
 Once connected, you'll get a link straight to the device's IP address to open its settings page.
 
+!!! warning "The ~20-second wait applies here too"
+    The Wi-Fi form is driven by the same Improv service as the Update/Visit Device options, so it only appears **once the board has finished booting to the `homing` line** — roughly 20 seconds after the flash completes, sometimes longer. If the form doesn't show up right away, give it a moment; open **Logs & Console** to watch for `homing` and confirm the board is ready.
+
+    **If it still doesn't appear — reboot the board once.** This applies to **both** paths (**Install** and **Update Firmware Only**): unplug and replug, or use **Restart Device** under **Logs & Console**, then wait for `homing`. A fresh boot restarts the 5-minute Improv window and is the most reliable way to get the Wi-Fi form (or the manual fallback below).
+
 ??? note "Browser doesn't support this, or the form doesn't appear"
     Some browsers can flash firmware but not do live Wi-Fi setup, and very old firmware won't support it either. Fall back to manual setup:
 
