@@ -345,8 +345,7 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
         return;
     }
 #endif
-    // Runs directly on the main thread (no background task here), so it's
-    // safe to service Improv Wi-Fi during the move.
+    // Main thread, so servicing Improv during the move is safe.
     moveModules(modules, numModules, targetPositions, speed, releaseMotors, stepsPerRot, maxVel, backgroundTick);
 }
 
@@ -401,15 +400,10 @@ void SplitFlapDisplay::moveModules(
         }
 
         if ((currentTime - lastSensorCheckTime) > checkIntervalUs) { // check hall effect sensor every checkIntervalMs
-            // Service Improv here (every ~20ms) rather than every loop
-            // iteration, to keep the microsecond-timed stepping path free of
-            // any extra work. backgroundTick() drains all pending serial
-            // bytes, so this cadence is enough to stay responsive.
-            //
-            // idleCallback is a param (rather than calling backgroundTick()
-            // directly, as moveToDual()/connectToWifi() do) so busMovementTask
-            // can opt out by passing nullptr - Improv's parser isn't
-            // thread-safe, so it must never run on the background bus tasks.
+            // Service Improv on this ~20ms cadence, keeping the
+            // microsecond-timed stepping path free of extra work. A param
+            // rather than a direct call so busMovementTask can pass nullptr
+            // (Improv's parser isn't thread-safe).
             if (idleCallback) idleCallback();
 
             // check every modules sensor
@@ -492,10 +486,8 @@ struct BusMoveParams
 
 static void busMovementTask(void *param) {
     BusMoveParams *p = static_cast<BusMoveParams *>(param);
-    // No idleCallback here (defaults to nullptr) - this runs on a background
-    // task, and ImprovWiFi::handleSerial() isn't safe to call concurrently
-    // from two threads. Improv is serviced from moveToDual()'s wait loop on
-    // the main thread instead.
+    // No idleCallback: background task, and Improv's parser isn't thread-safe.
+    // moveToDual()'s wait loop services Improv from the main thread instead.
     SplitFlapDisplay::moveModules(
         p->modules, p->count, p->targets, p->speed, p->releaseMotors, p->stepsPerRot, p->maxVel
     );
@@ -523,9 +515,7 @@ void SplitFlapDisplay::moveToDual(int *targetPositions, float speed, bool releas
         tasksToWait++;
     }
 
-    // Poll with a short timeout (rather than block indefinitely) so Improv
-    // Wi-Fi stays responsive here on the main thread while the background bus
-    // tasks above do the actual stepping.
+    // Short-timeout poll so Improv stays serviced while the bus tasks step.
     for (int i = 0; i < tasksToWait; i++) {
         while (xSemaphoreTake(doneSem, pdMS_TO_TICKS(20)) != pdTRUE) {
             backgroundTick();
@@ -536,6 +526,7 @@ void SplitFlapDisplay::moveToDual(int *targetPositions, float speed, bool releas
 }
 
 void SplitFlapDisplay::homeToStringDual(String row1, String row2, float speed, bool centering) {
+    Serial.println("Homing");
     int targetPositions[numModules];
 
     // Phase 1: spin nearly full rotation to find magnets

@@ -2,10 +2,8 @@
 
 #include "BackgroundTick.h"
 
-// Settle delay that stays Improv-responsive. init() runs on the main thread
-// during boot, and its five 100ms settle delays add up fast - 16 modules x
-// 500ms is ~8 seconds of plain delay() during which the web flasher couldn't
-// get an answer (the dead zone between the boot settle loop and homing).
+// Settle delay that stays Improv-responsive: init()'s delays total 500ms per
+// module (~8s for 16 modules), long enough to matter to the web flasher.
 static void settleDelay(unsigned long ms) {
     const unsigned long start = millis();
     while (millis() - start < ms) {

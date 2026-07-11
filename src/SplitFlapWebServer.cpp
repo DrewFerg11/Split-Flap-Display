@@ -1,10 +1,9 @@
 #include "SplitFlapWebServer.h"
 
+#include "BackgroundTick.h"
+
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
-
-// Safe to call here: connectToWifi() only ever runs on the main thread.
-#include "BackgroundTick.h"
 
 #define AP_SSID "Split Flap Display"
 

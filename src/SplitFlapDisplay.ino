@@ -83,35 +83,22 @@ void improvOnError(ImprovTypes::Error err) {
     Serial.printf("Improv: error %d\n", (int) err);
 }
 
-// Improv Wi-Fi is only needed to (re)configure Wi-Fi over USB, which is a
-// setup-time action - a deployed display runs on its 5V supply with USB
-// disconnected, so there's nothing on the serial port to service. We therefore
-// only listen for the first IMPROV_ACTIVE_MS after a reboot, then stop. To
-// reconfigure Wi-Fi later, reboot the board with USB connected.
-const unsigned long IMPROV_ACTIVE_MS = 5 * 60 * 1000; // 5 minutes
+// Improv is a setup-time tool (Wi-Fi config over USB), so only listen for the
+// first 5 minutes after boot. To reconfigure later, reboot with USB connected.
+const unsigned long IMPROV_ACTIVE_MS = 5 * 60 * 1000;
+static bool improvActive = true; // latched off; never re-arms (millis rollover safe)
 
-// Latched off once the window closes and never re-arms - including across the
-// millis() rollover at ~49 days, which would otherwise briefly re-enter the
-// window. Shared by loop() and the boot-time blocking loops (via
-// backgroundTick), so Improv shuts off everywhere at once.
-static bool improvActive = true;
-
-// Services Improv Wi-Fi during long blocking operations (motor homing, Wi-Fi
-// connect retry) that would otherwise run to completion before loop() - and
-// therefore improv.handleSerial() - ever gets called. Only ever call this from
-// the main thread: the dual-I2C bus tasks (busMovementTask) must NOT call it,
-// since ImprovWiFi's internal frame-parse state isn't thread-safe.
+// Services Improv Wi-Fi. Called from loop() and from within boot-time blocking
+// operations (startup delay, Wi-Fi connect, module init, homing) so the web
+// flasher gets answers during boot too. Main thread only - Improv's frame
+// parser isn't thread-safe, so the dual-I2C bus tasks must never call this.
 void backgroundTick() {
     if (! improvActive) return;
     if (millis() >= IMPROV_ACTIVE_MS) {
         improvActive = false;
         return;
     }
-    // handleSerial() consumes at most one byte per call, so drain everything
-    // pending. Callers may only tick every ~20ms (see moveModules), and one
-    // byte per 20ms would take seconds to parse a single Improv frame; the
-    // UART driver's RX buffer comfortably holds 20ms of traffic between ticks.
-    while (Serial.available() > 0) {
+    while (Serial.available() > 0) { // handleSerial() reads one byte per call
         improv.handleSerial();
     }
 }
@@ -148,17 +135,13 @@ const char *resetReasonToString(esp_reset_reason_t reason) {
 }
 
 void setup() {
-    // put your setup code here, to run once:
     Serial.begin(SERIAL_SPEED);
 
-    // Set up Improv before anything else - literally first after Serial.
-    // ESP Web Tools probes Improv exactly once, ~1s after opening the port
-    // (which resets the board), and gives up 1s later - miss that single ~2s
-    // window and the flasher hides the Wi-Fi/Update/Visit Device options
-    // until the dialog is reopened. Every millisecond before the first
-    // backgroundTick() counts, so don't even read NVS here: start with the
-    // firmware name as a placeholder device name and refresh it from settings
-    // after the probe window (below).
+    // Set up Improv first: the web flasher probes it exactly once, ~1-2s after
+    // opening the port (which resets the board). Miss that window and the
+    // flasher hides the Wi-Fi/Update options until the dialog is reopened.
+    // Device name starts as a placeholder (no NVS read yet); the real name is
+    // swapped in after the startup delay below.
 #if defined(CONFIG_IDF_TARGET_ESP32C3)
     const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_C3;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
@@ -172,8 +155,7 @@ void setup() {
     improv.setCustomConnectWiFi(improvConnectWifi);
 
 #ifdef STARTUP_DELAY
-    // Keep the settle delay, but answer Improv during it instead of sleeping
-    // through it - this delay used to eat the flasher's entire probe window.
+    // Settle delay, kept Improv-responsive (this is the flasher's probe window)
     {
         const unsigned long startupDelayStart = millis();
         while (millis() - startupDelayStart < STARTUP_DELAY) {
@@ -183,10 +165,8 @@ void setup() {
     }
 #endif
 
-    // Now that the probe window has been covered, swap in the user's device
-    // name from NVS. Held in a static String because setDeviceInfo() stores
-    // the raw pointer, not a copy - passing a temporary's c_str() (as this
-    // code once did) leaves it dangling.
+    // Static because setDeviceInfo() keeps the raw pointer (a temporary's
+    // c_str() would dangle).
     static String improvDeviceName = settings.getString("name");
     if (improvDeviceName.length() > 0) {
         improv.setDeviceInfo(improvChipFamily, "Split Flap Display", FIRMWARE_VERSION, improvDeviceName.c_str());
@@ -202,10 +182,8 @@ void setup() {
     Serial.println("Init Web Server");
     webServer.init();
 
-    // No further explicit ticks needed below: the long blocking sections all
-    // service Improv themselves (connectToWifi's retry loop, and homing via
-    // moveModules/moveToDual), and the remaining gaps between stages are tens
-    // of milliseconds - shorter than the flasher's own polling cadence.
+    // The long blocking sections below (Wi-Fi connect, module init, homing)
+    // all service Improv internally via backgroundTick().
     if (! webServer.connectToWifi()) {
         webServer.startAccessPoint();
         webServer.enableOta();
@@ -245,9 +223,7 @@ void setup() {
 }
 
 void loop() {
-    // Listen for Improv Wi-Fi only during the window after boot (see
-    // IMPROV_ACTIVE_MS / improvActive above backgroundTick).
-    backgroundTick();
+    backgroundTick(); // Improv Wi-Fi (first 5 min after boot only)
 
     splitflapMqtt.loop();
 
