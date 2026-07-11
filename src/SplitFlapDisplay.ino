@@ -62,11 +62,13 @@ SplitFlapWebServer webServer(settings);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
 ImprovWiFi improv(&Serial);
 
-// Set true when Improv provisions Wi-Fi mid-boot (while setup()'s blocking
-// init/homing is pumping backgroundTick()). Lets the failed-connect branch
-// notice the late success and run the connected-path init instead of leaving
-// "Wifi Err" up with MQTT down until reboot. Main thread only, so no locking.
-static bool improvProvisioned = false;
+// Latched when Improv provisions Wi-Fi, then consumed by backgroundTick() to
+// reboot. We can't reboot inside the connect callback below: the Improv success
+// response - which carries the "Visit Device" URL the flasher links to - is only
+// sent by the library after the callback returns. Rebooting from backgroundTick()
+// instead lets that response flush first, then boot into the normal connected
+// path (MQTT, homing "OK") regardless of when during the 5-min window it arrived.
+static bool improvRebootPending = false;
 
 // Improv Wi-Fi Serial callbacks. These are plain C-style function pointers
 // (not class methods/std::function), so they reference the globals above
@@ -79,7 +81,7 @@ bool improvConnectWifi(const char *ssid, const char *password) {
     settings.putString("ssid", ssid);
     settings.putString("password", password);
     if (webServer.connectToWifi()) {
-        improvProvisioned = true;
+        improvRebootPending = true;
         return true;
     }
     return false;
@@ -110,6 +112,14 @@ void backgroundTick() {
     }
     while (Serial.available() > 0) { // handleSerial() reads one byte per call
         improv.handleSerial();
+    }
+    if (improvRebootPending) {
+        // Provisioning just succeeded and handleSerial() has sent the success +
+        // device-URL response; flush it off the wire, then reboot into the
+        // normal connected path so MQTT and the "OK" homing run.
+        Serial.flush();
+        delay(100);
+        ESP.restart();
     }
 }
 
@@ -203,15 +213,10 @@ void setup() {
         display.init();
         display.homeToString("");
 
-        if (improvProvisioned) {
-            // Improv connected us during the blocking init/homing above, so run
-            // the connected-path init this branch skipped (MQTT + clear display)
-            // instead of showing "Wifi Err". The AP/web server stay up; harmless.
-            splitflapMqtt.setDisplay(&display);
-            splitflapMqtt.setup();
-            display.setMqtt(&splitflapMqtt);
-            display.writeString("");
-        } else if (display.getNumModules() == 8) {
+        // Provisioning via Improv from here (or later in loop()) reboots the
+        // board, so it comes back through the connected branch below - no need
+        // to handle a mid-boot success specially here.
+        if (display.getNumModules() == 8) {
             display.writeString("Wifi Err");
         } else {
             display.writeChar('X');

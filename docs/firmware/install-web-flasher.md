@@ -127,7 +127,7 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
 <!-- Erase confirmation + progress dialog, styled to match ESP Web Tools' popups. -->
 <div id="erase-modal" class="flasher-modal" hidden>
   <div class="flasher-modal__backdrop" id="erase-backdrop"></div>
-  <div class="flasher-modal__card" role="dialog" aria-modal="true" aria-labelledby="erase-modal-title">
+  <div class="flasher-modal__card" role="dialog" aria-modal="true" aria-labelledby="erase-modal-title" tabindex="-1">
     <h3 id="erase-modal-title" class="flasher-modal__title">Erase Device</h3>
     <p id="erase-modal-status" class="flasher-modal__status" role="status" aria-live="polite" aria-atomic="true"></p>
     <div id="erase-modal-progress" class="flasher-progress" hidden>
@@ -182,6 +182,7 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
 
   const openBtn = document.getElementById("erase-button");
   const modal = document.getElementById("erase-modal");
+  const card = modal.querySelector(".flasher-modal__card");
   const backdrop = document.getElementById("erase-backdrop");
   const statusEl = document.getElementById("erase-modal-status");
   const progressEl = document.getElementById("erase-modal-progress");
@@ -199,12 +200,13 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   // close (dialog focus management for keyboard/screen-reader users).
   let opener = null;
 
-  // Move focus onto the currently visible primary action. Called after any
-  // state change that hides/shows buttons so focus never lands on (or gets
-  // stranded behind) a hidden control.
+  // Move focus onto the currently visible primary action, falling back to the
+  // dialog card itself when no button is showing (during the erase, every
+  // button is hidden). Called after any state change that hides/shows buttons
+  // so focus never lands on - or gets stranded behind - a hidden control.
   function focusPrimary() {
-    const target = [closeBtn, confirmBtn, cancelBtn].find((b) => !b.hidden);
-    if (target) target.focus();
+    const target = [closeBtn, confirmBtn, cancelBtn].find((b) => !b.hidden) || card;
+    target.focus();
   }
 
   function openModal() {
@@ -234,6 +236,9 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
     confirmBtn.hidden = true;
     cancelBtn.hidden = true;
     closeBtn.hidden = true;
+    // Confirm was focused and is now hidden along with every other button;
+    // park focus on the card so it doesn't fall behind the overlay.
+    focusPrimary();
   }
 
   function toFinished(msg) {
@@ -263,7 +268,13 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
       }
       if (e.key !== "Tab") return;
       const focusable = [cancelBtn, confirmBtn, closeBtn].filter((b) => !b.hidden);
-      if (focusable.length === 0) return;
+      if (focusable.length === 0) {
+        // Erasing: no buttons to land on, so keep focus on the card instead of
+        // letting Tab escape to controls behind the overlay.
+        e.preventDefault();
+        card.focus();
+        return;
+      }
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (e.shiftKey && document.activeElement === first) {
