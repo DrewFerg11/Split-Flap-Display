@@ -1,4 +1,4 @@
-name: Deploy Documentation
+name: Docs / Deploy
 
 on:
   push:
@@ -10,13 +10,13 @@ on:
       - docs/**
       - overrides/**
       - mkdocs.yml
-      - .github/workflows/docs.yml
+      - .github/workflows/docs-deploy.yml
   pull_request:
     paths:
       - docs/**
       - overrides/**
       - mkdocs.yml
-      - .github/workflows/docs.yml
+      - .github/workflows/docs-deploy.yml
   workflow_dispatch:
 
 permissions:
