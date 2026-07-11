@@ -129,7 +129,7 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   <div class="flasher-modal__backdrop" id="erase-backdrop"></div>
   <div class="flasher-modal__card" role="dialog" aria-modal="true" aria-labelledby="erase-modal-title">
     <h3 id="erase-modal-title" class="flasher-modal__title">Erase Device</h3>
-    <p id="erase-modal-status" class="flasher-modal__status"></p>
+    <p id="erase-modal-status" class="flasher-modal__status" role="status" aria-live="polite" aria-atomic="true"></p>
     <div id="erase-modal-progress" class="flasher-progress" hidden>
       <div class="flasher-progress__fill"></div>
     </div>
@@ -195,20 +195,36 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
 
   // While an erase is running the dialog can't be dismissed.
   let busy = false;
+  // The element focused before the dialog opened, so focus can be restored on
+  // close (dialog focus management for keyboard/screen-reader users).
+  let opener = null;
+
+  // Move focus onto the currently visible primary action. Called after any
+  // state change that hides/shows buttons so focus never lands on (or gets
+  // stranded behind) a hidden control.
+  function focusPrimary() {
+    const target = [closeBtn, confirmBtn, cancelBtn].find((b) => !b.hidden);
+    if (target) target.focus();
+  }
 
   function openModal() {
     busy = false;
+    opener = document.activeElement;
     statusEl.textContent = CONFIRM_TEXT;
     progressEl.hidden = true;
     confirmBtn.hidden = false;
     cancelBtn.hidden = false;
     closeBtn.hidden = true;
     modal.hidden = false;
+    focusPrimary();
   }
 
   function closeModal() {
     if (busy) return;
     modal.hidden = true;
+    // Restore focus to whatever opened the dialog.
+    if (opener && typeof opener.focus === "function") opener.focus();
+    opener = null;
   }
 
   function toWorking(msg) {
@@ -227,6 +243,9 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
     confirmBtn.hidden = true;
     cancelBtn.hidden = true;
     closeBtn.hidden = false;
+    // Confirm/Cancel just vanished - move focus to the now-visible Close button
+    // so keyboard users aren't stranded on a hidden control.
+    focusPrimary();
   }
 
   if (openBtn && modal) {
@@ -234,6 +253,27 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
     cancelBtn.addEventListener("click", closeModal);
     closeBtn.addEventListener("click", closeModal);
     backdrop.addEventListener("click", closeModal);
+
+    // Keep keyboard focus inside the dialog while it's open: Escape dismisses
+    // (when idle), and Tab cycles only through the visible action buttons.
+    modal.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeModal();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusable = [cancelBtn, confirmBtn, closeBtn].filter((b) => !b.hidden);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
 
     confirmBtn.addEventListener("click", async () => {
       if (!("serial" in navigator)) {

@@ -62,6 +62,12 @@ SplitFlapWebServer webServer(settings);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
 ImprovWiFi improv(&Serial);
 
+// Set true when Improv provisions Wi-Fi mid-boot (while setup()'s blocking
+// init/homing is pumping backgroundTick()). Lets the failed-connect branch
+// notice the late success and run the connected-path init instead of leaving
+// "Wifi Err" up with MQTT down until reboot. Main thread only, so no locking.
+static bool improvProvisioned = false;
+
 // Improv Wi-Fi Serial callbacks. These are plain C-style function pointers
 // (not class methods/std::function), so they reference the globals above
 // directly rather than taking `this` - same free-function style already used
@@ -72,7 +78,11 @@ bool improvConnectWifi(const char *ssid, const char *password) {
     // as a normal boot-time connect.
     settings.putString("ssid", ssid);
     settings.putString("password", password);
-    return webServer.connectToWifi();
+    if (webServer.connectToWifi()) {
+        improvProvisioned = true;
+        return true;
+    }
+    return false;
 }
 
 void improvOnConnected(const char *ssid, const char *password) {
@@ -193,7 +203,15 @@ void setup() {
         display.init();
         display.homeToString("");
 
-        if (display.getNumModules() == 8) {
+        if (improvProvisioned) {
+            // Improv connected us during the blocking init/homing above, so run
+            // the connected-path init this branch skipped (MQTT + clear display)
+            // instead of showing "Wifi Err". The AP/web server stay up; harmless.
+            splitflapMqtt.setDisplay(&display);
+            splitflapMqtt.setup();
+            display.setMqtt(&splitflapMqtt);
+            display.writeString("");
+        } else if (display.getNumModules() == 8) {
             display.writeString("Wifi Err");
         } else {
             display.writeChar('X');
