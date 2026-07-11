@@ -1,0 +1,132 @@
+/* Center text content inside grid cards */
+.md-typeset .grid.cards > ul > li {
+  text-align: center;
+}
+
+/* Utility: center a block-level image */
+.md-typeset img.center {
+  display: block;
+  margin: 1rem auto;
+}
+
+/* ==========================================================================
+   Web flasher page (firmware/install-web-flasher.md)
+   A cohesive, numbered step flow plus an erase dialog styled to match the
+   ESP Web Tools install/update popups.
+   ========================================================================== */
+
+/* Numbered "step" headings. Each top-level H2 inside .flasher gets an
+   auto-incrementing badge, so the three steps read as one connected flow. */
+.md-typeset .flasher {
+  counter-reset: flasher-step;
+}
+.md-typeset .flasher > h2 {
+  counter-increment: flasher-step;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.md-typeset .flasher > h2::before {
+  content: counter(flasher-step);
+  flex: 0 0 auto;
+  width: 1.7em;
+  height: 1.7em;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--md-accent-fg-color);
+  color: #000;
+  font-size: 0.75em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Row of Install / Update / Erase buttons. */
+.install-button-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+/* Danger button (Erase) — shared by the page button and the modal. */
+.md-typeset .md-button--danger {
+  color: #fff;
+  background-color: #d32f2f;
+  border-color: #d32f2f;
+}
+.md-typeset .md-button--danger:hover,
+.md-typeset .md-button--danger:focus {
+  color: #fff;
+  background-color: #b71c1c;
+  border-color: #b71c1c;
+}
+
+/* Erase confirmation / progress modal — mirrors the ESP Web Tools dialog:
+   dimmed backdrop, centered card, matching type and buttons. */
+.flasher-modal[hidden] {
+  display: none;
+}
+.flasher-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+.flasher-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+.md-typeset .flasher-modal__card {
+  position: relative;
+  z-index: 1;
+  width: min(28rem, 92vw);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  background: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
+.md-typeset .flasher-modal__title {
+  margin: 0 0 0.75rem;
+}
+.md-typeset .flasher-modal__status {
+  margin: 0;
+}
+.flasher-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+/* Indeterminate progress bar shown while erasing. */
+.flasher-progress[hidden] {
+  display: none;
+}
+.flasher-progress {
+  margin-top: 1rem;
+  height: 0.4rem;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  background: var(--md-default-fg-color--lightest);
+}
+.flasher-progress__fill {
+  height: 100%;
+  width: 35%;
+  border-radius: inherit;
+  background: var(--md-accent-fg-color);
+  animation: flasher-indeterminate 1.2s ease-in-out infinite;
+}
+@keyframes flasher-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
