@@ -151,20 +151,12 @@ void setup() {
     // put your setup code here, to run once:
     Serial.begin(SERIAL_SPEED);
 
-#ifdef STARTUP_DELAY
-    delay(STARTUP_DELAY);
-#endif
-
-    Serial.println("=== Split Flap Display ===");
-    Serial.printf("Firmware: %s (%s)\n", FIRMWARE_VERSION, FIRMWARE_BUILD_SOURCE);
-    Serial.printf("Chip: %s rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
-    Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
-    Serial.printf("Reset reason: %s\n", resetReasonToString(esp_reset_reason()));
-    Serial.println("===========================");
-
-    Serial.println("Init Web Server");
-    webServer.init();
-
+    // Set up Improv before anything else that takes time. ESP Web Tools
+    // probes Improv exactly once, ~1s after opening the port (which resets
+    // the board), and gives up 1s later - miss that single ~2s window and the
+    // flasher hides the Wi-Fi/Update/Visit Device options until the dialog is
+    // reopened. Settings come straight from NVS (no LittleFS dependency), so
+    // this is safe to do first.
 #if defined(CONFIG_IDF_TARGET_ESP32C3)
     const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_C3;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
@@ -177,13 +169,38 @@ void setup() {
     improv.onImprovConnected(improvOnConnected);
     improv.setCustomConnectWiFi(improvConnectWifi);
 
+#ifdef STARTUP_DELAY
+    // Keep the settle delay, but answer Improv during it instead of sleeping
+    // through it - this delay used to eat the flasher's entire probe window.
+    {
+        const unsigned long startupDelayStart = millis();
+        while (millis() - startupDelayStart < STARTUP_DELAY) {
+            backgroundTick();
+            delay(1);
+        }
+    }
+#endif
+
+    Serial.println("=== Split Flap Display ===");
+    Serial.printf("Firmware: %s (%s)\n", FIRMWARE_VERSION, FIRMWARE_BUILD_SOURCE);
+    Serial.printf("Chip: %s rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
+    Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
+    Serial.printf("Reset reason: %s\n", resetReasonToString(esp_reset_reason()));
+    Serial.println("===========================");
+
+    Serial.println("Init Web Server");
+    webServer.init();
+    backgroundTick(); // stay responsive between boot stages
+
     if (! webServer.connectToWifi()) {
         webServer.startAccessPoint();
         webServer.enableOta();
         webServer.startMDNS();
         webServer.startWebServer();
+        backgroundTick();
 
         display.init();
+        backgroundTick();
         display.homeToString("");
 
         if (display.getNumModules() == 8) {
@@ -195,11 +212,14 @@ void setup() {
         webServer.enableOta();
         webServer.startMDNS();
         webServer.startWebServer();
+        backgroundTick();
 
         display.init();
+        backgroundTick();
         splitflapMqtt.setDisplay(&display);
         splitflapMqtt.setup();
         display.setMqtt(&splitflapMqtt);
+        backgroundTick();
 
 #ifdef ENABLE_DUAL_I2C
         if (display.getWire1Count() > 0) {
