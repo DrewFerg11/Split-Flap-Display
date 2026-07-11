@@ -1,6 +1,6 @@
 {
   "name": "Split Flap Display",
-  "version": "v1.3.0-rc.1",
+  "version": "v1.3.0-rc.4",
   "new_install_improv_wait_time": 30,
   "new_install_prompt_erase": false,
   "builds": [
@@ -8,7 +8,7 @@
       "chipFamily": "ESP32",
       "parts": [
         {
-          "path": "https://drewferg11.github.io/Split-Flap-Display/releases/v1.3.0-rc.1/splitflap-esp32_wroom-v1.3.0-rc.1-app.bin",
+          "path": "https://drewferg11.github.io/Split-Flap-Display/releases/v1.3.0-rc.4/splitflap-esp32_wroom-v1.3.0-rc.4-app.bin",
           "offset": 65536
         }
       ]
@@ -17,7 +17,7 @@
       "chipFamily": "ESP32-C3",
       "parts": [
         {
-          "path": "https://drewferg11.github.io/Split-Flap-Display/releases/v1.3.0-rc.1/splitflap-esp32_c3-v1.3.0-rc.1-app.bin",
+          "path": "https://drewferg11.github.io/Split-Flap-Display/releases/v1.3.0-rc.4/splitflap-esp32_c3-v1.3.0-rc.4-app.bin",
           "offset": 65536
         }
       ]
@@ -26,7 +26,7 @@
       "chipFamily": "ESP32-S3",
       "parts": [
         {
-          "path": "https://drewferg11.github.io/Split-Flap-Display/releases/v1.3.0-rc.1/splitflap-esp32_s3-v1.3.0-rc.1-app.bin",
+          "path": "https://drewferg11.github.io/Split-Flap-Display/releases/v1.3.0-rc.4/splitflap-esp32_s3-v1.3.0-rc.4-app.bin",
           "offset": 65536
         }
       ]

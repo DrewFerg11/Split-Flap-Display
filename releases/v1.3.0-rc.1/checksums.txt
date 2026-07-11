@@ -1,6 +1,0 @@
-615b6450f32cf86191916c97d8cb0a2f7bb3737b58c32f3531fc7dbd41ecdf58  splitflap-esp32_c3-v1.3.0-rc.1-app.bin
-e3da9858858062c0dd27211a00a729db49500c53f28053f9a269bfa421754886  splitflap-esp32_c3-v1.3.0-rc.1-factory.bin
-ef7cd86b5ca37a6001978e43370de19b0c84529dd0d10c37fb657df19f33beb1  splitflap-esp32_s3-v1.3.0-rc.1-app.bin
-d24733a158c9c10c897a729100ebc45a0987537be33656ce862f4ae663188c0f  splitflap-esp32_s3-v1.3.0-rc.1-factory.bin
-ba366913f3df9704893ba5ce2613d2c13e20e7210ed93715552eba78d62ebe8d  splitflap-esp32_wroom-v1.3.0-rc.1-app.bin
-ffad1208e7c8b9a1fce7ed4a81fc1fdc3fca98f7e23716cd55462e421dda0883  splitflap-esp32_wroom-v1.3.0-rc.1-factory.bin
