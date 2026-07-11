@@ -10,9 +10,11 @@
 #
 # <meta-dir> holds flash-<env>.txt files, one per board, each a single line:
 #   <env>|<used-bytes>|<total-bytes>
-# produced by the release workflow parsing PlatformIO's "Flash: ... (used X from Y)"
-# output. We use PlatformIO's reported figure (not the on-disk firmware.bin size,
-# which includes chip-specific MMU-alignment padding and overstates usage).
+# produced by the release workflow parsing the APPSIZE line from
+# build/scripts/check_app_size.py: the on-disk firmware.bin size vs the app
+# partition size. The .bin size (including MMU-alignment padding) is what the
+# bootloader validates against the partition, so it is the honest figure -
+# PlatformIO's smaller "Flash:" number is what let an oversized C3 image ship.
 #
 # [ai-summary-file], if given and non-empty, is a short AI-generated summary of the
 # commit log (see release.yml's "AI release summary" step). Best-effort only - if
