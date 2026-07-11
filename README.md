@@ -1,6 +1,6 @@
 # Split Flap Display
 
-![format badge](https://github.com/DrewFerg11/Split-Flap-Display/actions/workflows/format-check.yml/badge.svg?branch=main)
+![format badge](https://github.com/DrewFerg11/Split-Flap-Display/actions/workflows/ci-format.yml/badge.svg?branch=main)
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/RCvks4XXXH?style=flat)](https://discord.gg/RCvks4XXXH)
 
 ![Split-flap display in action](docs/assets/display/split-flap.gif)

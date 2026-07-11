@@ -1,4 +1,4 @@
-name: Cleanup Preview Deployment
+name: Docs / Cleanup Preview
 
 on:
   delete:
