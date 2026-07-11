@@ -1616,7 +1616,7 @@
 <!-- Erase confirmation + progress dialog, styled to match ESP Web Tools' popups. -->
 <div id="erase-modal" class="flasher-modal" hidden>
   <div class="flasher-modal__backdrop" id="erase-backdrop"></div>
-  <div class="flasher-modal__card" role="dialog" aria-modal="true" aria-labelledby="erase-modal-title">
+  <div class="flasher-modal__card" role="dialog" aria-modal="true" aria-labelledby="erase-modal-title" tabindex="-1">
     <h3 id="erase-modal-title" class="flasher-modal__title">Erase Device</h3>
     <p id="erase-modal-status" class="flasher-modal__status" role="status" aria-live="polite" aria-atomic="true"></p>
     <div id="erase-modal-progress" class="flasher-progress" hidden>
@@ -1671,6 +1671,7 @@
 
   const openBtn = document.getElementById("erase-button");
   const modal = document.getElementById("erase-modal");
+  const card = modal.querySelector(".flasher-modal__card");
   const backdrop = document.getElementById("erase-backdrop");
   const statusEl = document.getElementById("erase-modal-status");
   const progressEl = document.getElementById("erase-modal-progress");
@@ -1688,12 +1689,13 @@
   // close (dialog focus management for keyboard/screen-reader users).
   let opener = null;
 
-  // Move focus onto the currently visible primary action. Called after any
-  // state change that hides/shows buttons so focus never lands on (or gets
-  // stranded behind) a hidden control.
+  // Move focus onto the currently visible primary action, falling back to the
+  // dialog card itself when no button is showing (during the erase, every
+  // button is hidden). Called after any state change that hides/shows buttons
+  // so focus never lands on - or gets stranded behind - a hidden control.
   function focusPrimary() {
-    const target = [closeBtn, confirmBtn, cancelBtn].find((b) => !b.hidden);
-    if (target) target.focus();
+    const target = [closeBtn, confirmBtn, cancelBtn].find((b) => !b.hidden) || card;
+    target.focus();
   }
 
   function openModal() {
@@ -1723,6 +1725,9 @@
     confirmBtn.hidden = true;
     cancelBtn.hidden = true;
     closeBtn.hidden = true;
+    // Confirm was focused and is now hidden along with every other button;
+    // park focus on the card so it doesn't fall behind the overlay.
+    focusPrimary();
   }
 
   function toFinished(msg) {
@@ -1752,7 +1757,13 @@
       }
       if (e.key !== "Tab") return;
       const focusable = [cancelBtn, confirmBtn, closeBtn].filter((b) => !b.hidden);
-      if (focusable.length === 0) return;
+      if (focusable.length === 0) {
+        // Erasing: no buttons to land on, so keep focus on the card instead of
+        // letting Tab escape to controls behind the overlay.
+        e.preventDefault();
+        card.focus();
+        return;
+      }
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (e.shiftKey && document.activeElement === first) {
@@ -1941,7 +1952,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-07-11T23:27:49+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-07-11</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-07-11T23:47:50+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-07-11</span>
   </span>
 
     
