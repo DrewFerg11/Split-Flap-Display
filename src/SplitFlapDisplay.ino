@@ -4,6 +4,7 @@
 // Thom Koopman 03/30/2025
 
 // Enjoy :)
+#include "BackgroundTick.h"
 #include "JsonSettings.h"
 #include "SplitFlapDisplay.h"
 #include "SplitFlapMqtt.h"
@@ -88,6 +89,32 @@ void improvOnError(ImprovTypes::Error err) {
 // only listen for the first IMPROV_ACTIVE_MS after a reboot, then stop. To
 // reconfigure Wi-Fi later, reboot the board with USB connected.
 const unsigned long IMPROV_ACTIVE_MS = 5 * 60 * 1000; // 5 minutes
+
+// Latched off once the window closes and never re-arms - including across the
+// millis() rollover at ~49 days, which would otherwise briefly re-enter the
+// window. Shared by loop() and the boot-time blocking loops (via
+// backgroundTick), so Improv shuts off everywhere at once.
+static bool improvActive = true;
+
+// Services Improv Wi-Fi during long blocking operations (motor homing, Wi-Fi
+// connect retry) that would otherwise run to completion before loop() - and
+// therefore improv.handleSerial() - ever gets called. Only ever call this from
+// the main thread: the dual-I2C bus tasks (busMovementTask) must NOT call it,
+// since ImprovWiFi's internal frame-parse state isn't thread-safe.
+void backgroundTick() {
+    if (! improvActive) return;
+    if (millis() >= IMPROV_ACTIVE_MS) {
+        improvActive = false;
+        return;
+    }
+    // handleSerial() consumes at most one byte per call, so drain everything
+    // pending. Callers may only tick every ~20ms (see moveModules), and one
+    // byte per 20ms would take seconds to parse a single Improv frame; the
+    // UART driver's RX buffer comfortably holds 20ms of traffic between ticks.
+    while (Serial.available() > 0) {
+        improv.handleSerial();
+    }
+}
 
 // Forward declarations for functions defined after loop()
 void singleInputMode();
@@ -190,17 +217,8 @@ void setup() {
 
 void loop() {
     // Listen for Improv Wi-Fi only during the window after boot (see
-    // IMPROV_ACTIVE_MS). The static latch means this stops for good once the
-    // window closes and never re-arms - including across the millis() rollover
-    // at ~49 days, which would otherwise briefly re-enter the window.
-    static bool improvActive = true;
-    if (improvActive) {
-        if (millis() < IMPROV_ACTIVE_MS) {
-            improv.handleSerial();
-        } else {
-            improvActive = false;
-        }
-    }
+    // IMPROV_ACTIVE_MS / improvActive above backgroundTick).
+    backgroundTick();
 
     splitflapMqtt.loop();
 
