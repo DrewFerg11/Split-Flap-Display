@@ -151,12 +151,14 @@ void setup() {
     // put your setup code here, to run once:
     Serial.begin(SERIAL_SPEED);
 
-    // Set up Improv before anything else that takes time. ESP Web Tools
-    // probes Improv exactly once, ~1s after opening the port (which resets
-    // the board), and gives up 1s later - miss that single ~2s window and the
-    // flasher hides the Wi-Fi/Update/Visit Device options until the dialog is
-    // reopened. Settings come straight from NVS (no LittleFS dependency), so
-    // this is safe to do first.
+    // Set up Improv before anything else - literally first after Serial.
+    // ESP Web Tools probes Improv exactly once, ~1s after opening the port
+    // (which resets the board), and gives up 1s later - miss that single ~2s
+    // window and the flasher hides the Wi-Fi/Update/Visit Device options
+    // until the dialog is reopened. Every millisecond before the first
+    // backgroundTick() counts, so don't even read NVS here: start with the
+    // firmware name as a placeholder device name and refresh it from settings
+    // after the probe window (below).
 #if defined(CONFIG_IDF_TARGET_ESP32C3)
     const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_C3;
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
@@ -164,7 +166,7 @@ void setup() {
 #else
     const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32;
 #endif
-    improv.setDeviceInfo(improvChipFamily, "Split Flap Display", FIRMWARE_VERSION, settings.getString("name").c_str());
+    improv.setDeviceInfo(improvChipFamily, "Split Flap Display", FIRMWARE_VERSION, "Split Flap Display");
     improv.onImprovError(improvOnError);
     improv.onImprovConnected(improvOnConnected);
     improv.setCustomConnectWiFi(improvConnectWifi);
@@ -180,6 +182,15 @@ void setup() {
         }
     }
 #endif
+
+    // Now that the probe window has been covered, swap in the user's device
+    // name from NVS. Held in a static String because setDeviceInfo() stores
+    // the raw pointer, not a copy - passing a temporary's c_str() (as this
+    // code once did) leaves it dangling.
+    static String improvDeviceName = settings.getString("name");
+    if (improvDeviceName.length() > 0) {
+        improv.setDeviceInfo(improvChipFamily, "Split Flap Display", FIRMWARE_VERSION, improvDeviceName.c_str());
+    }
 
     Serial.println("=== Split Flap Display ===");
     Serial.printf("Firmware: %s (%s)\n", FIRMWARE_VERSION, FIRMWARE_BUILD_SOURCE);
