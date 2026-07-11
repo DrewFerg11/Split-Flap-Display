@@ -22,12 +22,8 @@
 import os
 import sys
 
-INSTALL_PAGE_URL = "https://drewferg11.github.io/Split-Flap-Display/firmware/install/"
-# TODO: this points at the general firmware setup page, which is currently
-# written for source builds (PlatformIO/npm). Refine once that page has a
-# proper manual-install (pre-built binary, no toolchain) walkthrough - see
-# plans/GH-PAGES-PLAN.md.
-MANUAL_INSTALL_URL = "https://drewferg11.github.io/Split-Flap-Display/firmware/setup/"
+INSTALL_PAGE_URL = "https://drewferg11.github.io/Split-Flap-Display/firmware/install-web-flasher/"
+MANUAL_INSTALL_URL = "https://drewferg11.github.io/Split-Flap-Display/firmware/install-manual/"
 
 DOCS_URL = "https://drewferg11.github.io/Split-Flap-Display/"
 DISCORD_URL = "https://discord.gg/RCvks4XXXH"

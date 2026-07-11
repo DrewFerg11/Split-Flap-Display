@@ -13,13 +13,16 @@ Flash the latest firmware directly from this page over USB. No PlatformIO, no de
 
 Plug the ESP32 into your computer with a USB cable. You don't need to know which board you have — the installer detects it automatically (WROOM, C3, or S3).
 
+!!! tip "Give the board ~20 seconds after any reboot"
+    Both live Wi-Fi setup and **Update Firmware Only**'s same-firmware detection depend on Improv, which only starts responding once the board finishes booting — after its Wi-Fi connect attempt and module homing complete. That's roughly 20 seconds, sometimes longer. If you just restarted the board (including via the **Restart Device** option under **Logs & Console**) and the options you expect aren't showing up yet, wait a bit and reconnect — watching the serial log (see the tip below) lets you confirm the board has reached homing, so you know it's almost ready.
+
 ## 2. Install
 
 <div id="install-loading">Checking for the latest release…</div>
 
 <div id="install-unavailable" hidden markdown>
 !!! warning "No pre-built firmware available yet"
-    <span id="install-unavailable-text"></span> You can still [build from source](setup.md), or browse the [Releases page](https://github.com/DrewFerg11/Split-Flap-Display/releases) for other versions.
+    <span id="install-unavailable-text"></span> You can still [build from source](install-manual.md), or browse the [Releases page](https://github.com/DrewFerg11/Split-Flap-Display/releases) for other versions.
 </div>
 
 <div id="install-buttons" hidden markdown>
@@ -37,10 +40,25 @@ Plug the ESP32 into your computer with a USB cable. You don't need to know which
   <span slot="not-allowed">This page must be served over HTTPS to flash firmware.</span>
 </esp-web-install-button>
 
+<esp-web-install-button id="app-install">
+  <button slot="activate" class="md-button">Update Firmware Only</button>
+  <span slot="unsupported">Your browser doesn't support this. Use Chrome, Edge, or Opera on desktop.</span>
+  <span slot="not-allowed">This page must be served over HTTPS to flash firmware.</span>
+</esp-web-install-button>
+
 </div>
 
-!!! danger "Installing erases the board"
-    Installing writes a clean firmware image and **erases everything** first — Wi-Fi credentials, MQTT config, module calibration, all of it. You'll get a confirmation prompt before anything happens. This is the right choice for a brand-new board or a fresh start.
+There are two ways to flash, depending on what you're starting from:
+
+- **Install** — a full factory flash. Writes a clean firmware image and **erases everything first**: Wi-Fi credentials, MQTT config, module calibration, all of it. Use this for a brand-new board or if you want a fresh start.
+- **Update Firmware Only** — an in-place app update. Keeps your Wi-Fi/MQTT settings and module calibration intact. Use this on a board that's already running this firmware and just needs the latest version.
+
+!!! danger "Read this before using Update Firmware Only"
+    Both buttons show a confirmation prompt before anything happens. **Install** always erases first and is always safe — its image includes the bootloader.
+
+    **Update Firmware Only is only safe on a board that was rebooted within the last ~5 minutes, with USB still connected.** It relies on Improv to detect that the board is already running this firmware and skip the erase — but the firmware only listens for Improv for the first 5 minutes after boot, then stops. If Improv isn't responding (board powered on longer than that, or not freshly rebooted), the flasher can't detect the running firmware, so it **erases the whole chip and then writes only the app** — leaving no bootloader and an **unbootable board**, recoverable only with **Install**.
+
+    **So: unplug and replug (or use Restart Device), wait for the board to finish booting, then use Update Firmware Only promptly.** If you're not sure the board is inside the window, use **Install** instead — it's always safe (but wipes your settings).
 
 </div>
 
@@ -63,10 +81,7 @@ Once connected, you'll get a link straight to the device's IP address to open it
 
 ## Troubleshooting
 
-- **No device shows up when you click Install** — make sure you're using a **data** USB cable, not a charge-only one. Try a different USB port or cable.
-- **Board isn't detected / install fails immediately** — some boards (notably several ESP32-S3 minis) need to be put into upload mode manually: hold **BOOT**, press and release **RESET**, then release **BOOT**, then try again.
-- **Driver issues on Windows** — most boards use a CP2102 or CH340 USB-serial chip. If the port never appears in the browser's device picker, install the [CP210x](https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers) or [CH340](https://www.wch.cn/downloads/CH341SER_EXE.html) driver for your OS.
-- **Flashed, but nothing happens** — reconnect the cable and check that `Split Flap Display` appears in your Wi-Fi list within about 30 seconds of power-up.
+Device not detected, driver issues, or nothing happens after flashing? See the [troubleshooting page](install-troubleshooting.md).
 
 ## Erase the board completely (advanced)
 
@@ -184,23 +199,32 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   // CORS headers, so the browser can't fetch() them - not even to check they
   // exist. ESP Web Tools needs to fetch() the manifest and binaries directly, so
   // release.yml publishes a same-origin copy here on every release (rolling
-  // window - see RELEASES_KEEP_COUNT in release.yml). api.github.com itself IS
+  // window - see RC_KEEP_COUNT/STABLE_KEEP_COUNT in release.yml, which must
+  // match RC_KEEP_COUNT/STABLE_KEEP_COUNT below). api.github.com itself IS
   // CORS-enabled, so it's still used below just to discover recent tag names.
   const PAGES_RELEASES_BASE = "https://drewferg11.github.io/Split-Flap-Display/releases";
+  const RC_KEEP_COUNT = 3;
+  const STABLE_KEEP_COUNT = 5;
 
   const loadingEl = document.getElementById("install-loading");
   const unavailableEl = document.getElementById("install-unavailable");
   const unavailableTextEl = document.getElementById("install-unavailable-text");
   const buttonsEl = document.getElementById("install-buttons");
   const factoryBtn = document.getElementById("factory-install");
+  const appBtn = document.getElementById("app-install");
   const picker = document.getElementById("version-picker");
 
   function factoryManifestUrl(tag) {
     return PAGES_RELEASES_BASE + "/" + tag + "/manifest.json";
   }
 
+  function appManifestUrl(tag) {
+    return PAGES_RELEASES_BASE + "/" + tag + "/manifest-app.json";
+  }
+
   function showRelease(tag) {
     factoryBtn.manifest = factoryManifestUrl(tag);
+    appBtn.manifest = appManifestUrl(tag);
     loadingEl.hidden = true;
     unavailableEl.hidden = true;
     buttonsEl.hidden = false;
@@ -223,7 +247,7 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
     }
   }
 
-  fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=10")
+  fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=30")
     .then((res) => {
       if (!res.ok) throw new Error("GitHub API returned " + res.status);
       return res.json();
@@ -234,14 +258,26 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
         return;
       }
 
-      // Only list releases that actually have a same-origin (Pages) copy -
-      // the API may return older tags that have aged out of the rolling
-      // window, or v1.0.0-style source-only releases with no binaries at all.
+      // Only list the latest RC_KEEP_COUNT prereleases and the latest
+      // STABLE_KEEP_COUNT stable releases, each capped independently so a
+      // burst of RCs can't crowd stable versions out of the list (or vice
+      // versa) - and only those that actually have a same-origin (Pages)
+      // copy, since the API may return tags that have aged out of the Pages
+      // rolling window, or v1.0.0-style source-only releases with no
+      // binaries at all. Releases come back newest-first, so this also
+      // preserves that order.
       const available = [];
+      let rcCount = 0;
+      let stableCount = 0;
       for (const r of releases) {
-        if (await hasManifest(r.tag_name)) {
-          available.push(r);
-        }
+        if (rcCount >= RC_KEEP_COUNT && stableCount >= STABLE_KEEP_COUNT) break;
+        if (r.prerelease && rcCount >= RC_KEEP_COUNT) continue;
+        if (!r.prerelease && stableCount >= STABLE_KEEP_COUNT) continue;
+        if (!(await hasManifest(r.tag_name))) continue;
+
+        available.push(r);
+        if (r.prerelease) rcCount++;
+        else stableCount++;
       }
 
       if (available.length === 0) {

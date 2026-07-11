@@ -62,10 +62,10 @@
 ## Firmware
 
 ??? question "How do I build and flash the firmware?"
-    See the [Firmware setup guide](firmware/setup.md) for step-by-step instructions. You'll need [PlatformIO](https://platformio.org/) and [Node.js](https://nodejs.org/) installed.
+    See the [Firmware setup guide](firmware/install-manual.md) for step-by-step instructions. You'll need [PlatformIO](https://platformio.org/) and [Node.js](https://nodejs.org/) installed.
 
 ??? question "The web interface isn't loading after flashing."
-    The firmware uploads in two parts — the firmware binary and the **LittleFS filesystem** (which contains the web interface). If the web interface is blank or missing, you likely only uploaded the firmware. Run the filesystem upload step as well. See the [firmware setup guide](firmware/setup.md).
+    The firmware uploads in two parts — the firmware binary and the **LittleFS filesystem** (which contains the web interface). If the web interface is blank or missing, you likely only uploaded the firmware. Run the filesystem upload step as well. See the [firmware setup guide](firmware/install-manual.md).
 
 ??? question "How do I update the firmware over Wi-Fi (OTA)?"
     Set an OTA password in the settings page, then add that password as the `auth` flag in `platformio.ini` and use an `*_ota` environment (e.g. `esp32_wroom_ota`) for subsequent uploads.

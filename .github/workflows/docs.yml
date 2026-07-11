@@ -32,6 +32,13 @@ jobs:
   build-and-deploy:
     name: Build and Deploy
     runs-on: ubuntu-latest
+    # Fork PRs get a read-only GITHUB_TOKEN, so the gh-pages push can't work for
+    # them. Rather than skip the whole job (which would also skip the
+    # `mkdocs build --strict` validation, letting fork contributors merge broken
+    # docs unchecked), the job always runs the build/validation and gates only
+    # the gh-pages checkout + deploy + summary steps on this being an internal ref.
+    env:
+      CAN_DEPLOY: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - name: Checkout source branch
         uses: actions/checkout@v4
@@ -64,6 +71,7 @@ jobs:
         run: mkdocs build --strict
 
       - name: Checkout gh-pages branch
+        if: env.CAN_DEPLOY == 'true'
         uses: actions/checkout@v4
         with:
           ref: gh-pages
@@ -72,6 +80,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy to gh-pages
+        if: env.CAN_DEPLOY == 'true'
         run: |
           DEPLOY_DIR="${{ steps.path.outputs.deploy_dir }}"
 
@@ -88,7 +97,7 @@ jobs:
           if [ "$DEPLOY_DIR" = "." ]; then
             # Main branch: replace everything except the preview and releases folders
             # (releases/ holds firmware binaries published by release.yml for the
-            # ESP Web Tools install page - see docs/firmware/install.md)
+            # ESP Web Tools install page - see docs/firmware/install-web-flasher.md)
             find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'preview' ! -name 'releases' ! -name '.nojekyll' -exec rm -rf {} +
             cp -r ../site/. .
           else
@@ -104,4 +113,5 @@ jobs:
           git push
 
       - name: Summary
+        if: env.CAN_DEPLOY == 'true'
         run: echo "### Deployed to [${{ steps.path.outputs.preview_url }}](${{ steps.path.outputs.preview_url }})" >> $GITHUB_STEP_SUMMARY

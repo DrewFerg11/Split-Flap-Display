@@ -79,7 +79,7 @@ Flip the board over:
 
 ### 4. Flash the Firmware
 
-Before testing, flash the firmware to the ESP32. The board won't do anything useful without it. Follow the [Build & Flash guide](../../../firmware/setup.md) for full instructions.
+Before testing, flash the firmware to the ESP32. The board won't do anything useful without it. Follow the [Build & Flash guide](../../../firmware/install-manual.md) for full instructions.
 
 !!! tip
     This is the easiest time to flash — the ESP32 is accessible via USB while it's mounted inside the enclosure, but not once the end caps are in place.

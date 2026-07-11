@@ -17,9 +17,15 @@ env:
   # GitHub Release asset URLs don't send CORS headers, so ESP Web Tools (running
   # in the browser) can't fetch manifests/binaries from github.com/.../releases/download/.
   # We publish a same-origin copy to GitHub Pages instead; see the "Publish binaries
-  # to GitHub Pages" step below and docs/firmware/install.md.
+  # to GitHub Pages" step below and docs/firmware/install-web-flasher.md.
   PAGES_BASE_URL: https://drewferg11.github.io/Split-Flap-Display
-  RELEASES_KEEP_COUNT: 5
+  # Type-aware rolling window for the Pages copy of release binaries - keep the
+  # N most-recently-published RC/beta folders and the M most-recently-published
+  # stable folders, independently, so frequent RCs can't push stable releases
+  # out of the window before enough stable versions accumulate (and vice
+  # versa). Must match the version-picker caps in install-web-flasher.md.
+  RC_KEEP_COUNT: 3
+  STABLE_KEEP_COUNT: 5
 
 jobs:
   tag:
@@ -277,10 +283,40 @@ jobs:
           # Skip Jekyll processing (see docs.yml for the same fix + rationale).
           touch .nojekyll
 
-          # Rolling window: keep only the most recently published N version folders.
-          # Sorted by directory mtime (publish order), not by version string parsing,
-          # so it works correctly across RCs and full releases alike.
-          ls -1dt releases/*/ 2>/dev/null | tail -n +$(( ${{ env.RELEASES_KEEP_COUNT }} + 1 )) | xargs -r rm -rf
+          # Type-aware rolling window: order folders newest-published first, then
+          # prune once each type's independent cap is exceeded (RCs and stables
+          # counted separately, so frequent RCs can't evict stables). Ordering
+          # comes from each folder's last git-commit time - durable publication
+          # metadata - NOT filesystem mtime: `git checkout` resets every file's
+          # mtime to checkout time, so `ls -t` would order these arbitrarily and
+          # could prune a newer folder while keeping an older one. The version
+          # published by this run isn't committed yet, so it's forced to newest.
+          ordered=()
+          for dir in releases/*/; do
+            [ -d "$dir" ] || continue
+            tag="$(basename "$dir")"
+            if [ "$tag" = "$VERSION" ]; then
+              ts=9999999999
+            else
+              ts="$(git log -1 --format=%ct -- "$dir")"
+              ts="${ts:-0}"
+            fi
+            ordered+=("$ts $dir")
+          done
+
+          rc_count=0
+          stable_count=0
+          while read -r _ dir; do
+            [ -n "$dir" ] || continue
+            tag="$(basename "$dir")"
+            if [[ "$tag" == *-rc.* || "$tag" == *-beta* ]]; then
+              rc_count=$((rc_count + 1))
+              [ "$rc_count" -gt "${{ env.RC_KEEP_COUNT }}" ] && rm -rf "$dir"
+            else
+              stable_count=$((stable_count + 1))
+              [ "$stable_count" -gt "${{ env.STABLE_KEEP_COUNT }}" ] && rm -rf "$dir"
+            fi
+          done < <(printf '%s\n' "${ordered[@]}" | sort -rn -k1,1)
 
           git add -A
           if git diff --cached --quiet; then

@@ -24,4 +24,4 @@ The **48-character extended version** is recommended — it includes lowercase l
 
 ## Firmware
 
-Both versions use the same firmware in this repository. Follow the [firmware setup guide](../../firmware/setup.md) to build and flash.
+Both versions use the same firmware in this repository. Follow the [firmware setup guide](../../firmware/install-manual.md) to build and flash.
