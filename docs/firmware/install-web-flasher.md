@@ -4,19 +4,44 @@ description: Flash Split Flap Display firmware straight from your browser — no
 
 # Install Firmware (No Toolchain Required)
 
-Flash the latest firmware directly from this page over USB. No PlatformIO, no dependencies, no build errors — just a cable and a supported browser.
+Flash the latest firmware directly from this page over USB. No PlatformIO, no dependencies, no build errors — just a cable and a supported browser. Work top to bottom through the three steps below.
 
-!!! warning "Browser support"
-    This uses [Web Serial](https://developer.chrome.com/docs/capabilities/serial), which only works in **Chrome, Edge, or Opera on desktop**. It does not work in Firefox, Safari, or any mobile browser.
+!!! warning "You need a desktop Chromium browser"
+    Flashing uses [Web Serial](https://developer.chrome.com/docs/capabilities/serial), which only works in **Chrome, Edge, or Opera on desktop**. It does **not** work in Firefox, Safari, or any mobile browser. Use a **data** USB cable, not a charge-only one.
 
-## 1. Connect your board
+<div class="flasher" markdown>
 
-Plug the ESP32 into your computer with a USB cable. You don't need to know which board you have — the installer detects it automatically (WROOM, C3, or S3).
+## Connect your board
 
-!!! tip "Give the board ~20 seconds after any reboot"
-    Both live Wi-Fi setup and **Update Firmware Only**'s same-firmware detection depend on Improv, which only starts responding once the board finishes booting — after its Wi-Fi connect attempt and module homing complete. That's roughly 20 seconds, sometimes longer. If you just restarted the board (including via the **Restart Device** option under **Logs & Console**) and the options you expect aren't showing up yet, wait a bit and reconnect — watching the serial log (see the tip below) lets you confirm the board has reached homing, so you know it's almost ready.
+Plug the ESP32 into your computer. The installer auto-detects which board you have (WROOM, C3, or S3) — but the S3 sometimes needs one extra step to enter flashing mode.
 
-## 2. Install
+=== "WROOM / C3"
+
+    Just plug it in with a USB data cable. Nothing else to do — continue to the wait note below, then flash.
+
+=== "ESP32-S3 (extra step)"
+
+    Many ESP32-S3 boards won't show up in the browser's device picker until you manually put them into **download mode**:
+
+    1. **Hold** the **BOOT** button.
+    2. While holding BOOT, **press and release** **RESET** (sometimes labelled **EN**).
+    3. **Release** BOOT.
+
+    The board is now waiting for a flash. Continue to **Flash the firmware** — you don't need to wait 20 seconds when the S3 is held in download mode this way. After flashing finishes, press **RESET** once to boot the new firmware.
+
+    !!! tip "Still not detected?"
+        Install the [CP210x](https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers) or [CH340](https://www.wch.cn/downloads/CH341SER_EXE.html) USB-serial driver for your OS, then retry. More fixes on the [troubleshooting page](install-troubleshooting.md).
+
+!!! danger "Wait ~20 seconds after plugging in — this is the #1 gotcha"
+    Right after you connect, the flasher only offers **Install** and **Logs & Console**. The **Update Firmware Only**, **Visit Device**, and **Wi-Fi** options won't appear until the board finishes booting.
+
+    **Give it roughly 20 seconds** (sometimes longer) after any power-up or reboot. Those extra options depend on Improv, which only starts responding once the board finishes its Wi-Fi attempt and homes the modules.
+
+    **How to know it's ready:** click **Install → Logs & Console** and watch the serial log. Once you see the **`homing`** line, the board is up — close the log, and the full set of options will be there.
+
+    _(A plain factory **Install** works immediately and doesn't need the wait. Skip this if that's all you're doing.)_
+
+## Flash the firmware
 
 <div id="install-loading">Checking for the latest release…</div>
 
@@ -27,7 +52,7 @@ Plug the ESP32 into your computer with a USB cable. You don't need to know which
 
 <div id="install-buttons" hidden markdown>
 
-**Version:**
+**Version to flash:**
 <select id="version-picker" disabled>
   <option>Loading versions…</option>
 </select>
@@ -35,7 +60,7 @@ Plug the ESP32 into your computer with a USB cable. You don't need to know which
 <div class="install-button-row" markdown>
 
 <esp-web-install-button id="factory-install">
-  <button slot="activate" class="md-button md-button--primary">Install</button>
+  <button slot="activate" class="md-button md-button--primary">Install (full flash)</button>
   <span slot="unsupported">Your browser doesn't support this. Use Chrome, Edge, or Opera on desktop.</span>
   <span slot="not-allowed">This page must be served over HTTPS to flash firmware.</span>
 </esp-web-install-button>
@@ -48,21 +73,21 @@ Plug the ESP32 into your computer with a USB cable. You don't need to know which
 
 </div>
 
-There are two ways to flash, depending on what you're starting from:
+Both buttons open a confirmation dialog before anything is written. Pick based on what you're starting from:
 
-- **Install** — a full factory flash. Writes a clean firmware image and **erases everything first**: Wi-Fi credentials, MQTT config, module calibration, all of it. Use this for a brand-new board or if you want a fresh start.
-- **Update Firmware Only** — an in-place app update. Keeps your Wi-Fi/MQTT settings and module calibration intact. Use this on a board that's already running this firmware and just needs the latest version.
+- **Install (full flash)** — a clean factory image. **Erases everything first**: Wi-Fi credentials, MQTT config, module calibration, all of it. Use this for a brand-new board, or any time you want a fresh start. **Always safe** — the image includes the bootloader.
+- **Update Firmware Only** — an in-place app update that **keeps** your Wi-Fi/MQTT settings and calibration. Use this on a board already running this firmware that just needs the latest version.
 
 !!! danger "Read this before using Update Firmware Only"
-    Both buttons show a confirmation prompt before anything happens. **Install** always erases first and is always safe — its image includes the bootloader.
+    **Update Firmware Only is only safe on a board that was rebooted within the last ~5 minutes, with USB still connected.** It relies on Improv to detect that the board is already running this firmware and skip the erase — but the firmware only listens for Improv for the first 5 minutes after boot, then stops.
 
-    **Update Firmware Only is only safe on a board that was rebooted within the last ~5 minutes, with USB still connected.** It relies on Improv to detect that the board is already running this firmware and skip the erase — but the firmware only listens for Improv for the first 5 minutes after boot, then stops. If Improv isn't responding (board powered on longer than that, or not freshly rebooted), the flasher can't detect the running firmware, so it **erases the whole chip and then writes only the app** — leaving no bootloader and an **unbootable board**, recoverable only with **Install**.
+    If Improv isn't responding (board powered on longer than that, or not freshly rebooted), the flasher can't detect the running firmware, so it **erases the whole chip and then writes only the app** — leaving no bootloader and an **unbootable board**, recoverable only with **Install**.
 
-    **So: unplug and replug (or use Restart Device), wait for the board to finish booting, then use Update Firmware Only promptly.** If you're not sure the board is inside the window, use **Install** instead — it's always safe (but wipes your settings).
+    **So:** unplug and replug (or use **Restart Device** under **Logs & Console**), wait for the board to finish booting, then use Update Firmware Only promptly. **Not sure you're inside the window? Use Install instead** — it's always safe (but wipes your settings).
 
 </div>
 
-## 3. Connect to Wi-Fi
+## Connect to Wi-Fi
 
 Right after flashing finishes, **stay on this page** — a Wi-Fi setup form appears automatically, in the same browser tab, over the same USB cable. Pick your network, enter your password, and the display connects immediately. No second device, no unplugging.
 
@@ -76,8 +101,10 @@ Once connected, you'll get a link straight to the device's IP address to open it
     3. Enter your home Wi-Fi credentials and save. The display will reboot and connect.
     4. Once connected, find it on your network via `http://<name>.local` (shown in the settings page), or check your router's client list.
 
-!!! tip "See the live serial log"
-    With the board still plugged in, click **Install** again and choose **Logs & Console** from the menu. This opens a live serial monitor right in your browser — handy for watching the boot sequence or diagnosing a board that isn't behaving.
+!!! tip "See the live serial log any time"
+    With the board plugged in, click **Install** again and choose **Logs & Console** from the menu. This opens a live serial monitor right in your browser — handy for watching the boot sequence, confirming the board reached **`homing`**, or diagnosing a board that isn't behaving.
+
+</div>
 
 ## Troubleshooting
 
@@ -88,13 +115,28 @@ Device not detected, driver issues, or nothing happens after flashing? See the [
 Wipe the ESP32 back to a blank chip with **no firmware at all**. This is different from **Install** above (which erases *and* reinstalls) — use this only if you want to repurpose the board for something else, or hand it off blank.
 
 <div class="install-button-row" markdown>
-<button id="erase-button" class="md-button">Erase Device</button>
+<button id="erase-button" class="md-button md-button--danger">Erase Device</button>
 </div>
-
-<div id="erase-status" hidden></div>
 
 !!! warning "This leaves the board with nothing on it"
     A full erase removes the firmware itself — the board will do nothing until you flash it again. To reset a board you intend to keep using, use **Install** at the top of the page instead.
+
+<!-- Erase confirmation + progress dialog, styled to match ESP Web Tools' popups. -->
+<div id="erase-modal" class="flasher-modal" hidden>
+  <div class="flasher-modal__backdrop" id="erase-backdrop"></div>
+  <div class="flasher-modal__card" role="dialog" aria-modal="true" aria-labelledby="erase-modal-title">
+    <h3 id="erase-modal-title" class="flasher-modal__title">Erase Device</h3>
+    <p id="erase-modal-status" class="flasher-modal__status"></p>
+    <div id="erase-modal-progress" class="flasher-progress" hidden>
+      <div class="flasher-progress__fill"></div>
+    </div>
+    <div class="flasher-modal__actions">
+      <button id="erase-cancel" class="md-button">Cancel</button>
+      <button id="erase-confirm" class="md-button md-button--danger">Erase Device</button>
+      <button id="erase-close" class="md-button" hidden>Close</button>
+    </div>
+  </div>
+</div>
 
 <!--
   Works around a known MkDocs Material bug (squidfunk/mkdocs-material#6652):
@@ -129,38 +171,76 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   button can't do erase-only, so this is a separate, fully isolated module: if
   esptool-js fails to load or its API differs, only this button breaks - the
   install buttons and version picker (which use ESP Web Tools, a different
-  module) are unaffected.
+  module) are unaffected. The confirm + progress UI lives in #erase-modal,
+  styled to match ESP Web Tools' own install/update dialogs.
 -->
 <script type="module">
   import { ESPLoader, Transport } from "https://unpkg.com/esptool-js@0.6.0/bundle.js";
 
-  const eraseBtn = document.getElementById("erase-button");
-  const statusEl = document.getElementById("erase-status");
+  const openBtn = document.getElementById("erase-button");
+  const modal = document.getElementById("erase-modal");
+  const backdrop = document.getElementById("erase-backdrop");
+  const statusEl = document.getElementById("erase-modal-status");
+  const progressEl = document.getElementById("erase-modal-progress");
+  const confirmBtn = document.getElementById("erase-confirm");
+  const cancelBtn = document.getElementById("erase-cancel");
+  const closeBtn = document.getElementById("erase-close");
 
-  function setStatus(msg) {
-    statusEl.hidden = false;
-    statusEl.textContent = msg;
+  const CONFIRM_TEXT =
+    "This completely erases the ESP32 — all firmware and settings — and leaves it blank. " +
+    "The board won't run anything until you flash it again.";
+
+  // While an erase is running the dialog can't be dismissed.
+  let busy = false;
+
+  function openModal() {
+    busy = false;
+    statusEl.textContent = CONFIRM_TEXT;
+    progressEl.hidden = true;
+    confirmBtn.hidden = false;
+    cancelBtn.hidden = false;
+    closeBtn.hidden = true;
+    modal.hidden = false;
   }
 
-  if (eraseBtn) {
-    eraseBtn.addEventListener("click", async () => {
+  function closeModal() {
+    if (busy) return;
+    modal.hidden = true;
+  }
+
+  function toWorking(msg) {
+    busy = true;
+    statusEl.textContent = msg;
+    progressEl.hidden = false;
+    confirmBtn.hidden = true;
+    cancelBtn.hidden = true;
+    closeBtn.hidden = true;
+  }
+
+  function toFinished(msg) {
+    busy = false;
+    statusEl.textContent = msg;
+    progressEl.hidden = true;
+    confirmBtn.hidden = true;
+    cancelBtn.hidden = true;
+    closeBtn.hidden = false;
+  }
+
+  if (openBtn && modal) {
+    openBtn.addEventListener("click", openModal);
+    cancelBtn.addEventListener("click", closeModal);
+    closeBtn.addEventListener("click", closeModal);
+    backdrop.addEventListener("click", closeModal);
+
+    confirmBtn.addEventListener("click", async () => {
       if (!("serial" in navigator)) {
-        setStatus("Web Serial isn't supported here. Use Chrome, Edge, or Opera on desktop.");
-        return;
-      }
-      if (
-        !window.confirm(
-          "This completely erases the ESP32 - all firmware and settings - and leaves it blank. " +
-            "The board won't run anything until you flash it again. Continue?"
-        )
-      ) {
+        toFinished("Web Serial isn't supported here. Use Chrome, Edge, or Opera on desktop.");
         return;
       }
 
       let transport;
       try {
-        eraseBtn.disabled = true;
-        setStatus("Select your device in the browser popup…");
+        toWorking("Select your device in the browser popup…");
         const port = await navigator.serial.requestPort();
         transport = new Transport(port, false);
         const loader = new ESPLoader({
@@ -168,18 +248,17 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
           baudrate: 115200,
           romBaudrate: 115200,
         });
-        setStatus("Connecting to the board…");
+        toWorking("Connecting to the board…");
         // main() in newer esptool-js, main_fn() in older releases.
         const connect = loader.main || loader.main_fn;
         await connect.call(loader);
-        setStatus("Erasing… this can take up to a minute. Keep this page open.");
+        toWorking("Erasing… this can take up to a minute. Keep this page open.");
         await loader.eraseFlash();
-        setStatus("✅ Done — the ESP32 is now blank. Flash firmware above to use it again.");
+        toFinished("✅ Done — the ESP32 is now blank. Flash firmware above to use it again.");
       } catch (err) {
         console.error(err);
-        setStatus("Erase failed: " + (err && err.message ? err.message : String(err)));
+        toFinished("Erase failed: " + (err && err.message ? err.message : String(err)));
       } finally {
-        eraseBtn.disabled = false;
         if (transport) {
           try {
             await transport.disconnect();
@@ -308,17 +387,3 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
     });
 })();
 </script>
-
-<style>
-.install-button-row {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin: 1rem 0;
-}
-#erase-status {
-  margin: 0.5rem 0 1rem;
-  font-size: 0.9rem;
-  font-family: var(--md-code-font-family, monospace);
-}
-</style>

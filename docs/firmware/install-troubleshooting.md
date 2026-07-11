@@ -15,8 +15,8 @@ Having trouble with the [web installer](install-web-flasher.md)? Start here.
 ## After flashing
 
 - **Flashed, but nothing happens** — reconnect the cable and check that `Split Flap Display` appears in your Wi-Fi list within about 30 seconds of power-up.
-- **Wi-Fi setup form never appeared** — see the manual AP-mode fallback on the [install page](install-web-flasher.md#3-connect-to-wi-fi).
-- **Want to watch what the board is doing** — use the **Logs & Console** option described on the [install page](install-web-flasher.md#3-connect-to-wi-fi) to open a live serial monitor in the browser.
+- **Wi-Fi setup form never appeared** — see the manual AP-mode fallback on the [install page](install-web-flasher.md#connect-to-wi-fi).
+- **Want to watch what the board is doing** — use the **Logs & Console** option described on the [install page](install-web-flasher.md#connect-to-wi-fi) to open a live serial monitor in the browser.
 
 ## Still stuck?
 
