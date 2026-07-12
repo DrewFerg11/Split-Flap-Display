@@ -1,5 +1,17 @@
 #include "SplitFlapModule.h"
 
+#include "BackgroundTick.h"
+
+// Settle delay that stays Improv-responsive: init()'s delays total 500ms per
+// module (~8s for 16 modules), long enough to matter to the web flasher.
+static void settleDelay(unsigned long ms) {
+    const unsigned long start = millis();
+    while (millis() - start < ms) {
+        backgroundTick();
+        delay(1);
+    }
+}
+
 // Array of characters, in order, the first item is located on the magnet on the
 // character drum
 const char SplitFlapModule::StandardChars[37] = {' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
@@ -70,15 +82,15 @@ void SplitFlapModule::init() {
 
     int initDelay = 100;
 
-    delay(initDelay);
+    settleDelay(initDelay);
     step();
-    delay(initDelay);
+    settleDelay(initDelay);
     step();
-    delay(initDelay);
+    settleDelay(initDelay);
     step();
-    delay(initDelay);
+    settleDelay(initDelay);
     step();
-    delay(initDelay);
+    settleDelay(initDelay);
 
     stop();
 }

@@ -1,5 +1,7 @@
 #include "SplitFlapWebServer.h"
 
+#include "BackgroundTick.h"
+
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
 
@@ -245,6 +247,7 @@ bool SplitFlapWebServer::connectToWifi() {
         unsigned long lastPrintTime = startAttemptTime;
 
         while (WiFi.status() != WL_CONNECTED) {
+            backgroundTick();
             if (millis() - startAttemptTime >= timeout) {
                 Serial.println("_");
                 Serial.println("Wi-Fi connection failed! Timeout reached.");

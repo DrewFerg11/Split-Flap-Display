@@ -1,5 +1,6 @@
 #include "SplitFlapDisplay.h"
 
+#include "BackgroundTick.h"
 #include "JsonSettings.h"
 #include "SplitFlapModule.h"
 #include "SplitFlapMqtt.h"
@@ -344,11 +345,13 @@ void SplitFlapDisplay::moveTo(int targetPositions[], float speed, bool releaseMo
         return;
     }
 #endif
-    moveModules(modules, numModules, targetPositions, speed, releaseMotors, stepsPerRot, maxVel);
+    // Main thread, so servicing Improv during the move is safe.
+    moveModules(modules, numModules, targetPositions, speed, releaseMotors, stepsPerRot, maxVel, backgroundTick);
 }
 
 void SplitFlapDisplay::moveModules(
-    SplitFlapModule *mods, int count, int *targets, float speed, bool releaseMotors, int stepsPerRot, float maxVel
+    SplitFlapModule *mods, int count, int *targets, float speed, bool releaseMotors, int stepsPerRot, float maxVel,
+    void (*idleCallback)()
 ) {
     if (count == 0) return;
 
@@ -397,6 +400,11 @@ void SplitFlapDisplay::moveModules(
         }
 
         if ((currentTime - lastSensorCheckTime) > checkIntervalUs) { // check hall effect sensor every checkIntervalMs
+            // Service Improv on this ~20ms cadence, keeping the
+            // microsecond-timed stepping path free of extra work. A param
+            // rather than a direct call so busMovementTask can pass nullptr
+            // (Improv's parser isn't thread-safe).
+            if (idleCallback) idleCallback();
 
             // check every modules sensor
             for (int i = 0; i < count; i++) {
@@ -478,6 +486,8 @@ struct BusMoveParams
 
 static void busMovementTask(void *param) {
     BusMoveParams *p = static_cast<BusMoveParams *>(param);
+    // No idleCallback: background task, and Improv's parser isn't thread-safe.
+    // moveToDual()'s wait loop services Improv from the main thread instead.
     SplitFlapDisplay::moveModules(
         p->modules, p->count, p->targets, p->speed, p->releaseMotors, p->stepsPerRot, p->maxVel
     );
@@ -505,14 +515,18 @@ void SplitFlapDisplay::moveToDual(int *targetPositions, float speed, bool releas
         tasksToWait++;
     }
 
+    // Short-timeout poll so Improv stays serviced while the bus tasks step.
     for (int i = 0; i < tasksToWait; i++) {
-        xSemaphoreTake(doneSem, portMAX_DELAY);
+        while (xSemaphoreTake(doneSem, pdMS_TO_TICKS(20)) != pdTRUE) {
+            backgroundTick();
+        }
     }
 
     vSemaphoreDelete(doneSem);
 }
 
 void SplitFlapDisplay::homeToStringDual(String row1, String row2, float speed, bool centering) {
+    Serial.println("Homing");
     int targetPositions[numModules];
 
     // Phase 1: spin nearly full rotation to find magnets

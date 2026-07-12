@@ -4,6 +4,7 @@
 // Thom Koopman 03/30/2025
 
 // Enjoy :)
+#include "BackgroundTick.h"
 #include "JsonSettings.h"
 #include "SplitFlapDisplay.h"
 #include "SplitFlapMqtt.h"
@@ -61,6 +62,21 @@ SplitFlapWebServer webServer(settings);
 SplitFlapMqtt splitflapMqtt(settings, wifiClient);
 ImprovWiFi improv(&Serial);
 
+// Latched when Improv provisions Wi-Fi, then consumed by backgroundTick() to
+// reboot. We can't reboot inside the connect callback below: the Improv success
+// response - which carries the "Visit Device" URL the flasher links to - is only
+// sent by the library after the callback returns. Rebooting from backgroundTick()
+// instead lets that response flush first, then boot into the normal connected
+// path (MQTT, homing "OK") regardless of when during the 5-min window it arrived.
+static bool improvRebootPending = false;
+
+// True while improvConnectWifi() below is running. That callback fires from
+// inside improv.handleSerial(), and its connectToWifi() wait loop pumps
+// backgroundTick() - which must not re-enter the (non-reentrant) Improv parser
+// mid-callback, or a retry frame arriving during the connect would recursively
+// fire this callback and corrupt the parser state.
+static bool inImprovCallback = false;
+
 // Improv Wi-Fi Serial callbacks. These are plain C-style function pointers
 // (not class methods/std::function), so they reference the globals above
 // directly rather than taking `this` - same free-function style already used
@@ -71,7 +87,14 @@ bool improvConnectWifi(const char *ssid, const char *password) {
     // as a normal boot-time connect.
     settings.putString("ssid", ssid);
     settings.putString("password", password);
-    return webServer.connectToWifi();
+    inImprovCallback = true;
+    bool connected = webServer.connectToWifi();
+    inImprovCallback = false;
+    if (connected) {
+        improvRebootPending = true;
+        return true;
+    }
+    return false;
 }
 
 void improvOnConnected(const char *ssid, const char *password) {
@@ -82,12 +105,37 @@ void improvOnError(ImprovTypes::Error err) {
     Serial.printf("Improv: error %d\n", (int) err);
 }
 
-// Improv Wi-Fi is only needed to (re)configure Wi-Fi over USB, which is a
-// setup-time action - a deployed display runs on its 5V supply with USB
-// disconnected, so there's nothing on the serial port to service. We therefore
-// only listen for the first IMPROV_ACTIVE_MS after a reboot, then stop. To
-// reconfigure Wi-Fi later, reboot the board with USB connected.
-const unsigned long IMPROV_ACTIVE_MS = 5 * 60 * 1000; // 5 minutes
+// Improv is a setup-time tool (Wi-Fi config over USB), so only listen for the
+// first 5 minutes after boot. To reconfigure later, reboot with USB connected.
+const unsigned long IMPROV_ACTIVE_MS = 5 * 60 * 1000;
+static bool improvActive = true; // latched off; never re-arms (millis rollover safe)
+
+// Services Improv Wi-Fi. Called from loop() and from within boot-time blocking
+// operations (startup delay, Wi-Fi connect, module init, homing) so the web
+// flasher gets answers during boot too. Main thread only - Improv's frame
+// parser isn't thread-safe, so the dual-I2C bus tasks must never call this.
+void backgroundTick() {
+    if (! improvActive) return;
+    if (millis() >= IMPROV_ACTIVE_MS) {
+        improvActive = false;
+        return;
+    }
+    // Ticks from inside improvConnectWifi()'s connect loop must not feed the
+    // parser (see inImprovCallback); any bytes stay buffered until the callback
+    // returns and a normal tick drains them.
+    if (inImprovCallback) return;
+    while (Serial.available() > 0) { // handleSerial() reads one byte per call
+        improv.handleSerial();
+    }
+    if (improvRebootPending) {
+        // Provisioning just succeeded and handleSerial() has sent the success +
+        // device-URL response; flush it off the wire, then reboot into the
+        // normal connected path so MQTT and the "OK" homing run.
+        Serial.flush();
+        delay(100);
+        ESP.restart();
+    }
+}
 
 // Forward declarations for functions defined after loop()
 void singleInputMode();
@@ -121,12 +169,42 @@ const char *resetReasonToString(esp_reset_reason_t reason) {
 }
 
 void setup() {
-    // put your setup code here, to run once:
     Serial.begin(SERIAL_SPEED);
 
-#ifdef STARTUP_DELAY
-    delay(STARTUP_DELAY);
+    // Set up Improv first: the web flasher probes it exactly once, ~1-2s after
+    // opening the port (which resets the board). Miss that window and the
+    // flasher hides the Wi-Fi/Update options until the dialog is reopened.
+    // Device name starts as a placeholder (no NVS read yet); the real name is
+    // swapped in after the startup delay below.
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_C3;
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_S3;
+#else
+    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32;
 #endif
+    improv.setDeviceInfo(improvChipFamily, "Split Flap Display", FIRMWARE_VERSION, "Split Flap Display");
+    improv.onImprovError(improvOnError);
+    improv.onImprovConnected(improvOnConnected);
+    improv.setCustomConnectWiFi(improvConnectWifi);
+
+#ifdef STARTUP_DELAY
+    // Settle delay, kept Improv-responsive (this is the flasher's probe window)
+    {
+        const unsigned long startupDelayStart = millis();
+        while (millis() - startupDelayStart < STARTUP_DELAY) {
+            backgroundTick();
+            delay(1);
+        }
+    }
+#endif
+
+    // Static because setDeviceInfo() keeps the raw pointer (a temporary's
+    // c_str() would dangle).
+    static String improvDeviceName = settings.getString("name");
+    if (improvDeviceName.length() > 0) {
+        improv.setDeviceInfo(improvChipFamily, "Split Flap Display", FIRMWARE_VERSION, improvDeviceName.c_str());
+    }
 
     Serial.println("=== Split Flap Display ===");
     Serial.printf("Firmware: %s (%s)\n", FIRMWARE_VERSION, FIRMWARE_BUILD_SOURCE);
@@ -138,18 +216,8 @@ void setup() {
     Serial.println("Init Web Server");
     webServer.init();
 
-#if defined(CONFIG_IDF_TARGET_ESP32C3)
-    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_C3;
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32_S3;
-#else
-    const ImprovTypes::ChipFamily improvChipFamily = ImprovTypes::CF_ESP32;
-#endif
-    improv.setDeviceInfo(improvChipFamily, "Split Flap Display", FIRMWARE_VERSION, settings.getString("name").c_str());
-    improv.onImprovError(improvOnError);
-    improv.onImprovConnected(improvOnConnected);
-    improv.setCustomConnectWiFi(improvConnectWifi);
-
+    // The long blocking sections below (Wi-Fi connect, module init, homing)
+    // all service Improv internally via backgroundTick().
     if (! webServer.connectToWifi()) {
         webServer.startAccessPoint();
         webServer.enableOta();
@@ -159,6 +227,9 @@ void setup() {
         display.init();
         display.homeToString("");
 
+        // Provisioning via Improv from here (or later in loop()) reboots the
+        // board, so it comes back through the connected branch below - no need
+        // to handle a mid-boot success specially here.
         if (display.getNumModules() == 8) {
             display.writeString("Wifi Err");
         } else {
@@ -189,18 +260,7 @@ void setup() {
 }
 
 void loop() {
-    // Listen for Improv Wi-Fi only during the window after boot (see
-    // IMPROV_ACTIVE_MS). The static latch means this stops for good once the
-    // window closes and never re-arms - including across the millis() rollover
-    // at ~49 days, which would otherwise briefly re-enter the window.
-    static bool improvActive = true;
-    if (improvActive) {
-        if (millis() < IMPROV_ACTIVE_MS) {
-            improv.handleSerial();
-        } else {
-            improvActive = false;
-        }
-    }
+    backgroundTick(); // Improv Wi-Fi (first 5 min after boot only)
 
     splitflapMqtt.loop();
 
