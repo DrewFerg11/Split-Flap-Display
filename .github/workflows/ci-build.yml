@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# Cancel an in-progress run when the same PR/branch is pushed again.
+concurrency:
+  group: ci-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build (${{ matrix.env }})

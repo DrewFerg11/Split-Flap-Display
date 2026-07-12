@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # GitHub Actions used across our workflows (checkout, setup-node, cache, etc.)
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # Frontend / build tooling (Vite, Tailwind, Prettier) pinned in package.json
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "deps"
+    groups:
+      npm:
+        patterns:
+          - "*"

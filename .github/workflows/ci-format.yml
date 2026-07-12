@@ -6,6 +6,11 @@ on:
       - main
   pull_request:
 
+# Cancel an in-progress run when the same PR/branch is pushed again.
+concurrency:
+  group: ci-format-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   format-check:
     name: Check Code Formatting
