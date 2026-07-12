@@ -13,7 +13,7 @@
 
 A fully 3D-printed, modular split-flap display with an ESP32-based web interface. Forked from [jhoff/Split-Flap-Display](https://github.com/jhoff/Split-Flap-Display), which builds on the original hardware design by [Morgan Manly](https://github.com/ManlyMorgan/Split-Flap-Display). This fork adds extended firmware, in-depth documentation, a firmware web flasher, and support for a 16-module dual I²C configuration.
 
-## Flash the firmware, no toolchain required
+## Flash Firmware
 
 You don't need PlatformIO or a build environment to get started. **[Flash the latest firmware straight from your browser](https://drewferg11.github.io/Split-Flap-Display/firmware/install-web-flasher/)** over USB. No code, no compilers, just a data cable and Chrome, Edge, or Opera on desktop. The installer auto-detects your board (WROOM, C3, or S3) and walks you through Wi-Fi setup right after flashing.
 
