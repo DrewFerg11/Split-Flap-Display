@@ -1,4 +1,4 @@
-name: PR Labeler
+name: CI / Labeler
 
 # Labels PRs from their Conventional-Commit-style title prefix (feat:, fix:,
 # docs:, deps:) so GitHub's release notes group them per .github/release.yml
