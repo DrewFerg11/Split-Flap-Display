@@ -1,8 +1,11 @@
 # Split Flap Display
 
+[![Latest release](https://img.shields.io/github/v/release/DrewFerg11/Split-Flap-Display?include_prereleases&sort=semver&logo=github&label=release)](https://github.com/DrewFerg11/Split-Flap-Display/releases)
+[![CI build](https://github.com/DrewFerg11/Split-Flap-Display/actions/workflows/ci-build.yml/badge.svg?branch=main)](https://github.com/DrewFerg11/Split-Flap-Display/actions/workflows/ci-build.yml)
+[![Format](https://github.com/DrewFerg11/Split-Flap-Display/actions/workflows/ci-format.yml/badge.svg?branch=main)](https://github.com/DrewFerg11/Split-Flap-Display/actions/workflows/ci-format.yml)
+[![GitHub stars](https://img.shields.io/github/stars/DrewFerg11/Split-Flap-Display?style=flat&logo=github)](https://github.com/DrewFerg11/Split-Flap-Display/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/DrewFerg11/Split-Flap-Display?style=flat)](https://github.com/DrewFerg11/Split-Flap-Display/issues)
 [![Discord](https://dcbadge.limes.pink/api/server/https://discord.gg/RCvks4XXXH?style=flat)](https://discord.gg/RCvks4XXXH)
-[![GitHub Stars](https://img.shields.io/github/stars/DrewFerg11/Split-Flap-Display?style=flat&logo=github)](https://github.com/DrewFerg11/Split-Flap-Display/stargazers)
-[![GitHub Issues](https://img.shields.io/github/issues/DrewFerg11/Split-Flap-Display?style=flat)](https://github.com/DrewFerg11/Split-Flap-Display/issues)
 
 A fully 3D-printed, modular split-flap display with an ESP32-based web interface. This project builds on the original hardware design by [Morgan Manly](https://github.com/ManlyMorgan/Split-Flap-Display) with extended firmware, an improved custom PCB, and support for a **16-module dual I²C configuration**.
 
