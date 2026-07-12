@@ -105,7 +105,7 @@ Once connected, you'll get a link straight to the device's IP address to open it
     4. Once connected, find it on your network via `http://<name>.local` (shown in the settings page), or check your router's client list.
 
 !!! tip "See the live serial log any time"
-    With the board plugged in, click **Install** again and choose **Logs & Console** from the menu. This opens a live serial monitor right in your browser — handy for watching the boot sequence, confirming the board reached **`homing`**, or diagnosing a board that isn't behaving.
+    With the board plugged in, click **Install** again and choose **Logs & Console** from the menu. This opens a live serial monitor right in your browser — handy for watching the boot sequence, confirming the board reached **`Homing`**, or diagnosing a board that isn't behaving.
 
 </div>
 

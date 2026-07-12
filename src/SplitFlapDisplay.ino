@@ -70,6 +70,13 @@ ImprovWiFi improv(&Serial);
 // path (MQTT, homing "OK") regardless of when during the 5-min window it arrived.
 static bool improvRebootPending = false;
 
+// True while improvConnectWifi() below is running. That callback fires from
+// inside improv.handleSerial(), and its connectToWifi() wait loop pumps
+// backgroundTick() - which must not re-enter the (non-reentrant) Improv parser
+// mid-callback, or a retry frame arriving during the connect would recursively
+// fire this callback and corrupt the parser state.
+static bool inImprovCallback = false;
+
 // Improv Wi-Fi Serial callbacks. These are plain C-style function pointers
 // (not class methods/std::function), so they reference the globals above
 // directly rather than taking `this` - same free-function style already used
@@ -80,7 +87,10 @@ bool improvConnectWifi(const char *ssid, const char *password) {
     // as a normal boot-time connect.
     settings.putString("ssid", ssid);
     settings.putString("password", password);
-    if (webServer.connectToWifi()) {
+    inImprovCallback = true;
+    bool connected = webServer.connectToWifi();
+    inImprovCallback = false;
+    if (connected) {
         improvRebootPending = true;
         return true;
     }
@@ -110,6 +120,10 @@ void backgroundTick() {
         improvActive = false;
         return;
     }
+    // Ticks from inside improvConnectWifi()'s connect loop must not feed the
+    // parser (see inImprovCallback); any bytes stay buffered until the callback
+    // returns and a normal tick drains them.
+    if (inImprovCallback) return;
     while (Serial.available() > 0) { // handleSerial() reads one byte per call
         improv.handleSerial();
     }
