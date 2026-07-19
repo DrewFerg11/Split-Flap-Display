@@ -24,18 +24,33 @@ class SplitFlapMqtt {
     SplitFlapDisplay *display;
 
     void connectToMqtt();
+    void handleMessage(const String &topic, const String &message);
+    void publishDiscovery();
+    void publishTelemetry();
+    String deviceJson();
 
     // MQTT config
     String mqttServer;
     int mqttPort = 1883;
     String mqttUser;
     String mqttPass;
+    String mdns;
+
     String topic_command;
     String topic_state;
     String topic_avail;
-    String topic_config_text;
-    String topic_config_sensor;
+    String topic_cmd_restart;
+    String topic_cmd_home;
+    String topic_cmd_mode;
+    String topic_state_mode;
+    String topic_state_rssi;
+    String topic_state_ip;
 
+    // Set by the restart button handler; acted on from loop() so the
+    // availability update can go out before the reboot.
+    bool restartPending = false;
+
+    int lastPublishedMode = -1;
     unsigned long lastAttempt = 0;
-    int retryCount = 0;
+    unsigned long lastTelemetry = 0;
 };
