@@ -49,6 +49,17 @@
   margin: 1rem 0;
 }
 
+/* "N boards flashed from this page" badge under the install buttons. Hidden
+   until GoatCounter returns a non-zero count, so it never renders empty. */
+.flasher-counter[hidden] {
+  display: none;
+}
+.md-typeset .flasher-counter {
+  margin: -0.4rem 0 1rem;
+  font-size: 0.7rem;
+  color: var(--md-default-fg-color--light);
+}
+
 /* Danger button (Erase) — shared by the page button and the modal. */
 .md-typeset .md-button--danger {
   color: #fff;

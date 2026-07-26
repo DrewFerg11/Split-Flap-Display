@@ -73,6 +73,8 @@ Plug the ESP32 into your computer. The installer auto-detects which board you ha
 
 </div>
 
+<p id="flash-counter" class="flasher-counter" hidden></p>
+
 Both buttons open a confirmation dialog before anything is written. Pick based on what you're starting from:
 
 - **Install (full flash)** — a clean factory image. **Erases everything first**: Wi-Fi credentials, MQTT config, module calibration, all of it. Use this for a brand-new board, or any time you want a fresh start. **Always safe** — the image includes the bootloader.
@@ -439,5 +441,157 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
       unavailableTextEl.textContent = "Couldn't check GitHub for releases right now.";
       unavailableEl.hidden = false;
     });
+})();
+</script>
+
+<!--
+  Anonymous flash counters, via the GoatCounter instance already loaded
+  site-wide (overrides/partials/integrations/analytics/custom.html). No
+  cookies, no personal data - just a count of how often each button is used,
+  so we know whether this page is worth maintaining and which board/version
+  people actually flash.
+
+  Two independent layers, both fail-silent:
+    1. Clicks (reliable). Every Install / Update / Erase click is counted.
+    2. Outcomes (best effort). ESP Web Tools 10.x exposes no public progress
+       event - the install button just appends an <ewt-install-dialog> to
+       <body> - so completion is read from that dialog's internal
+       _installState.state. That's private API: if a future version renames
+       it, the outcome counts quietly stop and the click counts (which are
+       what the badge uses) keep working.
+
+  Note that GoatCounter counts a given path once per visitor per day, so
+  flashing three boards in one sitting registers as one flash.
+-->
+<script>
+(function () {
+  const SITE = "https://split-flap-display.goatcounter.com";
+  const PATH_FACTORY = "/flash/install-factory";
+  const PATH_APP = "/flash/install-app";
+
+  // count.js is loaded async, so on a very fast click it may not be there yet;
+  // a missed count is fine, a thrown error on the flash button is not.
+  function count(path, title) {
+    try {
+      if (window.goatcounter && window.goatcounter.count) {
+        window.goatcounter.count({ path: path, title: title, event: true });
+      }
+    } catch (e) {
+      /* analytics must never break flashing */
+    }
+  }
+
+  // Records the aggregate path (what the badge reads) plus a version-tagged
+  // variant, so the dashboard shows both "how many installs" and "of what".
+  function countFlash(path, title) {
+    count(path, title);
+    const picker = document.getElementById("version-picker");
+    const tag = picker && !picker.disabled ? picker.value : null;
+    if (tag) count(path + "/" + tag, title + " (" + tag + ")");
+  }
+
+  // Which button opened the dialog - the dialog itself doesn't say.
+  let lastKind = null;
+
+  // Instant navigation re-runs this script on every visit to the page, so
+  // listeners are marked per element to avoid double-counting a single click.
+  function once(el, fn) {
+    if (!el || el.dataset.gcBound) return;
+    el.dataset.gcBound = "1";
+    el.addEventListener("click", fn);
+  }
+
+  once(document.getElementById("factory-install"), function () {
+    lastKind = "factory";
+    countFlash(PATH_FACTORY, "Flash: full install");
+  });
+
+  once(document.getElementById("app-install"), function () {
+    lastKind = "app";
+    countFlash(PATH_APP, "Flash: app update");
+  });
+
+  // The confirm button inside the modal, not the one that opens it - this
+  // counts intent to erase, not curiosity about the dialog.
+  once(document.getElementById("erase-confirm"), function () {
+    count("/flash/erase", "Flash: erase device");
+  });
+
+  // --- Layer 2: outcomes -------------------------------------------------
+  // Watch <body> for the dialog ESP Web Tools appends, then poll its install
+  // state until it settles. Registered once per page load; the observer
+  // outlives instant navigation, which is harmless (it only ever reacts to a
+  // dialog this page's buttons created).
+  if (!window.__sfdFlashOutcomeWatcher) {
+    window.__sfdFlashOutcomeWatcher = true;
+
+    function watchDialog(dialog) {
+      const kind = lastKind || "unknown";
+      let reported = false;
+      const timer = setInterval(function () {
+        try {
+          if (!dialog.isConnected) {
+            clearInterval(timer);
+            return;
+          }
+          const state = dialog._installState && dialog._installState.state;
+          if (reported || !state) return;
+          if (state === "finished") {
+            reported = true;
+            count("/flash/finished/" + kind, "Flash finished (" + kind + ")");
+          } else if (state === "error") {
+            reported = true;
+            count("/flash/failed/" + kind, "Flash failed (" + kind + ")");
+          }
+        } catch (e) {
+          clearInterval(timer);
+        }
+      }, 1000);
+
+      // Hard stop, so a dialog left open overnight doesn't poll forever.
+      setTimeout(function () {
+        clearInterval(timer);
+      }, 15 * 60 * 1000);
+    }
+
+    new MutationObserver(function (records) {
+      for (const rec of records) {
+        for (const node of rec.addedNodes) {
+          if (node.nodeType === 1 && node.tagName === "EWT-INSTALL-DIALOG") {
+            watchDialog(node);
+          }
+        }
+      }
+    }).observe(document.body, { childList: true });
+  }
+
+  // --- Badge -------------------------------------------------------------
+  // GoatCounter's public visitor-counter endpoint (Settings -> "Allow adding
+  // visitor counts to your website"). If that setting is off, or the paths
+  // have no hits yet, the request fails or returns nothing and the badge just
+  // stays hidden - it is never shown empty or at zero.
+  const badge = document.getElementById("flash-counter");
+
+  function counterUrl(path) {
+    return SITE + "/counter/" + encodeURIComponent(path) + ".json";
+  }
+
+  function fetchCount(path) {
+    return fetch(counterUrl(path))
+      .then((res) => (res.ok ? res.json() : null))
+      // count comes back pre-formatted ("1,234"), so strip the separators.
+      .then((data) => (data && data.count ? parseInt(String(data.count).replace(/[^0-9]/g, ""), 10) || 0 : 0))
+      .catch(() => 0);
+  }
+
+  if (badge) {
+    Promise.all([fetchCount(PATH_FACTORY), fetchCount(PATH_APP)]).then(function (counts) {
+      const total = counts[0] + counts[1];
+      if (total <= 0) return;
+      badge.textContent =
+        "⚡ " + total.toLocaleString() + " board" + (total === 1 ? "" : "s") + " flashed from this page";
+      badge.hidden = false;
+    });
+  }
 })();
 </script>
