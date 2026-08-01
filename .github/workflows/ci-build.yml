@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        env: [esp32_wroom, esp32_c3, esp32_s3]
+        env: [esp32_n4, esp32c3_n4, esp32s3_n4r2]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
