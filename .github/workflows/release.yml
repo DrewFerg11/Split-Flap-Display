@@ -65,13 +65,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - env: esp32_wroom
+          - env: esp32_n4
             chip: esp32
             bootloader_offset: "0x1000"
-          - env: esp32_c3
+          - env: esp32c3_n4
             chip: esp32c3
             bootloader_offset: "0x0"
-          - env: esp32_s3
+          - env: esp32s3_n4r2
             chip: esp32s3
             bootloader_offset: "0x0"
     steps:

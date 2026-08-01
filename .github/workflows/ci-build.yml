@@ -15,8 +15,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  boards-sync:
+    name: Boards sync check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check env names are in sync
+        run: python3 build/scripts/check_boards_sync.py
+
   build:
     name: Build (${{ matrix.env }})
+    needs: [boards-sync]
     runs-on: ubuntu-latest
     strategy:
       matrix:
