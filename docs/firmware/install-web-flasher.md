@@ -13,9 +13,9 @@ Flash the latest firmware directly from this page over USB. No PlatformIO, no de
 
 ## Connect your board
 
-Plug the ESP32 into your computer. The installer auto-detects which board you have (WROOM, C3, or S3) — but the S3 sometimes needs one extra step to enter flashing mode.
+Plug the ESP32 into your computer. The installer auto-detects which board you have (ESP32 DevKit, ESP32-C3 SuperMini / C3-Zero, or ESP32-S3 SuperMini / S3-Zero) — but the S3 boards sometimes need one extra step to enter flashing mode.
 
-=== "WROOM / C3"
+=== "ESP32 DevKit / C3"
 
     Just plug it in with a USB data cable. Nothing else to do — continue to **Flash the firmware**.
 

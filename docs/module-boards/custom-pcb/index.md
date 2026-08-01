@@ -44,4 +44,4 @@ See the [I²C reference](../../i2c.md#pull-up-resistors) for placement details.
 
 ### Power the boards directly — not through the ESP32 USB
 
-Don't power a full module chain through the ESP32's USB port. The USB traces on small ESP32 variants (C3, S3) aren't rated for motor current and the wires will get hot. Connect 5V power directly to the first board's power terminals and let it daisy-chain from there.
+Don't power a full module chain through the ESP32's USB port. No board's USB traces are rated for full motor current, and the wires will get hot. Connect 5V power directly to the first board's power terminals and let it daisy-chain from there.

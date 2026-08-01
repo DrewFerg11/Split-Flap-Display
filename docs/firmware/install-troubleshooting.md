@@ -9,7 +9,7 @@ Having trouble with the [web installer](install-web-flasher.md)? Start here.
 ## Device not detected
 
 - **No device shows up when you click Install** — make sure you're using a **data** USB cable, not a charge-only one. Try a different USB port or cable.
-- **Board isn't detected / install fails immediately** — some boards (notably several ESP32-S3 minis) need to be put into upload mode manually: hold **BOOT**, press and release **RESET**, then release **BOOT**, then try again.
+- **Board isn't detected / install fails immediately** — some boards (notably the ESP32-S3 SuperMini / S3-Zero) need to be put into upload mode manually: hold **BOOT**, press and release **RESET**, then release **BOOT**, then try again.
 - **Driver issues on Windows** — most boards use a CP2102 or CH340 USB-serial chip. If the port never appears in the browser's device picker, install the [CP210x](https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers) or [CH340](https://www.wch.cn/downloads/CH341SER_EXE.html) driver for your OS.
 
 ## After flashing

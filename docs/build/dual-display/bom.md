@@ -10,7 +10,7 @@ Required for all builds regardless of power or board option.
 
 | Item | Qty | Notes | Link |
 |------|-----|-------|------|
-| ESP32 DevKit V1 (ESP-WROOM-32) | 1 | | [Amazon](https://a.co/d/09N3pLDK) |
+| ESP32 DevKit (30-pin) | 1 | | [Amazon](https://www.amazon.com/dp/B09GK74F7N) |
 | 5V 28BYJ-48 Stepper Motor | 16 | | [Amazon](https://a.co/d/0iAvSJma) |
 | A3144 Hall Effect Sensor | 16 | | [Amazon](https://a.co/d/0gNrxkEA) |
 | N52-D3x1mm magnet | 16 | Stronger than the original design magnets | [Amazon](https://a.co/d/032d6gsi) |

@@ -68,7 +68,7 @@
     The firmware uploads in two parts — the firmware binary and the **LittleFS filesystem** (which contains the web interface). If the web interface is blank or missing, you likely only uploaded the firmware. Run the filesystem upload step as well. See the [firmware setup guide](firmware/install-manual.md).
 
 ??? question "How do I update the firmware over Wi-Fi (OTA)?"
-    Set an OTA password in the settings page, then add that password as the `auth` flag in `platformio.ini` and use an `*_ota` environment (e.g. `esp32_wroom_ota`) for subsequent uploads.
+    Set an OTA password in the settings page, then add that password as the `auth` flag in `platformio.ini` and use an `*_ota` environment (e.g. `esp32_n4_ota`) for subsequent uploads.
 
 ??? question "Does it support MQTT / smart home integration?"
     Yes — the firmware has built-in MQTT support, including dual-bus awareness. You can publish display updates from Home Assistant, Node-RED, or any MQTT broker. Configure the broker connection in the settings page after flashing.
