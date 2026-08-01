@@ -18,4 +18,6 @@ ESP32-based firmware for driving the split-flap modules over I²C. Built on Plat
 
 The dual display configuration requires two independent I²C peripherals to drive both rows simultaneously. Only the ESP32 (`esp32_n4`) is built with this enabled today — the S3 has the same dual-I²C hardware capability but that build hasn't been made yet, and the C3 supports only a single bus.
 
+See the [README's hardware section](https://github.com/DrewFerg11/Split-Flap-Display#hardware) for the full Espressif chip lineup and every specific board this project has been built on.
+
 [^boot]: Requires manually resetting the board into firmware upload mode by holding BOOT, pressing & releasing RESET, then releasing BOOT prior to upload.
