@@ -513,8 +513,10 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
     if (tag) count(path + "/" + tag, title + " (" + tag + ")", true);
   }
 
-  // Which button opened the dialog - the dialog itself doesn't say.
-  let lastKind = null;
+  // Which button opened the dialog - the dialog itself doesn't say. Lives on
+  // window, not in this IIFE: instant navigation re-runs the script and rebinds
+  // the buttons, but the outcome observer below is registered only once and
+  // would otherwise keep reading the first visit's variable.
 
   // Instant navigation re-runs this script on every visit to the page, so
   // listeners are marked per element to avoid double-counting a single click.
@@ -525,12 +527,12 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   }
 
   once(document.getElementById("factory-install"), function () {
-    lastKind = "factory";
+    window.__sfdFlashKind = "factory";
     countFlash(PATH_FACTORY, "Flash: full install");
   });
 
   once(document.getElementById("app-install"), function () {
-    lastKind = "app";
+    window.__sfdFlashKind = "app";
     countFlash(PATH_APP, "Flash: app update");
   });
 
@@ -558,7 +560,7 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
     window.__sfdFlashOutcomeWatcher = true;
 
     function watchDialog(dialog) {
-      const kind = lastKind || "unknown";
+      const kind = window.__sfdFlashKind || "unknown";
       let reported = false;
 
       function report(state) {
@@ -646,6 +648,13 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
       if (total <= 0) return;
       badge.textContent =
         "⚡ " + total.toLocaleString() + " board" + (total === 1 ? "" : "s") + " flashed from this page";
+      // The number is a floor, never an overcount: pageviews dedup per visitor
+      // session (three boards in one sitting count once) and the counter
+      // endpoint is cached for hours. Kept out of the visible text to leave the
+      // badge a single short line.
+      badge.title =
+        "Counted once per visitor session and updated a few times a day, " +
+        "so the real number is higher.";
       badge.hidden = false;
     });
   }
