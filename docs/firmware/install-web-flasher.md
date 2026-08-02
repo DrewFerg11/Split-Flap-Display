@@ -460,17 +460,28 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
        it, the outcome counts quietly stop and the click counts (which are
        what the badge uses) keep working.
 
-  Everything is sent as an event (event: true). Events are counted per click,
-  where pageview-style hits would be deduplicated once per visitor per session
-  (8h on this site) - so events are what an "N boards flashed" number wants.
-  Events are also visible to the public /counter/*.json endpoint the badge
-  reads, verified against live paths.
+  The public /counter/*.json endpoint the badge reads only sees pageview-style
+  hits, never events. Measured directly, same client, same second: three event
+  hits to a fresh path leave it at 404/0, while three pageview hits to another
+  fresh path return 200. So the two counts the badge sums (factory/app install,
+  aggregate + version-tagged) are sent as pageviews. Erase and the outcome
+  counts below stay events - the badge doesn't read them, and keeping them as
+  events keeps them out of the Pages report.
+
+  The same measurement shows the cost: those three pageview hits report as 1,
+  not 3. Pageviews dedupe once per visitor per session (8h here), so flashing
+  several boards in one sitting registers as one. The badge is deliberately a
+  rough "N boards flashed", and undercounting is the accepted price of being
+  readable at all. Summing the version-tagged paths instead would recover the
+  multi-version case, but the page only knows the versions still in the picker
+  (RC_KEEP_COUNT + STABLE_KEEP_COUNT), so the badge would silently shrink as
+  releases age out - worse than undercounting.
 
   One gotcha if you ever debug that endpoint by hand: /counter/ responses are
-  cached for 4h, and a "no hits yet" 404 gets cached the same way. So probing
-  a path before it has any hits pins it at zero for the next four hours, long
-  after real hits land. Don't conclude from a stale 404 that counting is
-  broken - check the GoatCounter dashboard, which always reads live.
+  cached for 4h, and a "no hits yet" 404 is cached the same way. Probing a path
+  before it has any hits pins it at zero for the next four hours, long after
+  real hits land. Don't read a stale 404 as proof counting is broken - the
+  GoatCounter dashboard always reads live.
 -->
 <script>
 (function () {
@@ -480,10 +491,12 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
 
   // count.js is loaded async, so on a very fast click it may not be there yet;
   // a missed count is fine, a thrown error on the flash button is not.
-  function count(path, title) {
+  // pageview=true sends a pageview-style hit (the only kind the badge's
+  // counter endpoint can see); everything else is recorded as an event.
+  function count(path, title, pageview) {
     try {
       if (window.goatcounter && window.goatcounter.count) {
-        window.goatcounter.count({ path: path, title: title, event: true });
+        window.goatcounter.count({ path: path, title: title, event: !pageview });
       }
     } catch (e) {
       /* analytics must never break flashing */
@@ -492,11 +505,12 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
 
   // Records the aggregate path (what the badge reads) plus a version-tagged
   // variant, so the dashboard shows both "how many installs" and "of what".
+  // Both go as pageviews so the public counter can actually see them.
   function countFlash(path, title) {
-    count(path, title);
+    count(path, title, true);
     const picker = document.getElementById("version-picker");
     const tag = picker && !picker.disabled ? picker.value : null;
-    if (tag) count(path + "/" + tag, title + " (" + tag + ")");
+    if (tag) count(path + "/" + tag, title + " (" + tag + ")", true);
   }
 
   // Which button opened the dialog - the dialog itself doesn't say.
