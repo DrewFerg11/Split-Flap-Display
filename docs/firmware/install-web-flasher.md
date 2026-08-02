@@ -541,40 +541,73 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   });
 
   // --- Layer 2: outcomes -------------------------------------------------
-  // Watch <body> for the dialog ESP Web Tools appends, then poll its install
-  // state until it settles. Registered once per page load; the observer
+  // Watch <body> for the dialog ESP Web Tools appends, then intercept writes
+  // to its install state. Registered once per page load; the observer
   // outlives instant navigation, which is harmless (it only ever reacts to a
   // dialog this page's buttons created).
+  //
+  // This used to poll _installState once a second and never recorded anything,
+  // because "finished" is transient: the dialog sets it, waits 100ms, reopens
+  // the port, brings up Improv, then clears _installState back to undefined
+  // and moves on to Wi-Fi setup - usually well inside one second, so the poll
+  // sampled straight past it. _installState is a Lit @state() accessor on the
+  // prototype, so instead of sampling we wrap it per dialog and see every
+  // assignment, transient or not. Still private API, hence the warning below
+  // if the accessor ever moves.
   if (!window.__sfdFlashOutcomeWatcher) {
     window.__sfdFlashOutcomeWatcher = true;
 
     function watchDialog(dialog) {
       const kind = lastKind || "unknown";
       let reported = false;
-      const timer = setInterval(function () {
-        try {
-          if (!dialog.isConnected) {
-            clearInterval(timer);
-            return;
-          }
-          const state = dialog._installState && dialog._installState.state;
-          if (reported || !state) return;
-          if (state === "finished") {
-            reported = true;
-            count("/flash/finished/" + kind, "Flash finished (" + kind + ")");
-          } else if (state === "error") {
-            reported = true;
-            count("/flash/failed/" + kind, "Flash failed (" + kind + ")");
-          }
-        } catch (e) {
-          clearInterval(timer);
-        }
-      }, 1000);
 
-      // Hard stop, so a dialog left open overnight doesn't poll forever.
-      setTimeout(function () {
-        clearInterval(timer);
-      }, 15 * 60 * 1000);
+      function report(state) {
+        if (reported) return;
+        if (state === "finished") {
+          reported = true;
+          count("/flash/finished/" + kind, "Flash finished (" + kind + ")");
+        } else if (state === "error") {
+          reported = true;
+          count("/flash/failed/" + kind, "Flash failed (" + kind + ")");
+        }
+      }
+
+      try {
+        // Walk up to whichever prototype actually declares the accessor.
+        let proto = Object.getPrototypeOf(dialog);
+        let desc;
+        while (proto && !desc) {
+          desc = Object.getOwnPropertyDescriptor(proto, "_installState");
+          proto = Object.getPrototypeOf(proto);
+        }
+        if (!desc || !desc.set || !desc.get) {
+          console.warn(
+            "[flash-analytics] ESP Web Tools no longer exposes an _installState " +
+              "accessor; flash outcome counts are disabled. Everything else " +
+              "(click counts, the badge, flashing itself) is unaffected.",
+          );
+          return;
+        }
+
+        Object.defineProperty(dialog, "_installState", {
+          configurable: true,
+          enumerable: false,
+          get: function () {
+            return desc.get.call(this);
+          },
+          set: function (value) {
+            // Hand off to Lit first so rendering is never affected by us.
+            desc.set.call(this, value);
+            try {
+              if (value && value.state) report(value.state);
+            } catch (e) {
+              /* analytics must never break flashing */
+            }
+          },
+        });
+      } catch (e) {
+        /* analytics must never break flashing */
+      }
     }
 
     new MutationObserver(function (records) {
