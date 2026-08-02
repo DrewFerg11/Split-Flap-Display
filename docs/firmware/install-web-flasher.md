@@ -460,18 +460,17 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
        it, the outcome counts quietly stop and the click counts (which are
        what the badge uses) keep working.
 
-  GoatCounter's public /counter/*.json endpoint (what the badge below reads)
-  only reflects pageview-style hits, not event hits - confirmed by testing:
-  a real event never showed up there even hours later, while pageview hits
-  to the same site did. So the two counts the badge sums (factory/app
-  install, aggregate + version-tagged) are sent as pageview-style hits
-  (event: false) instead of events. Erase and the outcome counts below stay
-  as events, since the badge doesn't read them and events keep them out of
-  the Pages report.
+  Everything is sent as an event (event: true). Events are counted per click,
+  where pageview-style hits would be deduplicated once per visitor per session
+  (8h on this site) - so events are what an "N boards flashed" number wants.
+  Events are also visible to the public /counter/*.json endpoint the badge
+  reads, verified against live paths.
 
-  Sending these as pageviews means they inherit pageview dedup: GoatCounter
-  counts a given path once per visitor per session (this site: 8h), so
-  flashing three boards in one sitting registers as one flash on the badge.
+  One gotcha if you ever debug that endpoint by hand: /counter/ responses are
+  cached for 4h, and a "no hits yet" 404 gets cached the same way. So probing
+  a path before it has any hits pins it at zero for the next four hours, long
+  after real hits land. Don't conclude from a stale 404 that counting is
+  broken - check the GoatCounter dashboard, which always reads live.
 -->
 <script>
 (function () {
@@ -481,10 +480,10 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
 
   // count.js is loaded async, so on a very fast click it may not be there yet;
   // a missed count is fine, a thrown error on the flash button is not.
-  function count(path, title, pageview) {
+  function count(path, title) {
     try {
       if (window.goatcounter && window.goatcounter.count) {
-        window.goatcounter.count({ path: path, title: title, event: !pageview });
+        window.goatcounter.count({ path: path, title: title, event: true });
       }
     } catch (e) {
       /* analytics must never break flashing */
@@ -493,12 +492,11 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
 
   // Records the aggregate path (what the badge reads) plus a version-tagged
   // variant, so the dashboard shows both "how many installs" and "of what".
-  // Sent as pageviews (see comment above) so the public counter picks them up.
   function countFlash(path, title) {
-    count(path, title, true);
+    count(path, title);
     const picker = document.getElementById("version-picker");
     const tag = picker && !picker.disabled ? picker.value : null;
-    if (tag) count(path + "/" + tag, title + " (" + tag + ")", true);
+    if (tag) count(path + "/" + tag, title + " (" + tag + ")");
   }
 
   // Which button opened the dialog - the dialog itself doesn't say.
