@@ -73,6 +73,8 @@ Plug the ESP32 into your computer. The installer auto-detects which board you ha
 
 </div>
 
+<p id="flash-counter" class="flasher-counter" hidden></p>
+
 Both buttons open a confirmation dialog before anything is written. Pick based on what you're starting from:
 
 - **Install (full flash)** — a clean factory image. **Erases everything first**: Wi-Fi credentials, MQTT config, module calibration, all of it. Use this for a brand-new board, or any time you want a fresh start. **Always safe** — the image includes the bootloader.
@@ -439,5 +441,222 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
       unavailableTextEl.textContent = "Couldn't check GitHub for releases right now.";
       unavailableEl.hidden = false;
     });
+})();
+</script>
+
+<!--
+  Anonymous flash counters, via the GoatCounter instance already loaded
+  site-wide (overrides/partials/integrations/analytics/custom.html). No
+  cookies, no personal data - just a count of how often each button is used,
+  so we know whether this page is worth maintaining and which board/version
+  people actually flash.
+
+  Two independent layers, both fail-silent:
+    1. Clicks (reliable). Every Install / Update / Erase click is counted.
+    2. Outcomes (best effort). ESP Web Tools 10.x exposes no public progress
+       event - the install button just appends an <ewt-install-dialog> to
+       <body> - so completion is read from that dialog's internal
+       _installState.state. That's private API: if a future version renames
+       it, the outcome counts quietly stop and the click counts (which are
+       what the badge uses) keep working.
+
+  The public /counter/*.json endpoint the badge reads only sees pageview-style
+  hits, never events. Measured directly, same client, same second: three event
+  hits to a fresh path leave it at 404/0, while three pageview hits to another
+  fresh path return 200. So the two counts the badge sums (factory/app install,
+  aggregate + version-tagged) are sent as pageviews. Erase and the outcome
+  counts below stay events - the badge doesn't read them, and keeping them as
+  events keeps them out of the Pages report.
+
+  The same measurement shows the cost: those three pageview hits report as 1,
+  not 3. Pageviews dedupe once per visitor per session (8h here), so flashing
+  several boards in one sitting registers as one. The badge is deliberately a
+  rough "N boards flashed", and undercounting is the accepted price of being
+  readable at all. Summing the version-tagged paths instead would recover the
+  multi-version case, but the page only knows the versions still in the picker
+  (RC_KEEP_COUNT + STABLE_KEEP_COUNT), so the badge would silently shrink as
+  releases age out - worse than undercounting.
+
+  One gotcha if you ever debug that endpoint by hand: /counter/ responses are
+  cached for 4h, and a "no hits yet" 404 is cached the same way. Probing a path
+  before it has any hits pins it at zero for the next four hours, long after
+  real hits land. Don't read a stale 404 as proof counting is broken - the
+  GoatCounter dashboard always reads live.
+-->
+<script>
+(function () {
+  const SITE = "https://split-flap-display.goatcounter.com";
+  const PATH_FACTORY = "/flash/install-factory";
+  const PATH_APP = "/flash/install-app";
+
+  // count.js is loaded async, so on a very fast click it may not be there yet;
+  // a missed count is fine, a thrown error on the flash button is not.
+  // pageview=true sends a pageview-style hit (the only kind the badge's
+  // counter endpoint can see); everything else is recorded as an event.
+  function count(path, title, pageview) {
+    try {
+      if (window.goatcounter && window.goatcounter.count) {
+        window.goatcounter.count({ path: path, title: title, event: !pageview });
+      }
+    } catch (e) {
+      /* analytics must never break flashing */
+    }
+  }
+
+  // Records the aggregate path (what the badge reads) plus a version-tagged
+  // variant, so the dashboard shows both "how many installs" and "of what".
+  // Both go as pageviews so the public counter can actually see them.
+  function countFlash(path, title) {
+    count(path, title, true);
+    const picker = document.getElementById("version-picker");
+    const tag = picker && !picker.disabled ? picker.value : null;
+    if (tag) count(path + "/" + tag, title + " (" + tag + ")", true);
+  }
+
+  // Which button opened the dialog - the dialog itself doesn't say. Lives on
+  // window, not in this IIFE: instant navigation re-runs the script and rebinds
+  // the buttons, but the outcome observer below is registered only once and
+  // would otherwise keep reading the first visit's variable.
+
+  // Instant navigation re-runs this script on every visit to the page, so
+  // listeners are marked per element to avoid double-counting a single click.
+  function once(el, fn) {
+    if (!el || el.dataset.gcBound) return;
+    el.dataset.gcBound = "1";
+    el.addEventListener("click", fn);
+  }
+
+  once(document.getElementById("factory-install"), function () {
+    window.__sfdFlashKind = "factory";
+    countFlash(PATH_FACTORY, "Flash: full install");
+  });
+
+  once(document.getElementById("app-install"), function () {
+    window.__sfdFlashKind = "app";
+    countFlash(PATH_APP, "Flash: app update");
+  });
+
+  // The confirm button inside the modal, not the one that opens it - this
+  // counts intent to erase, not curiosity about the dialog.
+  once(document.getElementById("erase-confirm"), function () {
+    count("/flash/erase", "Flash: erase device");
+  });
+
+  // --- Layer 2: outcomes -------------------------------------------------
+  // Watch <body> for the dialog ESP Web Tools appends, then intercept writes
+  // to its install state. Registered once per page load; the observer
+  // outlives instant navigation, which is harmless (it only ever reacts to a
+  // dialog this page's buttons created).
+  //
+  // This used to poll _installState once a second and never recorded anything,
+  // because "finished" is transient: the dialog sets it, waits 100ms, reopens
+  // the port, brings up Improv, then clears _installState back to undefined
+  // and moves on to Wi-Fi setup - usually well inside one second, so the poll
+  // sampled straight past it. _installState is a Lit @state() accessor on the
+  // prototype, so instead of sampling we wrap it per dialog and see every
+  // assignment, transient or not. Still private API, hence the warning below
+  // if the accessor ever moves.
+  if (!window.__sfdFlashOutcomeWatcher) {
+    window.__sfdFlashOutcomeWatcher = true;
+
+    function watchDialog(dialog) {
+      const kind = window.__sfdFlashKind || "unknown";
+      let reported = false;
+
+      function report(state) {
+        if (reported) return;
+        if (state === "finished") {
+          reported = true;
+          count("/flash/finished/" + kind, "Flash finished (" + kind + ")");
+        } else if (state === "error") {
+          reported = true;
+          count("/flash/failed/" + kind, "Flash failed (" + kind + ")");
+        }
+      }
+
+      try {
+        // Walk up to whichever prototype actually declares the accessor.
+        let proto = Object.getPrototypeOf(dialog);
+        let desc;
+        while (proto && !desc) {
+          desc = Object.getOwnPropertyDescriptor(proto, "_installState");
+          proto = Object.getPrototypeOf(proto);
+        }
+        if (!desc || !desc.set || !desc.get) {
+          console.warn(
+            "[flash-analytics] ESP Web Tools no longer exposes an _installState " +
+              "accessor; flash outcome counts are disabled. Everything else " +
+              "(click counts, the badge, flashing itself) is unaffected.",
+          );
+          return;
+        }
+
+        Object.defineProperty(dialog, "_installState", {
+          configurable: true,
+          enumerable: false,
+          get: function () {
+            return desc.get.call(this);
+          },
+          set: function (value) {
+            // Hand off to Lit first so rendering is never affected by us.
+            desc.set.call(this, value);
+            try {
+              if (value && value.state) report(value.state);
+            } catch (e) {
+              /* analytics must never break flashing */
+            }
+          },
+        });
+      } catch (e) {
+        /* analytics must never break flashing */
+      }
+    }
+
+    new MutationObserver(function (records) {
+      for (const rec of records) {
+        for (const node of rec.addedNodes) {
+          if (node.nodeType === 1 && node.tagName === "EWT-INSTALL-DIALOG") {
+            watchDialog(node);
+          }
+        }
+      }
+    }).observe(document.body, { childList: true });
+  }
+
+  // --- Badge -------------------------------------------------------------
+  // GoatCounter's public visitor-counter endpoint (Settings -> "Allow adding
+  // visitor counts to your website"). If that setting is off, or the paths
+  // have no hits yet, the request fails or returns nothing and the badge just
+  // stays hidden - it is never shown empty or at zero.
+  const badge = document.getElementById("flash-counter");
+
+  function counterUrl(path) {
+    return SITE + "/counter/" + encodeURIComponent(path) + ".json";
+  }
+
+  function fetchCount(path) {
+    return fetch(counterUrl(path))
+      .then((res) => (res.ok ? res.json() : null))
+      // count comes back pre-formatted ("1,234"), so strip the separators.
+      .then((data) => (data && data.count ? parseInt(String(data.count).replace(/[^0-9]/g, ""), 10) || 0 : 0))
+      .catch(() => 0);
+  }
+
+  if (badge) {
+    Promise.all([fetchCount(PATH_FACTORY), fetchCount(PATH_APP)]).then(function (counts) {
+      const total = counts[0] + counts[1];
+      if (total <= 0) return;
+      badge.textContent =
+        "⚡ " + total.toLocaleString() + " board" + (total === 1 ? "" : "s") + " flashed from this page";
+      // The number is a floor, never an overcount: pageviews dedup per visitor
+      // session (three boards in one sitting count once) and the counter
+      // endpoint is cached for hours. Kept out of the visible text to leave the
+      // badge a single short line.
+      badge.title =
+        "Counted once per visitor session and updated a few times a day, " +
+        "so the real number is higher.";
+      badge.hidden = false;
+    });
+  }
 })();
 </script>
