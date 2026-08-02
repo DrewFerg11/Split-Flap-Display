@@ -49,6 +49,21 @@
   margin: 1rem 0;
 }
 
+/* "N boards flashed from this page" badge under the install buttons. Hidden
+   until GoatCounter returns a non-zero count, so it never renders empty. The
+   [hidden] rule is redundant with the UA default; it's kept as a guard in case
+   a reset stylesheet sets a display on the element. */
+.flasher-counter[hidden] {
+  display: none;
+}
+.md-typeset .flasher-counter {
+  margin: -0.4rem 0 1rem;
+  font-size: 0.7rem;
+  color: var(--md-default-fg-color--light);
+  /* Hints at the title tooltip explaining that the count is a floor. */
+  cursor: help;
+}
+
 /* Danger button (Erase) — shared by the page button and the modal. */
 .md-typeset .md-button--danger {
   color: #fff;
