@@ -646,12 +646,16 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
     Promise.all([fetchCount(PATH_FACTORY), fetchCount(PATH_APP)]).then(function (counts) {
       const total = counts[0] + counts[1];
       if (total <= 0) return;
+      // "at least", because the number is a floor and never an overcount:
+      // pageviews dedup per visitor session (three boards in one sitting count
+      // once) and the counter endpoint is cached for hours. The tooltip says
+      // why for anyone who wonders.
       badge.textContent =
-        "⚡ " + total.toLocaleString() + " board" + (total === 1 ? "" : "s") + " flashed from this page";
-      // The number is a floor, never an overcount: pageviews dedup per visitor
-      // session (three boards in one sitting count once) and the counter
-      // endpoint is cached for hours. Kept out of the visible text to leave the
-      // badge a single short line.
+        "⚡ at least " +
+        total.toLocaleString() +
+        " board" +
+        (total === 1 ? "" : "s") +
+        " flashed from this page";
       badge.title =
         "Counted once per visitor session and updated a few times a day, " +
         "so the real number is higher.";
