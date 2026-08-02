@@ -2029,40 +2029,73 @@
   });
 
   // --- Layer 2: outcomes -------------------------------------------------
-  // Watch <body> for the dialog ESP Web Tools appends, then poll its install
-  // state until it settles. Registered once per page load; the observer
+  // Watch <body> for the dialog ESP Web Tools appends, then intercept writes
+  // to its install state. Registered once per page load; the observer
   // outlives instant navigation, which is harmless (it only ever reacts to a
   // dialog this page's buttons created).
+  //
+  // This used to poll _installState once a second and never recorded anything,
+  // because "finished" is transient: the dialog sets it, waits 100ms, reopens
+  // the port, brings up Improv, then clears _installState back to undefined
+  // and moves on to Wi-Fi setup - usually well inside one second, so the poll
+  // sampled straight past it. _installState is a Lit @state() accessor on the
+  // prototype, so instead of sampling we wrap it per dialog and see every
+  // assignment, transient or not. Still private API, hence the warning below
+  // if the accessor ever moves.
   if (!window.__sfdFlashOutcomeWatcher) {
     window.__sfdFlashOutcomeWatcher = true;
 
     function watchDialog(dialog) {
       const kind = lastKind || "unknown";
       let reported = false;
-      const timer = setInterval(function () {
-        try {
-          if (!dialog.isConnected) {
-            clearInterval(timer);
-            return;
-          }
-          const state = dialog._installState && dialog._installState.state;
-          if (reported || !state) return;
-          if (state === "finished") {
-            reported = true;
-            count("/flash/finished/" + kind, "Flash finished (" + kind + ")");
-          } else if (state === "error") {
-            reported = true;
-            count("/flash/failed/" + kind, "Flash failed (" + kind + ")");
-          }
-        } catch (e) {
-          clearInterval(timer);
-        }
-      }, 1000);
 
-      // Hard stop, so a dialog left open overnight doesn't poll forever.
-      setTimeout(function () {
-        clearInterval(timer);
-      }, 15 * 60 * 1000);
+      function report(state) {
+        if (reported) return;
+        if (state === "finished") {
+          reported = true;
+          count("/flash/finished/" + kind, "Flash finished (" + kind + ")");
+        } else if (state === "error") {
+          reported = true;
+          count("/flash/failed/" + kind, "Flash failed (" + kind + ")");
+        }
+      }
+
+      try {
+        // Walk up to whichever prototype actually declares the accessor.
+        let proto = Object.getPrototypeOf(dialog);
+        let desc;
+        while (proto && !desc) {
+          desc = Object.getOwnPropertyDescriptor(proto, "_installState");
+          proto = Object.getPrototypeOf(proto);
+        }
+        if (!desc || !desc.set || !desc.get) {
+          console.warn(
+            "[flash-analytics] ESP Web Tools no longer exposes an _installState " +
+              "accessor; flash outcome counts are disabled. Everything else " +
+              "(click counts, the badge, flashing itself) is unaffected.",
+          );
+          return;
+        }
+
+        Object.defineProperty(dialog, "_installState", {
+          configurable: true,
+          enumerable: false,
+          get: function () {
+            return desc.get.call(this);
+          },
+          set: function (value) {
+            // Hand off to Lit first so rendering is never affected by us.
+            desc.set.call(this, value);
+            try {
+              if (value && value.state) report(value.state);
+            } catch (e) {
+              /* analytics must never break flashing */
+            }
+          },
+        });
+      } catch (e) {
+        /* analytics must never break flashing */
+      }
     }
 
     new MutationObserver(function (records) {
@@ -2128,7 +2161,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-08-02T16:56:18+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-08-02</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-08-02T17:15:04+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-08-02</span>
   </span>
 
     
