@@ -19,7 +19,7 @@ There are two build options for this project:
 
     Single ESP32 controlling up to :material-numeric-8-box: modules over a single I²C bus. 
     
-    The original design by Morgan Manly. This project was further improved upon by the community (notably Jordan Hoff, Thom Koopman, and various discord members) with refining the code, increasing the flap count to 48, creating custom pcbs, and much more.
+    The original design by Morgan Manly. This project was further improved upon by the community (notably Jordan Hoff, Thom Koopman, and various Discord members) with refining the code, increasing the flap count to 48, creating custom pcbs, and much more.
 
     [:octicons-arrow-right-24: Original build guide](original/index.md)
 
@@ -27,7 +27,7 @@ There are two build options for this project:
 
     ---
 
-    Single ESP32 controlling up to :material-numeric-1-box::material-numeric-6-box: modules over two I²C buses. 
+    Single ESP32 controlling up to :material-numeric-1-box::material-numeric-1-box: modules over two I²C buses. 
     
     Enhanced version by Drew Ferguson, based on the original design.
 
