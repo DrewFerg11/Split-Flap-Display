@@ -20,7 +20,9 @@ jobs:
       - name: Close if author is not allowed
         if: >-
           github.event.issue.user.login != 'DrewFerg11' &&
-          github.event.issue.user.login != 'drewferg11-claude-bot[bot]'
+          github.event.issue.user.login != 'drewferg11-claude-bot[bot]' &&
+          github.event.issue.user.login != 'drewferg11-hermes-bot[bot]' &&
+          github.event.issue.user.login != 'drewferg11-ollama-bot[bot]'
         uses: actions/github-script@v7
         with:
           script: |
