@@ -10,9 +10,9 @@ All print files are available on MakerWorld — each plate is pre-configured wit
 
 ## Filament type
 
-**PETG is recommended for structural parts** It holds up better to long-running motor heat and is more dimensionally stable around the heat-set insert mounts. That said, plenty of community members have built entirely in PLA without issues.
+**PETG is recommended for structural parts.** It holds up better to long-running motor heat and is more dimensionally stable around the heat-set insert mounts. That said, plenty of community members have built entirely in PLA without issues.
 
-**PLA is recommended for flap** It's lightweight and produces crisp character contrast in black and white. A stiffer material like PETG isn't wrong, but offers no real benefit for flaps — see the [BOM](../bom.md#common) for the specific filaments the community has tested.
+**PLA is recommended for flaps.** It's lightweight and produces crisp character contrast in black and white. A stiffer material like PETG isn't wrong, but offers no real benefit for flaps — see the [BOM](../bom.md#common) for the specific filaments the community has tested.
 
 !!! tip "White PLA heads-up"
     The white PLA in the BOM is the whitest white tested so far, but it prints a little rougher than typical PLA and tends to stain print plates (smooth and textured alike on Bambu printers). Worth knowing before you load it.
