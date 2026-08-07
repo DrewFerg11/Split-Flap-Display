@@ -2,7 +2,7 @@
 
 There are two build options for this project:
 
-<div style="display: flex; gap: 1.5rem; margin: 2rem 0 0.25rem;" markdown>
+<div style="display: flex; gap: 1.5rem; margin: 2rem 0 0 0.25rem;" markdown>
 <figure style="flex: 1; text-align: center; margin: 0;" markdown>
 ![8-module split-flap display showing SUN16FEB](../assets/display/8-modules.png)
 </figure>
@@ -27,7 +27,7 @@ There are two build options for this project:
 
     ---
 
-    Single ESP32 controlling up to :material-numeric-1-box::material-numeric-1-box: modules over two I²C buses. 
+    Single ESP32 controlling up to :material-numeric-1-box::material-numeric-6-box: modules over two I²C buses. 
     
     Enhanced version by Drew Ferguson, based on the original design.
 
