@@ -1,0 +1,62 @@
+name: Hermes Task
+description: An implementation task for Hermes to plan and build
+title: "[task]: "
+labels: ["hermes-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A unit of work with a clear finish line.
+
+        This issue on its own does **not** start any work. Add the `hermes:go`
+        label when you want Hermes to pick it up. It will reply with a plan
+        first; react 👍 on that plan to have it implement and open a PR, or 👎
+        to drop it.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true once this is done?
+      placeholder: MQTT reconnect should back off instead of retrying on every loop.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How we know it is finished. One per line.
+      placeholder: |
+        - Reconnect interval backs off up to a 30s cap
+        - No blocking calls inside the MQTT callback
+        - Existing CI passes
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Files / areas involved
+      description: Optional. Point at the code if you already know where it lives.
+      placeholder: src/SplitFlapMqtt.cpp
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Anything to avoid — APIs to leave alone, patterns to follow.
+      placeholder: |
+        - Do not change the web API surface
+        - Match the deferred-work pattern used by the restart button
+
+  - type: dropdown
+    id: implementer
+    attributes:
+      label: Who is expected to implement this?
+      description: Guidance only. The `hermes:go` label is what actually starts work.
+      options:
+        - Undecided
+        - Hermes
+        - Human (Hermes should not implement)
+      default: 0

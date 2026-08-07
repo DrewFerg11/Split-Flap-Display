@@ -1,0 +1,6 @@
+# Forces contributors through a template instead of a blank issue.
+#
+# NOTE: this affects the GitHub WEB UI only. The REST API is unaffected, so
+# automation (the Hermes agent) can still open issues directly. That asymmetry
+# is intentional: humans get structure, automation keeps its freedom.
+blank_issues_enabled: false
