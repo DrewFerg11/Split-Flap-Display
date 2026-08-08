@@ -555,10 +555,9 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
       badge.textContent =
         "\u26a1 " + total.toLocaleString() +
         " board" + (total === 1 ? "" : "s") +
-        " flashed from this page";
+        " flashed";
       badge.title =
-        "Counted by Abacus on each successful flash completion. " +
-        "Updates live - refresh the page for the current count.";
+        "Each successful flash completion increments this counter by 1.";
       badge.hidden = false;
     });
   }
