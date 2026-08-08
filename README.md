@@ -15,7 +15,7 @@ A fully 3D-printed, modular split-flap display with an ESP32-based web interface
 
 ## Flash Firmware
 
-You don't need PlatformIO or a build environment to get started. **[Flash the latest firmware straight from your browser](https://drewferg11.github.io/Split-Flap-Display/firmware/install-web-flasher/)** over USB. No code, no compilers, just a data cable and Chrome, Edge, or Opera on desktop. The installer auto-detects your board (ESP32 DevKit, ESP32-C3 SuperMini / C3-Zero, or ESP32-S3 SuperMini / S3-Zero) and walks you through Wi-Fi setup right after flashing.
+You don't need PlatformIO or a build environment to get started. **[Flash the latest firmware straight from your browser](https://drewferg11.github.io/Split-Flap-Display/firmware/install-web-flasher/)** over USB. No code, no compilers, just a data cable and Chrome, Edge, or Opera on desktop. The installer auto-detects which chip you have (ESP32, ESP32-C3, or ESP32-S3) and walks you through Wi-Fi setup right after flashing.
 
 Prefer to build it yourself? See the [manual install guide](https://drewferg11.github.io/Split-Flap-Display/firmware/install-manual/).
 

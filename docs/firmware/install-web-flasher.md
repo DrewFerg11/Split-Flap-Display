@@ -13,7 +13,7 @@ Flash the latest firmware directly from this page over USB. No PlatformIO, no de
 
 ## Connect your board
 
-Plug the ESP32 into your computer. The installer auto-detects which board you have (ESP32 DevKit, ESP32-C3 SuperMini / C3-Zero, or ESP32-S3 SuperMini / S3-Zero) — but the S3 boards sometimes need one extra step to enter flashing mode.
+Plug the ESP32 into your computer. The installer auto-detects which chip you have (ESP32, ESP32-C3, or ESP32-S3) and flashes the matching firmware — so any carrier board built on one of those chips works, not just the ones listed in [supported hardware](hardware.md). The S3 boards sometimes need one extra step to enter flashing mode.
 
 === "ESP32 DevKit / C3"
 
