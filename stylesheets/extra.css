@@ -50,18 +50,21 @@
 }
 
 /* "N boards flashed from this page" badge under the install buttons. Hidden
-   until GoatCounter returns a non-zero count, so it never renders empty. The
-   [hidden] rule is redundant with the UA default; it's kept as a guard in case
-   a reset stylesheet sets a display on the element. */
+   until Abacus returns a non-zero count, so it never renders empty. */
 .flasher-counter[hidden] {
   display: none;
 }
 .md-typeset .flasher-counter {
-  margin: -0.4rem 0 1rem;
-  font-size: 0.7rem;
-  color: var(--md-default-fg-color--light);
-  /* Hints at the title tooltip explaining that the count is a floor. */
-  cursor: help;
+  display: inline-block;
+  margin: -0.3rem 0 1rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--md-default-fg-color);
+  background: var(--md-accent-fg-color--transparent, rgba(255, 193, 7, 0.12));
+  border: 1px solid var(--md-accent-fg-color);
+  line-height: 1.6;
 }
 
 /* Danger button (Erase) — shared by the page button and the modal. */
