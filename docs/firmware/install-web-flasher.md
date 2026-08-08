@@ -408,7 +408,7 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
         if (rcCount >= RC_KEEP_COUNT && stableCount >= STABLE_KEEP_COUNT) break;
         if (r.prerelease && rcCount >= RC_KEEP_COUNT) continue;
         if (!r.prerelease && stableCount >= STABLE_KEEP_COUNT) continue;
-        if (!(await hasManifest(r.tag_name))) continue;\n
+        if (!(await hasManifest(r.tag_name))) continue;
         available.push(r);
         if (r.prerelease) rcCount++;
         else stableCount++;
