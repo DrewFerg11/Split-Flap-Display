@@ -42,6 +42,6 @@ The I²C bus will not function without **4.7kΩ pull-up resistors** on SDA and S
 
 See the [I²C reference](../../i2c.md#pull-up-resistors) for placement details.
 
-### Power the boards directly — not through the ESP32 USB
+### Power the boards directly for a full chain — not through the ESP32 USB
 
-Don't power a full module chain through the ESP32's USB port. No board's USB traces are rated for full motor current, and the wires will get hot. Connect 5V power directly to the first board's power terminals and let it daisy-chain from there.
+A few modules over USB is fine for testing, but don't power a full module chain that way — no board's USB traces are rated for that much motor current, and the wires will get hot. The smaller ESP32-C3 and S3 boards have less current headroom than the full-size ESP32 and are more likely to actually be damaged running motors this way. For anything beyond a few modules, connect 5V power directly to the first board's power terminals and let it daisy-chain from there.

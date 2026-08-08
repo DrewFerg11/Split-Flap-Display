@@ -83,5 +83,5 @@ TODO
 
 Both options deliver power to the first modules (+5V and GND), which daisy-chains through all subsequent boards. See the [Controller Board Assembly](build-guide/controller-board.md) for the full connection diagram.
 
-!!! danger "Don't power through the ESP32 USB port"
-    Avoid powering the display chain through the ESP32's USB port. This works fine for testing a few modules at a time, but not the entire display — no board's USB traces are rated for full motor current, and they will overheat. Power the boards directly from the 5V supply.
+!!! danger "Don't power the full chain through the ESP32 USB port"
+    Powering a few modules at a time through USB is fine for testing — that's not enough current to be a problem. What you shouldn't do is run the full display that way: no board's USB traces are rated for that much motor current, and they will overheat. The smaller ESP32-C3 and S3 boards have much less current headroom than the full-size ESP32 and are the most likely to actually be damaged pushing USB power too far, so be extra cautious with those. Once you're building out the full display, power the boards directly from the 5V supply.

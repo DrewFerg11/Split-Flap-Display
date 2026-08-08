@@ -2,6 +2,21 @@
 
 Which Espressif chips this project targets, and the specific boards it has actually been built and tested on. For the firmware environment each board maps to, see the [Supported boards](index.md#supported-boards) table.
 
+## Naming convention
+
+Firmware environments — the `esp32_n4`, `esp32c3_n4`, `esp32s3_n4r2` names used throughout this page — follow one pattern:
+
+```
+esp32[<chip-suffix>]_n<flashMB>[r<psramMB>][_ota]
+```
+
+- **Chip suffix** — the Espressif family token, lowercase, no separator (`c3`, `s3`, ...). The original ESP32 has no suffix.
+- **`n<MB>`** — flash size, always present. This selects the partition table (`n4` → `partitions_4MB.csv`).
+- **`r<MB>`** — PSRAM size, only present when PSRAM is enabled. This selects the board definition / bootloader memory mode (quad vs. octal), not the partition table.
+- **`_ota`** — the OTA-upload variant of the same board; everything else about the build is identical.
+
+**Why chip + memory instead of a brand name?** Carrier-board brands are the least stable identifier in the stack — the same silicon gets resold under different names by different sellers (see [Boards this project has been built on](#boards-this-project-has-been-built-on) below). Packaging names don't even uniquely identify a chip: `ESP32-WROOM-32` and `ESP32-S3-WROOM-1` are both "WROOM" parts, and the S3-WROOM-1 module alone ships in several flash/PSRAM configurations that each need their own partition table or bootloader. Naming envs after what actually determines the build — chip family, flash, PSRAM — means a new board with a different outline or brand but the same chip and memory is just a new row in the boards table below, not a new env.
+
 ## What makes a chip a candidate for this project
 
 Any future board is judged against one bar:
@@ -12,29 +27,17 @@ Any future board is judged against one bar:
 
 Everything else (clock speed, Bluetooth flavour, 802.15.4, PSRAM, flash size, Wi-Fi 6, Ethernet) is irrelevant to this project and appears in the table below only as context.
 
-## Espressif SoC lineup
+## Chip families this project supports
 
-Verified against [espressif.com/en/products/socs](https://www.espressif.com/en/products/socs) as of 2026-07-31. Sorted so the table answers "what could I use?" before "what exists?" — passing parts first, then near-misses, then disqualified.
+Verified against [espressif.com/en/products/socs](https://www.espressif.com/en/products/socs) as of 2026-07-31.
 
-| Series | SoC           | Architecture         | Cores | Max clock | Wireless                                          |   Native USB   | Meets the bar?                                      |
-| ------ | ------------- | -------------------- | :---: | --------- | ------------------------------------------------- | :------------: | --------------------------------------------------- |
-| ESP32  | **ESP32**     | Xtensa LX6           | **2** | 240 MHz   | Wi-Fi 4, BT 4.2 Classic + BLE                     |       ❌       | ✅ **shipping** — the dual-row board                |
-| S      | **ESP32-S3**  | Xtensa LX7           | **2** | 240 MHz   | Wi-Fi 4, BLE 5                                    |     ✅ OTG     | ✅ **shipping** — meets it; dual-row unbuilt so far |
-| S      | **ESP32-S31** | RISC-V               | **2** | 320 MHz   | Wi-Fi 6, BT 5.4, 802.15.4, Gigabit Ethernet       |       ✅       | ⚠️ **only future candidate** — I²C count unverified |
-| S      | **ESP32-S2**  | Xtensa LX7           |   1   | 240 MHz   | Wi-Fi 4 only                                      |     ✅ OTG     | ❌ single core                                      |
-| C      | **ESP32-C3**  | RISC-V               |   1   | 160 MHz   | Wi-Fi 4, BLE 5                                    | ✅ Serial/JTAG | ⚠️ **shipping** — 1 core, 1× I²C; single row only   |
-| C      | **ESP32-C2**  | RISC-V               |   1   | 120 MHz   | Wi-Fi 4, BLE 5                                    |       ❌       | ❌ single core                                      |
-| C      | **ESP32-C5**  | RISC-V (+LP core)    | 1 HP  | 240 MHz   | Dual-band Wi-Fi 6, BLE 5, 802.15.4                |       ✅       | ❌ single HP core                                   |
-| C      | **ESP32-C6**  | RISC-V (+LP core)    | 1 HP  | 160 MHz   | Wi-Fi 6, BLE 5.3, 802.15.4 (Thread/Zigbee/Matter) |       ✅       | ❌ single HP core                                   |
-| C      | **ESP32-C61** | RISC-V               |   1   | 160 MHz   | Wi-Fi 6, BLE 5                                    |       ✅       | ❌ single core                                      |
-| H      | **ESP32-H4**  | RISC-V               |   2   | 96 MHz    | BLE 5.4, 802.15.4 — **no Wi-Fi**                  |       ✅       | ❌ no Wi-Fi                                         |
-| H      | **ESP32-H2**  | RISC-V               |   1   | 96 MHz    | BLE 5, 802.15.4 — **no Wi-Fi**                    |       ✅       | ❌ no Wi-Fi                                         |
-| H      | **ESP32-H21** | RISC-V               |   1   | 96 MHz    | BLE, 802.15.4 — **no Wi-Fi**                      |       ✅       | ❌ no Wi-Fi                                         |
-| P      | **ESP32-P4**  | RISC-V (2 HP + 1 LP) |   2   | 400 MHz   | **none integrated**                               |     ✅ OTG     | ❌ no radio                                         |
-| E      | **ESP32-E22** | RISC-V               |   2   | 500 MHz   | Tri-band Wi-Fi 6E, BT 5.4                         |       —        | ❌ co-processor — needs a host MCU                  |
-| legacy | **ESP8266**   | Xtensa L106          |   1   | 160 MHz   | Wi-Fi 4 only                                      |       ❌       | ❌ legacy; Espressif points to C2                   |
+| SoC           | Architecture | Cores | Max clock | Wireless                      |   Native USB   | I²C buses | Original support | Dual support |
+| ------------- | ------------ | :---: | --------- | ------------------------------ | :------------: | :-------: | :---------------: | :-----------: |
+| **ESP32**     | Xtensa LX6   | **2** | 240 MHz   | Wi-Fi 4, BT 4.2 Classic + BLE | ❌              | 2         | ✅                 | ✅            |
+| **ESP32-C3**  | RISC-V       | 1     | 160 MHz   | Wi-Fi 4, BLE 5                | ✅ Serial/JTAG | 1         | ✅                 | ❌            |
+| **ESP32-S3**  | Xtensa LX7   | **2** | 240 MHz   | Wi-Fi 4, BLE 5                | ✅ OTG         | 2         | ✅                 | ⚠️[^s3-dual]  |
 
-The whole C-series is structurally out — every C part is single-HP-core, and that's a design choice of the line, not a temporary gap. In practice this project is an ESP32/S3 project, with the C3 supported as a legacy single-row option and **ESP32-S31 the only plausible future addition** in the entire current lineup.
+[^s3-dual]: The S3 has two I²C controllers, same as the ESP32, so dual mode is possible in principle — but it isn't planned for the **ESP32-S3 SuperMini / S3-Zero** (`esp32s3_n4r2`): in testing that board has been less reliable and slower than the ESP32, so it's not a good candidate for the dual-bus build regardless of what the silicon can do. The **ESP32-S3-WROOM-1 44-pin board** (`esp32s3_n16r8`) is a different, more capable carrier design and will get dual-bus support once it's added to the project.
 
 ## Boards this project has been built on
 
