@@ -7,7 +7,7 @@ is itself based on the original design by
 
 ## Reporting issues
 
-- **Bugs:** Open a [GitHub issue](../../issues/new) with the board you're using,
+- **Bugs:** Open a [GitHub issue](../../issues/new?template=bug_report.yml) with the board you're using,
   what you expected, what actually happened, and (if relevant) the serial log.
 - **Feature ideas:** Issues are fine, but if it's open-ended, the
   [Discord](https://discord.gg/RCvks4XXXH) is usually a better place to discuss
