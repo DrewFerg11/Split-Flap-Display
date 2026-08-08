@@ -6,6 +6,8 @@
 [![GitHub stars](https://img.shields.io/github/stars/DrewFerg11/Split-Flap-Display?style=flat&logo=github)](https://github.com/DrewFerg11/Split-Flap-Display/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/DrewFerg11/Split-Flap-Display?style=flat)](https://github.com/DrewFerg11/Split-Flap-Display/issues)
 [![MakerWorld Downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fmakerworld.com%2Fapi%2Fv1%2Fuser-service%2Fuser%2Fprofile%2F2542847618&query=%24.MWCount.myDesignDownloadCount&label=MakerWorld%20Downloads&color=blue&logo=bambulab)](https://makerworld.com/@DMFerg)
+[![MakerWorld Makes](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fmakerworld.com%2Fapi%2Fv1%2Fuser-service%2Fuser%2Fprofile%2F2542847618&query=%24.MWCount.myDesignPrintCount&label=MakerWorld%20Makes&color=orange&logo=bambulab)](https://makerworld.com/@DMFerg)
+[![Last commit](https://img.shields.io/github/last-commit/DrewFerg11/Split-Flap-Display?logo=github)](https://github.com/DrewFerg11/Split-Flap-Display/commits/main)
 [![Discord](https://dcbadge.limes.pink/api/server/https://discord.gg/RCvks4XXXH?style=flat)](https://discord.gg/RCvks4XXXH)
 
 ![Split-flap display in action](docs/assets/display/split-flap.gif)
