@@ -913,7 +913,7 @@
 </div>
 <div class="flasher">
 <h2 id="connect-your-board">Connect your board<a class="headerlink" href="#connect-your-board" title="Permanent link">&para;</a></h2>
-<p>Plug the ESP32 into your computer. The installer auto-detects which board you have (ESP32 DevKit, ESP32-C3 SuperMini / C3-Zero, or ESP32-S3 SuperMini / S3-Zero) — but the S3 boards sometimes need one extra step to enter flashing mode.</p>
+<p>Plug the ESP32 into your computer. The installer auto-detects which chip you have (ESP32, ESP32-C3, or ESP32-S3) and flashes the matching firmware — so any carrier board built on one of those chips works, not just the ones listed in <a href="../hardware/">supported hardware</a>. The S3 boards sometimes need one extra step to enter flashing mode.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">ESP32 DevKit / C3</label><label for="__tabbed_1_2">S3 (extra step)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -1334,23 +1334,24 @@
   Flash completion counter using Abacus (https://jasoncameron.dev/abacus/),
   a free, stateless counting API with CORS support.
 
-  Previous approach: GoatCounter pageviews for click counting + private
-  _installState accessor hacking for completion detection. Two problems:
-  1. GoatCounter pageviews deduplicate per visitor session (8h), so
-     flashing N boards in one sitting counted as 1.
-  2. The _installState hack wrapped Lit's private @state() accessor -
-     fragile and would silently break on ESP Web Tools version updates.
+  Completion detection: ESP Web Tools' ewt-install-dialog sets a
+  _installState property (a Lit @state() accessor) as the flash progresses
+  through states: initializing -> preparing -> erasing -> writing -> finished.
+  The "finished" state is transient — the dialog sets it, waits 100ms,
+  reopens the port, brings up Improv, then clears _installState back to
+  undefined. To catch it reliably, we wrap the property setter on the
+  dialog's prototype and see every assignment, transient or not.
 
-  New approach:
-  - Listen for ESP Web Tools' PUBLIC "state-changed" CustomEvent on the
-    ewt-install-dialog element (dispatched with detail = state string).
-  - On "finished" state, increment an Abacus counter. No deduplication -
-    each completed flash increments by 1, even in the same session.
-  - The badge reads the Abacus counter value on page load.
+  The state-changed CustomEvent was considered (it's a public API), but it
+  is dispatched by the internal RPC client (class Fa), not the dialog
+  element itself, and has bubbles:false / composed:false — so a listener
+  on the dialog never receives it.
+
+  When "finished" is detected, an Abacus counter is incremented.
+  No session deduplication — each completed flash increments by 1.
 
   GoatCounter is still used for site-wide analytics (pageviews, feedback
-  ratings) via overrides/partials/integrations/analytics/custom.html -
-  this script only replaces the flash completion counter.
+  ratings) — this script only handles the flash completion counter.
 -->
 <script>
 (function () {
@@ -1359,9 +1360,6 @@
   const KEY_FACTORY = "flash-finished-factory";
   const KEY_APP = "flash-finished-app";
 
-  // Which button opened the dialog - the dialog itself doesn't say.
-  // Lives on window so the outcome observer (registered once) can read it
-  // across instant-navigation re-binds.
   function once(el, fn) {
     if (!el || el.dataset.flashBound) return;
     el.dataset.flashBound = "1";
@@ -1376,16 +1374,6 @@
     window.__sfdFlashKind = "app";
   });
 
-  // --- Completion detection via public state-changed event -------------
-  // ESP Web Tools appends an <ewt-install-dialog> to <body> when a flash
-  // starts. The dialog dispatches a "state-changed" CustomEvent with
-  // detail = "initializing" | "preparing" | "erasing" | "writing" |
-  // "finished" | "error". This is a public API (not private like
-  // _installState), stable across versions.
-  //
-  // Registered once per page load; the observer outlives instant
-  // navigation, which is harmless (it only reacts to dialogs this page's
-  // buttons created).
   if (!window.__sfdFlashAbacusWatcher) {
     window.__sfdFlashAbacusWatcher = true;
 
@@ -1393,13 +1381,10 @@
       const kind = window.__sfdFlashKind || "unknown";
       let counted = false;
 
-      dialog.addEventListener("state-changed", function (e) {
+      function report(state) {
         if (counted) return;
-        var state = e.detail;
         if (state === "finished") {
           counted = true;
-          // Increment the Abacus counter. Fire-and-forget - a missed
-          // count is acceptable, a thrown error on the flash dialog is not.
           var key = kind === "app" ? KEY_APP : KEY_FACTORY;
           try {
             fetch(ABACUS + "/hit/" + NAMESPACE + "/" + key).catch(function () {});
@@ -1407,7 +1392,42 @@
             /* analytics must never break flashing */
           }
         }
-      });
+      }
+
+      try {
+        // Walk up to whichever prototype declares the _installState accessor.
+        let proto = Object.getPrototypeOf(dialog);
+        let desc;
+        while (proto && !desc) {
+          desc = Object.getOwnPropertyDescriptor(proto, "_installState");
+          proto = Object.getPrototypeOf(proto);
+        }
+        if (!desc || !desc.set || !desc.get) {
+          console.warn(
+            "[flash-analytics] ESP Web Tools no longer exposes _installState; " +
+              "flash completion counting is disabled. Flashing is unaffected.",
+          );
+          return;
+        }
+
+        Object.defineProperty(dialog, "_installState", {
+          configurable: true,
+          enumerable: false,
+          get: function () {
+            return desc.get.call(this);
+          },
+          set: function (value) {
+            desc.set.call(this, value);
+            try {
+              if (value && value.state) report(value.state);
+            } catch (e) {
+              /* analytics must never break flashing */
+            }
+          },
+        });
+      } catch (e) {
+        /* analytics must never break flashing */
+      }
     }
 
     new MutationObserver(function (records) {
@@ -1423,9 +1443,6 @@
   }
 
   // --- Badge -------------------------------------------------------------
-  // Reads the total from Abacus on page load. If the service is down or
-  // the keys don't exist yet (404), the badge stays hidden - it is never
-  // shown empty or at zero.
   var badge = document.getElementById("flash-counter");
 
   function fetchCount(key) {
@@ -1472,7 +1489,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-08-08T14:26:29+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-08-08</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-08-08T16:53:05+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-08-08</span>
   </span>
 
     
