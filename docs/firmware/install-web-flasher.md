@@ -447,23 +447,24 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   Flash completion counter using Abacus (https://jasoncameron.dev/abacus/),
   a free, stateless counting API with CORS support.
 
-  Previous approach: GoatCounter pageviews for click counting + private
-  _installState accessor hacking for completion detection. Two problems:
-  1. GoatCounter pageviews deduplicate per visitor session (8h), so
-     flashing N boards in one sitting counted as 1.
-  2. The _installState hack wrapped Lit's private @state() accessor -
-     fragile and would silently break on ESP Web Tools version updates.
+  Completion detection: ESP Web Tools' ewt-install-dialog sets a
+  _installState property (a Lit @state() accessor) as the flash progresses
+  through states: initializing -> preparing -> erasing -> writing -> finished.
+  The "finished" state is transient — the dialog sets it, waits 100ms,
+  reopens the port, brings up Improv, then clears _installState back to
+  undefined. To catch it reliably, we wrap the property setter on the
+  dialog's prototype and see every assignment, transient or not.
 
-  New approach:
-  - Listen for ESP Web Tools' PUBLIC "state-changed" CustomEvent on the
-    ewt-install-dialog element (dispatched with detail = state string).
-  - On "finished" state, increment an Abacus counter. No deduplication -
-    each completed flash increments by 1, even in the same session.
-  - The badge reads the Abacus counter value on page load.
+  The state-changed CustomEvent was considered (it's a public API), but it
+  is dispatched by the internal RPC client (class Fa), not the dialog
+  element itself, and has bubbles:false / composed:false — so a listener
+  on the dialog never receives it.
+
+  When "finished" is detected, an Abacus counter is incremented.
+  No session deduplication — each completed flash increments by 1.
 
   GoatCounter is still used for site-wide analytics (pageviews, feedback
-  ratings) via overrides/partials/integrations/analytics/custom.html -
-  this script only replaces the flash completion counter.
+  ratings) — this script only handles the flash completion counter.
 -->
 <script>
 (function () {
@@ -472,9 +473,6 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   const KEY_FACTORY = "flash-finished-factory";
   const KEY_APP = "flash-finished-app";
 
-  // Which button opened the dialog - the dialog itself doesn't say.
-  // Lives on window so the outcome observer (registered once) can read it
-  // across instant-navigation re-binds.
   function once(el, fn) {
     if (!el || el.dataset.flashBound) return;
     el.dataset.flashBound = "1";
@@ -489,16 +487,6 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
     window.__sfdFlashKind = "app";
   });
 
-  // --- Completion detection via public state-changed event -------------
-  // ESP Web Tools appends an <ewt-install-dialog> to <body> when a flash
-  // starts. The dialog dispatches a "state-changed" CustomEvent with
-  // detail = "initializing" | "preparing" | "erasing" | "writing" |
-  // "finished" | "error". This is a public API (not private like
-  // _installState), stable across versions.
-  //
-  // Registered once per page load; the observer outlives instant
-  // navigation, which is harmless (it only reacts to dialogs this page's
-  // buttons created).
   if (!window.__sfdFlashAbacusWatcher) {
     window.__sfdFlashAbacusWatcher = true;
 
@@ -506,13 +494,10 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
       const kind = window.__sfdFlashKind || "unknown";
       let counted = false;
 
-      dialog.addEventListener("state-changed", function (e) {
+      function report(state) {
         if (counted) return;
-        var state = e.detail;
         if (state === "finished") {
           counted = true;
-          // Increment the Abacus counter. Fire-and-forget - a missed
-          // count is acceptable, a thrown error on the flash dialog is not.
           var key = kind === "app" ? KEY_APP : KEY_FACTORY;
           try {
             fetch(ABACUS + "/hit/" + NAMESPACE + "/" + key).catch(function () {});
@@ -520,7 +505,42 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
             /* analytics must never break flashing */
           }
         }
-      });
+      }
+
+      try {
+        // Walk up to whichever prototype declares the _installState accessor.
+        let proto = Object.getPrototypeOf(dialog);
+        let desc;
+        while (proto && !desc) {
+          desc = Object.getOwnPropertyDescriptor(proto, "_installState");
+          proto = Object.getPrototypeOf(proto);
+        }
+        if (!desc || !desc.set || !desc.get) {
+          console.warn(
+            "[flash-analytics] ESP Web Tools no longer exposes _installState; " +
+              "flash completion counting is disabled. Flashing is unaffected.",
+          );
+          return;
+        }
+
+        Object.defineProperty(dialog, "_installState", {
+          configurable: true,
+          enumerable: false,
+          get: function () {
+            return desc.get.call(this);
+          },
+          set: function (value) {
+            desc.set.call(this, value);
+            try {
+              if (value && value.state) report(value.state);
+            } catch (e) {
+              /* analytics must never break flashing */
+            }
+          },
+        });
+      } catch (e) {
+        /* analytics must never break flashing */
+      }
     }
 
     new MutationObserver(function (records) {
@@ -536,9 +556,6 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
   }
 
   // --- Badge -------------------------------------------------------------
-  // Reads the total from Abacus on page load. If the service is down or
-  // the keys don't exist yet (404), the badge stays hidden - it is never
-  // shown empty or at zero.
   var badge = document.getElementById("flash-counter");
 
   function fetchCount(key) {
