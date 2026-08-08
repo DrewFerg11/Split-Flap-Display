@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Documentation for the modular Split-Flap Display — firmware, custom PCB, wiring, and assembly.">
+        <meta name="description" content="Documentation for the modular Split Flap Display — firmware, custom PCB, wiring, and assembly.">
       
       
         <meta name="author" content="DrewFerg11">
@@ -55,6 +55,8 @@
       <link rel="stylesheet" href="../../css/timeago.css">
     
       <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/mw-badges.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -686,6 +688,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#naming-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      Naming convention
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-makes-a-chip-a-candidate-for-this-project" class="md-nav__link">
     <span class="md-ellipsis">
       What makes a chip a candidate for this project
@@ -695,9 +706,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#espressif-soc-lineup" class="md-nav__link">
+  <a href="#chip-families-this-project-supports" class="md-nav__link">
     <span class="md-ellipsis">
-      Espressif SoC lineup
+      Chip families this project supports
     </span>
   </a>
   
@@ -818,6 +829,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#naming-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      Naming convention
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-makes-a-chip-a-candidate-for-this-project" class="md-nav__link">
     <span class="md-ellipsis">
       What makes a chip a candidate for this project
@@ -827,9 +847,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#espressif-soc-lineup" class="md-nav__link">
+  <a href="#chip-families-this-project-supports" class="md-nav__link">
     <span class="md-ellipsis">
-      Espressif SoC lineup
+      Chip families this project supports
     </span>
   </a>
   
@@ -869,6 +889,17 @@
 
 <h1 id="supported-hardware">Supported Hardware<a class="headerlink" href="#supported-hardware" title="Permanent link">&para;</a></h1>
 <p>Which Espressif chips this project targets, and the specific boards it has actually been built and tested on. For the firmware environment each board maps to, see the <a href="../#supported-boards">Supported boards</a> table.</p>
+<h2 id="naming-convention">Naming convention<a class="headerlink" href="#naming-convention" title="Permanent link">&para;</a></h2>
+<p>Firmware environments — the <code>esp32_n4</code>, <code>esp32c3_n4</code>, <code>esp32s3_n4r2</code> names used throughout this page — follow one pattern:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>esp32[&lt;chip-suffix&gt;]_n&lt;flashMB&gt;[r&lt;psramMB&gt;][_ota]
+</span></code></pre></div>
+<ul>
+<li><strong>Chip suffix</strong> — the Espressif family token, lowercase, no separator (<code>c3</code>, <code>s3</code>, ...). The original ESP32 has no suffix.</li>
+<li><strong><code>n&lt;MB&gt;</code></strong> — flash size, always present. This selects the partition table (<code>n4</code> → <code>partitions_4MB.csv</code>).</li>
+<li><strong><code>r&lt;MB&gt;</code></strong> — PSRAM size, only present when PSRAM is enabled. This selects the board definition / bootloader memory mode (quad vs. octal), not the partition table.</li>
+<li><strong><code>_ota</code></strong> — the OTA-upload variant of the same board; everything else about the build is identical.</li>
+</ul>
+<p><strong>Why chip + memory instead of a brand name?</strong> Carrier-board brands are the least stable identifier in the stack — the same silicon gets resold under different names by different sellers (see <a href="#boards-this-project-has-been-built-on">Boards this project has been built on</a> below). Packaging names don't even uniquely identify a chip: <code>ESP32-WROOM-32</code> and <code>ESP32-S3-WROOM-1</code> are both "WROOM" parts, and the S3-WROOM-1 module alone ships in several flash/PSRAM configurations that each need their own partition table or bootloader. Naming envs after what actually determines the build — chip family, flash, PSRAM — means a new board with a different outline or brand but the same chip and memory is just a new row in the boards table below, not a new env.</p>
 <h2 id="what-makes-a-chip-a-candidate-for-this-project">What makes a chip a candidate for this project<a class="headerlink" href="#what-makes-a-chip-a-candidate-for-this-project" title="Permanent link">&para;</a></h2>
 <p>Any future board is judged against one bar:</p>
 <ol>
@@ -877,175 +908,58 @@
 <li><strong>Wi-Fi</strong> — the entire UI, MQTT, and OTA path runs over it.</li>
 </ol>
 <p>Everything else (clock speed, Bluetooth flavour, 802.15.4, PSRAM, flash size, Wi-Fi 6, Ethernet) is irrelevant to this project and appears in the table below only as context.</p>
-<h2 id="espressif-soc-lineup">Espressif SoC lineup<a class="headerlink" href="#espressif-soc-lineup" title="Permanent link">&para;</a></h2>
-<p>Verified against <a href="https://www.espressif.com/en/products/socs">espressif.com/en/products/socs</a> as of 2026-07-31. Sorted so the table answers "what could I use?" before "what exists?" — passing parts first, then near-misses, then disqualified.</p>
+<h2 id="chip-families-this-project-supports">Chip families this project supports<a class="headerlink" href="#chip-families-this-project-supports" title="Permanent link">&para;</a></h2>
+<p>Verified against <a href="https://www.espressif.com/en/products/socs">espressif.com/en/products/socs</a> as of 2026-07-31.</p>
 <table>
 <thead>
 <tr>
-<th>Series</th>
 <th>SoC</th>
 <th>Architecture</th>
 <th style="text-align: center;">Cores</th>
 <th>Max clock</th>
 <th>Wireless</th>
 <th style="text-align: center;">Native USB</th>
-<th>Meets the bar?</th>
+<th style="text-align: center;">I²C buses</th>
+<th style="text-align: center;">Original support</th>
+<th style="text-align: center;">Dual support</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>ESP32</td>
 <td><strong>ESP32</strong></td>
 <td>Xtensa LX6</td>
 <td style="text-align: center;"><strong>2</strong></td>
 <td>240 MHz</td>
 <td>Wi-Fi 4, BT 4.2 Classic + BLE</td>
 <td style="text-align: center;">❌</td>
-<td>✅ <strong>shipping</strong> — the dual-row board</td>
-</tr>
-<tr>
-<td>S</td>
-<td><strong>ESP32-S3</strong></td>
-<td>Xtensa LX7</td>
-<td style="text-align: center;"><strong>2</strong></td>
-<td>240 MHz</td>
-<td>Wi-Fi 4, BLE 5</td>
-<td style="text-align: center;">✅ OTG</td>
-<td>✅ <strong>shipping</strong> — meets it; dual-row unbuilt so far</td>
-</tr>
-<tr>
-<td>S</td>
-<td><strong>ESP32-S31</strong></td>
-<td>RISC-V</td>
-<td style="text-align: center;"><strong>2</strong></td>
-<td>320 MHz</td>
-<td>Wi-Fi 6, BT 5.4, 802.15.4, Gigabit Ethernet</td>
+<td style="text-align: center;">2</td>
 <td style="text-align: center;">✅</td>
-<td>⚠️ <strong>only future candidate</strong> — I²C count unverified</td>
+<td style="text-align: center;">✅</td>
 </tr>
 <tr>
-<td>S</td>
-<td><strong>ESP32-S2</strong></td>
-<td>Xtensa LX7</td>
-<td style="text-align: center;">1</td>
-<td>240 MHz</td>
-<td>Wi-Fi 4 only</td>
-<td style="text-align: center;">✅ OTG</td>
-<td>❌ single core</td>
-</tr>
-<tr>
-<td>C</td>
 <td><strong>ESP32-C3</strong></td>
 <td>RISC-V</td>
 <td style="text-align: center;">1</td>
 <td>160 MHz</td>
 <td>Wi-Fi 4, BLE 5</td>
 <td style="text-align: center;">✅ Serial/JTAG</td>
-<td>⚠️ <strong>shipping</strong> — 1 core, 1× I²C; single row only</td>
-</tr>
-<tr>
-<td>C</td>
-<td><strong>ESP32-C2</strong></td>
-<td>RISC-V</td>
 <td style="text-align: center;">1</td>
-<td>120 MHz</td>
-<td>Wi-Fi 4, BLE 5</td>
+<td style="text-align: center;">✅</td>
 <td style="text-align: center;">❌</td>
-<td>❌ single core</td>
 </tr>
 <tr>
-<td>C</td>
-<td><strong>ESP32-C5</strong></td>
-<td>RISC-V (+LP core)</td>
-<td style="text-align: center;">1 HP</td>
+<td><strong>ESP32-S3</strong></td>
+<td>Xtensa LX7</td>
+<td style="text-align: center;"><strong>2</strong></td>
 <td>240 MHz</td>
-<td>Dual-band Wi-Fi 6, BLE 5, 802.15.4</td>
-<td style="text-align: center;">✅</td>
-<td>❌ single HP core</td>
-</tr>
-<tr>
-<td>C</td>
-<td><strong>ESP32-C6</strong></td>
-<td>RISC-V (+LP core)</td>
-<td style="text-align: center;">1 HP</td>
-<td>160 MHz</td>
-<td>Wi-Fi 6, BLE 5.3, 802.15.4 (Thread/Zigbee/Matter)</td>
-<td style="text-align: center;">✅</td>
-<td>❌ single HP core</td>
-</tr>
-<tr>
-<td>C</td>
-<td><strong>ESP32-C61</strong></td>
-<td>RISC-V</td>
-<td style="text-align: center;">1</td>
-<td>160 MHz</td>
-<td>Wi-Fi 6, BLE 5</td>
-<td style="text-align: center;">✅</td>
-<td>❌ single core</td>
-</tr>
-<tr>
-<td>H</td>
-<td><strong>ESP32-H4</strong></td>
-<td>RISC-V</td>
-<td style="text-align: center;">2</td>
-<td>96 MHz</td>
-<td>BLE 5.4, 802.15.4 — <strong>no Wi-Fi</strong></td>
-<td style="text-align: center;">✅</td>
-<td>❌ no Wi-Fi</td>
-</tr>
-<tr>
-<td>H</td>
-<td><strong>ESP32-H2</strong></td>
-<td>RISC-V</td>
-<td style="text-align: center;">1</td>
-<td>96 MHz</td>
-<td>BLE 5, 802.15.4 — <strong>no Wi-Fi</strong></td>
-<td style="text-align: center;">✅</td>
-<td>❌ no Wi-Fi</td>
-</tr>
-<tr>
-<td>H</td>
-<td><strong>ESP32-H21</strong></td>
-<td>RISC-V</td>
-<td style="text-align: center;">1</td>
-<td>96 MHz</td>
-<td>BLE, 802.15.4 — <strong>no Wi-Fi</strong></td>
-<td style="text-align: center;">✅</td>
-<td>❌ no Wi-Fi</td>
-</tr>
-<tr>
-<td>P</td>
-<td><strong>ESP32-P4</strong></td>
-<td>RISC-V (2 HP + 1 LP)</td>
-<td style="text-align: center;">2</td>
-<td>400 MHz</td>
-<td><strong>none integrated</strong></td>
+<td>Wi-Fi 4, BLE 5</td>
 <td style="text-align: center;">✅ OTG</td>
-<td>❌ no radio</td>
-</tr>
-<tr>
-<td>E</td>
-<td><strong>ESP32-E22</strong></td>
-<td>RISC-V</td>
 <td style="text-align: center;">2</td>
-<td>500 MHz</td>
-<td>Tri-band Wi-Fi 6E, BT 5.4</td>
-<td style="text-align: center;">—</td>
-<td>❌ co-processor — needs a host MCU</td>
-</tr>
-<tr>
-<td>legacy</td>
-<td><strong>ESP8266</strong></td>
-<td>Xtensa L106</td>
-<td style="text-align: center;">1</td>
-<td>160 MHz</td>
-<td>Wi-Fi 4 only</td>
-<td style="text-align: center;">❌</td>
-<td>❌ legacy; Espressif points to C2</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">⚠️<sup id="fnref:s3-dual"><a class="footnote-ref" href="#fn:s3-dual">1</a></sup></td>
 </tr>
 </tbody>
 </table>
-<p>The whole C-series is structurally out — every C part is single-HP-core, and that's a design choice of the line, not a temporary gap. In practice this project is an ESP32/S3 project, with the C3 supported as a legacy single-row option and <strong>ESP32-S31 the only plausible future addition</strong> in the entire current lineup.</p>
 <h2 id="boards-this-project-has-been-built-on">Boards this project has been built on<a class="headerlink" href="#boards-this-project-has-been-built-on" title="Permanent link">&para;</a></h2>
 <p>Ordered by firmware environment so the many-boards-to-one-build relationship is visible at a glance, and carrying the sled tag so the cradle, the docs, and the web flasher all say the same word for a given board.</p>
 <table>
@@ -1219,6 +1133,14 @@
 <li><strong>PSRAM being unused is not a bug.</strong> It is bonus memory for framebuffers, camera images, and audio buffers — none of which this firmware has. It appears in env names only because <strong>quad (<code>R2</code>) and octal (<code>R8</code>) parts need different bootloader images</strong>, so they are not interchangeable builds even though neither one's memory is touched.</li>
 </ul>
 </details>
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:s3-dual">
+<p>The S3 has two I²C controllers, same as the ESP32, so dual mode is possible in principle — but it isn't planned for the <strong>ESP32-S3 SuperMini / S3-Zero</strong> (<code>esp32s3_n4r2</code>): in testing that board has been less reliable and slower than the ESP32, so it's not a good candidate for the dual-bus build regardless of what the silicon can do. The <strong>ESP32-S3-WROOM-1 44-pin board</strong> (<code>esp32s3_n16r8</code>) is a different, more capable carrier design and will get dual-bus support once it's added to the project.&#160;<a class="footnote-backref" href="#fnref:s3-dual" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>
 
 
 
@@ -1241,7 +1163,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-08-08T02:23:23+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-08-08</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-08-08T16:07:22+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-08-08</span>
   </span>
 
     
@@ -1401,6 +1323,8 @@
         <script src="../../js/timeago.min.js"></script>
       
         <script src="../../js/timeago_mkdocs_material.js"></script>
+      
+        <script src="../../javascripts/makerworld-badges.js"></script>
       
     
   <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
