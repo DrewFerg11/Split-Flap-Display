@@ -16,6 +16,7 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.expand
+    - navigation.prune
     - navigation.top
     - navigation.indexes
     - navigation.instant
