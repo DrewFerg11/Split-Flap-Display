@@ -1,5 +1,5 @@
 site_name: Split Flap Display
-site_description: Documentation for the modular Split-Flap Display — firmware, custom PCB, wiring, and assembly.
+site_description: Documentation for the modular Split Flap Display — firmware, custom PCB, wiring, and assembly.
 site_url: https://drewferg11.github.io/Split-Flap-Display/
 site_author: DrewFerg11
 
@@ -92,6 +92,10 @@ plugins:
 
 extra_css:
   - stylesheets/extra.css
+  - stylesheets/mw-badges.css
+
+extra_javascript:
+  - javascripts/makerworld-badges.js
 
 nav:
   - Home:
