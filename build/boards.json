@@ -1,0 +1,35 @@
+[
+  {
+    "env": "esp32_n4",
+    "label": "ESP32 DevKit (30-pin)",
+    "flash": "4 MB",
+    "psram": null,
+    "chipFamily": "ESP32",
+    "chip": "esp32",
+    "bootloaderOffset": "0x1000",
+    "littlefsOffset": "0x310000",
+    "released": true
+  },
+  {
+    "env": "esp32c3_n4",
+    "label": "ESP32-C3 SuperMini / C3-Zero",
+    "flash": "4 MB",
+    "psram": null,
+    "chipFamily": "ESP32-C3",
+    "chip": "esp32c3",
+    "bootloaderOffset": "0x0",
+    "littlefsOffset": "0x310000",
+    "released": true
+  },
+  {
+    "env": "esp32s3_n4r2",
+    "label": "ESP32-S3 SuperMini / S3-Zero",
+    "flash": "4 MB",
+    "psram": "2 MB quad",
+    "chipFamily": "ESP32-S3",
+    "chip": "esp32s3",
+    "bootloaderOffset": "0x0",
+    "littlefsOffset": "0x310000",
+    "released": true
+  }
+]

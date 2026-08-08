@@ -21,6 +21,7 @@
 # the AI step failed or was skipped, the file is missing/empty and this section is
 # omitted entirely. Never blocks a release.
 
+import json
 import os
 import sys
 
@@ -31,11 +32,13 @@ DOCS_URL = "https://drewferg11.github.io/Split-Flap-Display/"
 DISCORD_URL = "https://discord.gg/RCvks4XXXH"
 ISSUES_URL = "https://github.com/DrewFerg11/Split-Flap-Display/issues"
 
-BOARDS = [
-    ("esp32_wroom", "ESP32 (WROOM)"),
-    ("esp32_c3", "ESP32-C3"),
-    ("esp32_s3", "ESP32-S3"),
-]
+BOARDS_JSON = os.path.join(os.path.dirname(__file__), "..", "boards.json")
+
+
+def load_boards():
+    with open(BOARDS_JSON) as f:
+        boards = json.load(f)
+    return [b for b in boards if b["released"]]
 
 
 def install_section():
@@ -49,7 +52,8 @@ def install_section():
 
 def flash_table(meta_dir):
     rows = []
-    for env, label in BOARDS:
+    for board in load_boards():
+        env, label = board["env"], board["label"]
         path = os.path.join(meta_dir, "flash-%s.txt" % env)
         if not os.path.exists(path):
             continue
@@ -72,6 +76,10 @@ def flash_table(meta_dir):
         "| Board | Firmware size | % of app partition |\n"
         "|---|---|---|\n" + "\n".join(rows) + "\n"
     )
+
+
+def boards_supported_section():
+    return "\n".join("- %s" % board["label"] for board in load_boards())
 
 
 def ai_summary_section(summary_file):
@@ -108,9 +116,7 @@ def main():
 {prerelease_note}
 {summary}
 ### Boards supported
-- ESP32 (WROOM)
-- ESP32-C3
-- ESP32-S3
+{boards_supported}
 
 ### Installation
 {install_section}
@@ -124,6 +130,7 @@ def main():
         version=version,
         prerelease_note=prerelease_note,
         summary=ai_summary_section(summary_file),
+        boards_supported=boards_supported_section(),
         install_section=install_section(),
         docs=DOCS_URL,
         flash_table=flash_table(meta_dir),

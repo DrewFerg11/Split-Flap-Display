@@ -15,12 +15,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  boards-sync:
+    name: Boards sync check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check env names are in sync
+        run: python3 build/scripts/check_boards_sync.py
+
   build:
     name: Build (${{ matrix.env }})
+    needs: [boards-sync]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        env: [esp32_wroom, esp32_c3, esp32_s3]
+        env: [esp32_n4, esp32c3_n4, esp32s3_n4r2]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

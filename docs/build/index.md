@@ -51,9 +51,12 @@ There are two build options for this project:
 | Enhanced flap accuracy[^3] | ✅ | ✅ |
 | DIY PCB option | ✅ | ✅ |
 | Purchased PCB option | ✅ | ✅ |
+| Supported ESP32 boards[^4] | ESP32, ESP32-C3, ESP32-S3 | ESP32 |
 
 [^1]: _Code is backwards compatible for non-dual setups_
 
 [^2]: _Square enclosure (currently) only supports 37. Original (rounded) enclosure supports both counts._
 
 [^3]: _Only comes with the square enclosure._
+
+[^4]: _Dual display currently requires the ESP32 (`esp32_n4`) — it's the only board built with two hardware I²C buses enabled. The S3 has the same two-I²C-controller capability but that build isn't planned for the S3 SuperMini/Zero (found less reliable and slower than the ESP32 in testing) — the upcoming 44-pin S3 board is a different, more capable design and will get it instead. The C3 has only one I²C controller, so it can't do dual regardless. See [Supported Hardware](../firmware/hardware.md) for chip details and specific boards._

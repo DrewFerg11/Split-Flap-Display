@@ -32,11 +32,11 @@ Install the following before getting started:
 
 ## Environment Selection
 
-By default, `npm run build` targets the `esp32_wroom` environment (required for dual display). To target a different board, pass the environment explicitly:
+`npm run build` passes no `-e` flag, so it targets whatever PlatformIO's `default_envs` names (currently `esp32_n4`, the dual-display ESP32 board — see [platformio.ini](https://github.com/DrewFerg11/Split-Flap-Display/blob/main/platformio.ini)). To target a different board, pass the environment explicitly:
 
 ```bash
-pio run -t upload -e esp32_c3
-pio run -t uploadfs -e esp32_c3
+pio run -t upload -e esp32c3_n4
+pio run -t uploadfs -e esp32c3_n4
 ```
 
 See the [supported boards](index.md#supported-boards) table for available environments.
@@ -60,8 +60,8 @@ Once the display is assembled and the enclosure is closed, you can update over t
 3. Upload using an OTA environment:
 
 ```bash
-pio run -t upload -e esp32_wroom_ota
-pio run -t uploadfs -e esp32_wroom_ota
+pio run -t upload -e esp32_n4_ota
+pio run -t uploadfs -e esp32_n4_ota
 ```
 
 Append `_ota` to any environment name to use OTA for that board.

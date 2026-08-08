@@ -128,6 +128,7 @@ nav:
         - 3. Assembly: build/dual-display/build-guide/assembly.md
   - Firmware:
     - firmware/index.md
+    - Supported Hardware: firmware/hardware.md
     - Install (Web Flasher): firmware/install-web-flasher.md
     - Troubleshooting: firmware/install-troubleshooting.md
     - Install (Manual): firmware/install-manual.md

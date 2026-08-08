@@ -7,13 +7,16 @@
 # Usage: generate_manifest.py <version> <download-base-url> <out-dir>
 
 import json
+import os
 import sys
 
-BOARDS = [
-    {"env": "esp32_wroom", "chipFamily": "ESP32"},
-    {"env": "esp32_c3", "chipFamily": "ESP32-C3"},
-    {"env": "esp32_s3", "chipFamily": "ESP32-S3"},
-]
+BOARDS_JSON = os.path.join(os.path.dirname(__file__), "..", "boards.json")
+
+
+def load_boards():
+    with open(BOARDS_JSON) as f:
+        boards = json.load(f)
+    return [b for b in boards if b["released"]]
 
 
 def asset_name(env, version, kind):
@@ -22,7 +25,7 @@ def asset_name(env, version, kind):
 
 def build_manifest(version, download_base_url, kind, offset):
     builds = []
-    for board in BOARDS:
+    for board in load_boards():
         filename = asset_name(board["env"], version, kind)
         builds.append(
             {
