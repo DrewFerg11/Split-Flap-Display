@@ -18,7 +18,7 @@
         <link rel="prev" href="../build/dual-display/build-guide/assembly/">
       
       
-        <link rel="next" href="install-web-flasher/">
+        <link rel="next" href="hardware/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -585,6 +585,8 @@
       
         
       
+        
+      
     
     
       
@@ -629,6 +631,27 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="hardware/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Supported Hardware
+  </span>
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -772,6 +795,7 @@
 <p>ESP32-based firmware for driving the split-flap modules over I²C. Built on PlatformIO with a web UI for configuration.</p>
 <h2 id="sections">Sections<a class="headerlink" href="#sections" title="Permanent link">&para;</a></h2>
 <ul>
+<li><a href="hardware/">Supported Hardware</a> — which ESP32 chips this project targets, and every specific board it's been built on.</li>
 <li><a href="install-web-flasher/">Install (Web Flasher)</a> — flash pre-built firmware straight from your browser, no toolchain required.</li>
 <li><a href="install-troubleshooting/">Troubleshooting</a> — fixes for common web-flasher problems.</li>
 <li><a href="install-manual/">Install (Manual)</a> — build from source and flash locally with PlatformIO.</li>
@@ -808,7 +832,7 @@
 </tbody>
 </table>
 <p>The dual display configuration requires two independent I²C peripherals to drive both rows simultaneously. Only the ESP32 (<code>esp32_n4</code>) is built with this enabled today — the S3 has the same dual-I²C hardware capability but that build hasn't been made yet, and the C3 supports only a single bus.</p>
-<p>See the <a href="https://github.com/DrewFerg11/Split-Flap-Display#hardware">README's hardware section</a> for the full Espressif chip lineup and every specific board this project has been built on.</p>
+<p>See <a href="hardware/">Supported Hardware</a> for the full Espressif chip lineup and every specific board this project has been built on.</p>
 <div class="footnote">
 <hr />
 <ol>
@@ -839,7 +863,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-08-01T13:24:13+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-08-01</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-08-08T02:23:23+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-08-08</span>
   </span>
 
     
