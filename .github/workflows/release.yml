@@ -28,8 +28,36 @@ env:
   STABLE_KEEP_COUNT: 5
 
 jobs:
+  # Gate every release on manual approval, restricted to the repo owner.
+  #
+  # Every job below depends on this one, which uses the `release`
+  # environment. That environment requires the owner's approval before any
+  # job using it can proceed - enforced server-side by GitHub, regardless of
+  # who or what triggered the run. The actor check below is a cheap
+  # belt-and-braces failsafe that fails fast with a readable message.
+  #
+  # This is paired with a tag ruleset (refs/tags/v*) that blocks direct tag
+  # push/update/delete for everyone except repo admins, so the only way to
+  # start this workflow from a `push: tags` event is as an admin already.
+  authorize:
+    name: authorize release
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Verify actor
+        run: |
+          if [ "$ACTOR" != "$OWNER" ]; then
+            echo "::error::Releases are restricted to $OWNER. Actor was $ACTOR."
+            exit 1
+          fi
+          echo "Release authorized for $ACTOR."
+        env:
+          ACTOR: ${{ github.actor }}
+          OWNER: ${{ github.repository_owner }}
+
   tag:
     name: Create tag
+    needs: [authorize]
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
@@ -59,8 +87,8 @@ jobs:
 
   build:
     name: Build (${{ matrix.env }})
-    needs: [tag]
-    if: always() && (needs.tag.result == 'success' || needs.tag.result == 'skipped')
+    needs: [authorize, tag]
+    if: always() && needs.authorize.result == 'success' && (needs.tag.result == 'success' || needs.tag.result == 'skipped')
     runs-on: ubuntu-latest
     strategy:
       matrix:
