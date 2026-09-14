@@ -2,6 +2,9 @@ name: CI / Build
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 # Fork PRs get a read-only GITHUB_TOKEN and no repo secrets, so this workflow
 # needs neither - it only compiles and uploads artifacts. That's what makes it
