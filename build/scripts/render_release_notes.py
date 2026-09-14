@@ -19,7 +19,8 @@
 # [ai-summary-file], if given and non-empty, is a short AI-generated summary of the
 # commit log (see release.yml's "AI release summary" step). Best-effort only - if
 # the AI step failed or was skipped, the file is missing/empty and this section is
-# omitted entirely. Never blocks a release.
+# omitted entirely. Never blocks a release, but a ::warning:: workflow annotation
+# is emitted so the silent omission is visible on the Actions run summary page.
 
 import json
 import os
@@ -84,10 +85,22 @@ def boards_supported_section():
 
 def ai_summary_section(summary_file):
     if not summary_file or not os.path.exists(summary_file):
+        print(
+            "::warning::AI release summary file is missing (%s). "
+            "The release will publish without a Summary section. "
+            "Check the workflow run for details."
+            % (summary_file or "<not provided>")
+        )
         return ""
     with open(summary_file, encoding="utf-8") as f:
         text = f.read().strip()
     if not text:
+        print(
+            "::warning::AI release summary was unavailable (empty file: %s). "
+            "The release published without a Summary section. Check the "
+            "workflow run — the inference step likely failed."
+            % summary_file
+        )
         return ""
     return "\n### Summary\n\n%s\n" % text
 
