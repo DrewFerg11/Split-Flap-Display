@@ -4,14 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  # Manual re-run. Select an existing v* tag as the ref -- the release
+  # environment's deployment policy rejects anything else.
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to release, e.g. v1.2.0 or v1.2.0-rc.0"
-        required: true
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   # GitHub Release asset URLs don't send CORS headers, so ESP Web Tools (running
@@ -39,6 +37,9 @@ jobs:
   # This is paired with a tag ruleset (refs/tags/v*) that blocks direct tag
   # push/update/delete for everyone except repo admins, so the only way to
   # start this workflow from a `push: tags` event is as an admin already.
+  # Tags are pushed manually (`git tag vX.Y.Z && git push origin vX.Y.Z`) --
+  # Actions never creates one itself, since the GITHUB_TOKEN identity isn't a
+  # bypass actor on the ruleset and can't be added to one on a user-owned repo.
   authorize:
     name: authorize release
     runs-on: ubuntu-latest
@@ -50,45 +51,22 @@ jobs:
             echo "::error::Releases are restricted to $OWNER. Actor was $ACTOR."
             exit 1
           fi
-          echo "Release authorized for $ACTOR."
+          echo "Release authorized for $ACTOR at $GITHUB_REF."
         env:
           ACTOR: ${{ github.actor }}
           OWNER: ${{ github.repository_owner }}
 
-  tag:
-    name: Create tag
-    needs: [authorize]
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.resolve.outputs.version }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Validate version input
+      - name: Verify ref is a version tag
         run: |
-          if ! [[ "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
-            echo "::error::Invalid version '${{ inputs.version }}' - expected vX.Y.Z or vX.Y.Z-rc.N"
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::Expected a vX.Y.Z or vX.Y.Z-rc.N tag, got $GITHUB_REF_NAME"
             exit 1
           fi
-
-      - name: Create and push tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ inputs.version }}" -m "${{ inputs.version }}"
-          git push origin "${{ inputs.version }}"
-
-      - id: resolve
-        run: echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          echo "Releasing $GITHUB_REF_NAME"
 
   build:
     name: Build (${{ matrix.env }})
-    needs: [authorize, tag]
-    if: always() && needs.authorize.result == 'success' && (needs.tag.result == 'success' || needs.tag.result == 'skipped')
+    needs: [authorize]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -106,12 +84,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.tag.outputs.version || github.ref }}
           fetch-depth: 0
 
       - name: Resolve version
         id: meta
-        run: echo "version=${{ needs.tag.outputs.version || github.ref_name }}" >> "$GITHUB_OUTPUT"
+        run: echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -199,8 +176,7 @@ jobs:
 
   release:
     name: Publish release
-    needs: [tag, build]
-    if: always() && needs.build.result == 'success'
+    needs: [build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -209,13 +185,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.tag.outputs.version || github.ref }}
           fetch-depth: 0
 
       - name: Determine version & prerelease flag
         id: meta
         run: |
-          VERSION="${{ needs.tag.outputs.version || github.ref_name }}"
+          VERSION="${{ github.ref_name }}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           if [[ "$VERSION" == *-rc.* || "$VERSION" == *-beta* ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
