@@ -429,10 +429,15 @@ Wipe the ESP32 back to a blank chip with **no firmware at all**. This is differe
       picker.disabled = false;
       picker.addEventListener("change", () => showRelease(picker.value));
 
-      // Releases come back newest-first, so the first available one is the
-      // newest that actually has binaries published.
-      picker.value = available[0].tag_name;
-      showRelease(available[0].tag_name);
+      // Default to the newest stable release, not just the newest release
+      // overall - an RC can be newer than the latest stable tag, and a
+      // first-time visitor should land on the vetted version. The dropdown
+      // itself stays in the newest-first order built above; this only
+      // picks which option starts selected. Falls back to the newest
+      // release of any kind if there's no stable release at all yet.
+      const defaultRelease = available.find((r) => !r.prerelease) || available[0];
+      picker.value = defaultRelease.tag_name;
+      showRelease(defaultRelease.tag_name);
     })
     .catch((err) => {
       console.error(err);
