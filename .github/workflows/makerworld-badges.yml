@@ -82,6 +82,11 @@ jobs:
           done
 
           echo "stage=$STAGE" >> "$GITHUB_OUTPUT"
+          {
+            echo "model_ids<<MODEL_IDS_EOF"
+            echo "$MODEL_IDS"
+            echo "MODEL_IDS_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Checkout gh-pages branch
         uses: actions/checkout@v4
@@ -110,16 +115,43 @@ jobs:
           cp -a "${{ steps.fetch.outputs.stage }}/." badges/
           touch .nojekyll
 
-          # README totals: sum across whatever per-model files are present
-          # now (this run's fresh fetches plus any pre-existing files for
-          # models that failed to fetch this run), rather than fetching an
-          # account-wide total directly - see the top-of-file comment for
-          # why that endpoint can't be used from here.
-          TOTALS=$(jq -s '{downloads: (map(.downloadCount) | add // 0), prints: (map(.printCount) | add // 0)}' badges/models/*.json)
-          DOWNLOADS=$(jq -r '.downloads' <<<"$TOTALS")
-          PRINTS=$(jq -r '.prints' <<<"$TOTALS")
-          printf '{"schemaVersion":1,"label":"MakerWorld Downloads","message":"%s","color":"blue","namedLogo":"bambulab"}' "$DOWNLOADS" > badges/makerworld-downloads.json
-          printf '{"schemaVersion":1,"label":"MakerWorld Makes","message":"%s","color":"orange","namedLogo":"bambulab"}' "$PRINTS" > badges/makerworld-prints.json
+          # Prune per-model files for ids no longer linked anywhere in
+          # docs/ (MODEL_IDS from the fetch step), so a removed model's
+          # stale counts don't keep inflating the README totals below
+          # forever. Prune against the full docs-scrape set, not just
+          # this run's successful fetches, so a model that's still
+          # linked but failed to fetch this run keeps its last
+          # known-good file and last known-good docs page badge.
+          MODEL_IDS="${{ steps.fetch.outputs.model_ids }}"
+          for f in badges/models/*.json; do
+            [ -e "$f" ] || continue
+            id=$(basename "$f" .json)
+            if ! grep -qxF "$id" <<<"$MODEL_IDS"; then
+              echo "Pruning stale per-model badge for removed model $id"
+              rm -f "$f"
+            fi
+          done
+
+          # README totals: these badges are a docs-derived proxy for
+          # "MakerWorld Downloads/Makes" (sum of the per-model counts
+          # above), not a true account-wide total - see the top-of-file
+          # comment for why the real account-wide endpoint can't be used
+          # from here. A model published on MakerWorld but never linked
+          # from docs/ won't be counted. Guard the glob with nullglob:
+          # an empty badges/models/ (e.g. it was ever wiped) must not
+          # hard-fail this step under the runner's default `set -e`
+          # shell - keep last known-good README badge values instead.
+          shopt -s nullglob
+          MODEL_FILES=(badges/models/*.json)
+          if [ "${#MODEL_FILES[@]}" -gt 0 ]; then
+            TOTALS=$(jq -s '{downloads: (map(.downloadCount) | add // 0), prints: (map(.printCount) | add // 0)}' "${MODEL_FILES[@]}")
+            DOWNLOADS=$(jq -r '.downloads' <<<"$TOTALS")
+            PRINTS=$(jq -r '.prints' <<<"$TOTALS")
+            printf '{"schemaVersion":1,"label":"MakerWorld Downloads","message":"%s","color":"blue","namedLogo":"bambulab"}' "$DOWNLOADS" > badges/makerworld-downloads.json
+            printf '{"schemaVersion":1,"label":"MakerWorld Makes","message":"%s","color":"orange","namedLogo":"bambulab"}' "$PRINTS" > badges/makerworld-prints.json
+          else
+            echo "::warning::No per-model badge files present - keeping last known-good README badge values."
+          fi
 
           git add badges/
           if git diff --cached --quiet; then
