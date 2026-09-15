@@ -1,21 +1,27 @@
 /*
  * MakerWorld download-count badges for the resources page.
  *
- * Fetches live download / print / like counts from MakerWorld's JSON API
- * via a CORS proxy and injects them as badges next to each MakerWorld link.
+ * Injects download / print / like counts next to each MakerWorld link.
  *
- * The MakerWorld API endpoint is:
- *   GET https://makerworld.com/api/v1/design-service/design/{model_id}
+ * MakerWorld's design-service API doesn't send CORS headers, and (as of
+ * 2026-09) sits behind Cloudflare bot protection that blocks most
+ * server-side/proxied fetches outright - a previous version of this script
+ * called it through the proxy.cors.sh CORS proxy, which has since gone
+ * offline entirely (NXDOMAIN).
  *
- * It returns JSON with downloadCount, printCount, likeCount, collectionCount.
- * The API does not send CORS headers, so requests are proxied through
- * proxy.cors.sh which adds Access-Control-Allow-Origin: *.
+ * Instead, the makerworld-badges.yml GitHub Action fetches each model's
+ * stats itself on a schedule (with a browser-like User-Agent, which
+ * MakerWorld doesn't challenge) and publishes them as small JSON files to
+ * gh-pages under badges/models/{model_id}.json. This script just reads
+ * those - same-origin in production, and GitHub Pages sends
+ * Access-Control-Allow-Origin: * anyway, so it also works fetched
+ * cross-origin from a local `mkdocs serve`.
  *
  * The script is self-contained — no dependencies, no build step. It runs
  * after the DOM is ready and augments any <a> whose href matches a
  * MakerWorld model URL. Model IDs are extracted from the URL at runtime;
- * if you add a new MakerWorld link to the table, it gets a badge
- * automatically.
+ * if you add a new MakerWorld link to the table, the badges workflow picks
+ * it up on its next scheduled run and this script picks up the new file.
  */
 
 (function () {
@@ -24,17 +30,11 @@
   // --- Configuration -----------------------------------------------------
 
   /**
-   * CORS proxy prefix. proxy.cors.sh is a free, open proxy that forwards
-   * the request and adds permissive CORS headers. If it goes down, swap
-   * this string for another proxy (e.g. https://api.allorigins.win/raw?url=).
+   * Base URL for the self-hosted per-model stats JSON, published by
+   * .github/workflows/makerworld-badges.yml to the gh-pages branch.
    */
-  var CORS_PROXY = "https://proxy.cors.sh/";
-
-  /**
-   * MakerWorld JSON API base. Returns the full design object for a model.
-   */
-  var MW_API_BASE =
-    "https://makerworld.com/api/v1/design-service/design/";
+  var BADGES_BASE =
+    "https://drewferg11.github.io/Split-Flap-Display/badges/models/";
 
   /**
    * Which stats to show. Each entry produces a small inline badge.
@@ -64,11 +64,10 @@
   }
 
   /**
-   * Build the proxied API URL for a model ID.
-   * The User-Agent header is handled by the browser automatically.
+   * Build the self-hosted stats JSON URL for a model ID.
    */
   function apiUrl(modelId) {
-    return CORS_PROXY + MW_API_BASE + modelId;
+    return BADGES_BASE + modelId + ".json";
   }
 
   /**
