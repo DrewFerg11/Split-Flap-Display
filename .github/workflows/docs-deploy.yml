@@ -89,6 +89,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # makerworld-badges.yml can also push to gh-pages around the same
+          # time (it runs on its own schedule, independent of this push).
+          # Refresh to the latest tip right before wiping/rebuilding, so the
+          # only race window left is the few lines below, not the entire
+          # job - and it can only ever reject our push, never lose
+          # anything, since badges/ is excluded from the wipe either way.
+          git fetch origin gh-pages
+          git reset --hard origin/gh-pages
+
           # Skip Jekyll processing - serve everything as plain static files.
           # Without this, GitHub Pages can be slow/inconsistent about picking up
           # freshly-added top-level paths (observed firsthand with releases/).

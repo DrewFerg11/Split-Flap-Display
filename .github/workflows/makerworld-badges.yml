@@ -39,9 +39,12 @@ jobs:
           mkdir -p "$STAGE/models"
 
           mw_get() {
+            # --retry-all-errors: a Cloudflare challenge comes back as a
+            # normal HTTP 403, not a connection-level failure, so plain
+            # --retry alone would never retry it.
             curl -sS -o "$2" -w '%{http_code}' "$1" \
               -A "$MW_UA" -H "Accept: application/json" -H "Accept-Language: en-US,en;q=0.9" \
-              --max-time 15 --retry 2 --retry-delay 3
+              --max-time 15 --retry 2 --retry-all-errors --retry-delay 3
           }
 
           # --- Profile-level counts (README badges) ---------------------
@@ -56,7 +59,12 @@ jobs:
           fi
 
           # --- Per-model counts (docs Resources page) --------------------
-          MODEL_IDS=$(grep -ohE 'makerworld\.com/[^) ]*models/[0-9]+' docs/resources.md | grep -oE '[0-9]+$' | sort -un)
+          # makerworld-badges.js augments any MakerWorld model link on any
+          # docs page, not just resources.md, so scrape all of docs/ rather
+          # than hard-coding one file - otherwise a model link added
+          # elsewhere would get a permanent "Stats unavailable" pill since
+          # this job would never know to fetch it.
+          MODEL_IDS=$(grep -rohE 'makerworld\.com/[^) ]*models/[0-9]+' docs/ | grep -oE '[0-9]+$' | sort -un)
 
           for id in $MODEL_IDS; do
             CODE=$(mw_get "https://makerworld.com/api/v1/design-service/design/${id}" "/tmp/design-${id}.json")
@@ -64,6 +72,10 @@ jobs:
                DL=$(jq -re '.downloadCount' "/tmp/design-${id}.json") && \
                PR=$(jq -re '.printCount' "/tmp/design-${id}.json") && \
                LK=$(jq -re '.likeCount' "/tmp/design-${id}.json"); then
+              # Keys here must match the STATS[].key list in
+              # docs/javascripts/makerworld-badges.js - that script renders
+              # only the keys present, so a mismatch silently degrades to a
+              # missing badge rather than an error.
               printf '{"downloadCount":%s,"printCount":%s,"likeCount":%s}' "$DL" "$PR" "$LK" > "$STAGE/models/${id}.json"
             else
               echo "::warning::MakerWorld design fetch failed for model $id (HTTP $CODE) - keeping its last known-good values."
@@ -83,12 +95,21 @@ jobs:
 
       - name: Publish updated counts
         run: |
-          mkdir -p gh-pages-dir/badges/models
-          cp -a "${{ steps.fetch.outputs.stage }}/." gh-pages-dir/badges/
-
           cd gh-pages-dir
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # docs-deploy.yml can also push to gh-pages around the same time
+          # (e.g. a docs change landing on main while this runs on its
+          # schedule). Refresh to the latest tip right before writing, so
+          # the only race window left is the few lines below, not the
+          # entire job - and it can only ever reject our push, never lose
+          # anything, since badges/ is never touched by the other workflow.
+          git fetch origin gh-pages
+          git reset --hard origin/gh-pages
+
+          mkdir -p badges/models
+          cp -a "${{ steps.fetch.outputs.stage }}/." badges/
           touch .nojekyll
 
           git add badges/
