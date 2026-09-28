@@ -1,0 +1,35 @@
+{
+  "name": "Split Flap Display",
+  "version": "v1.4.0",
+  "new_install_improv_wait_time": 30,
+  "new_install_prompt_erase": false,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "https://drewferg11.github.io/Split-Flap-Display/releases/v1.4.0/splitflap-esp32_n4-v1.4.0-app.bin",
+          "offset": 65536
+        }
+      ]
+    },
+    {
+      "chipFamily": "ESP32-C3",
+      "parts": [
+        {
+          "path": "https://drewferg11.github.io/Split-Flap-Display/releases/v1.4.0/splitflap-esp32c3_n4-v1.4.0-app.bin",
+          "offset": 65536
+        }
+      ]
+    },
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "https://drewferg11.github.io/Split-Flap-Display/releases/v1.4.0/splitflap-esp32s3_n4r2-v1.4.0-app.bin",
+          "offset": 65536
+        }
+      ]
+    }
+  ]
+}
