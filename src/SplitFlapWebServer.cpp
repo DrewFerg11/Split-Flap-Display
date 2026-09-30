@@ -1,6 +1,7 @@
 #include "SplitFlapWebServer.h"
 
 #include "BackgroundTick.h"
+#include "LogRedaction.h"
 
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
@@ -362,7 +363,13 @@ void SplitFlapWebServer::startWebServer() {
         }
 
         Serial.println("Received settings update request");
-        Serial.println(json.as<String>());
+        JsonDocument loggedSettings;
+        if (loggedSettings.set(json)) {
+            redactSecrets(loggedSettings);
+            if (! loggedSettings.overflowed()) {
+                Serial.println(loggedSettings.as<String>());
+            }
+        }
 
         bool rebootRequired = false;
         bool reconnect = false;
