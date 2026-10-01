@@ -1,7 +1,9 @@
 import Alpine from "alpinejs";
+import { diagnostics } from "./diagnostics.js";
 window.Alpine = Alpine;
 
 document.addEventListener("alpine:init", () => {
+    Alpine.data("diagnostics", diagnostics);
     Alpine.data("page", (type) => ({
         get header() {
             return this.settings.name || "Split Flap";
