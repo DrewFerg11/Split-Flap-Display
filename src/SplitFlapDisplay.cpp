@@ -2,6 +2,7 @@
 
 #include "BackgroundTick.h"
 #include "JsonSettings.h"
+#include "Log.h"
 #include "SplitFlapModule.h"
 #include "SplitFlapMqtt.h"
 
@@ -53,7 +54,7 @@ void SplitFlapDisplay::init() {
     bool wire1Ok = Wire1.begin(SDA2Pin, SCL2Pin);
     Wire1.setClock(400000);
     if (! wire1Ok) {
-        Serial.printf("[ERROR] Wire1.begin() failed (SDA=%d, SCL=%d)\n", SDA2Pin, SCL2Pin);
+        Log.printf("[ERROR] Wire1.begin() failed (SDA=%d, SCL=%d)\n", SDA2Pin, SCL2Pin);
     }
 #endif
 
@@ -82,30 +83,30 @@ void SplitFlapDisplay::init() {
 }
 
 void SplitFlapDisplay::configI2cModules() {
-    Serial.println("\n=== I2C Configuration ===");
+    Log.println("\n=== I2C Configuration ===");
 
-    Serial.printf("%-6s (SDA=%d, SCL=%d): ", "Wire", SDAPin, SCLPin);
+    Log.printf("%-6s (SDA=%d, SCL=%d): ", "Wire", SDAPin, SCLPin);
     for (int i = 0; i < wireCount; i++) {
-        Serial.printf("[%d]0x%02X ", i, wireAddresses[i]);
+        Log.printf("[%d]0x%02X ", i, wireAddresses[i]);
     }
-    if (wireCount == 0) Serial.print("(none)");
-    Serial.println();
+    if (wireCount == 0) Log.print("(none)");
+    Log.println();
 
 #ifdef ENABLE_DUAL_I2C
-    Serial.printf("%-6s (SDA=%d, SCL=%d): ", "Wire1", SDA2Pin, SCL2Pin);
+    Log.printf("%-6s (SDA=%d, SCL=%d): ", "Wire1", SDA2Pin, SCL2Pin);
     for (int i = 0; i < wire1Count; i++) {
-        Serial.printf("[%d]0x%02X ", wireCount + i, wire1Addresses[i]);
+        Log.printf("[%d]0x%02X ", wireCount + i, wire1Addresses[i]);
     }
-    if (wire1Count == 0) Serial.print("(none)");
-    Serial.println();
+    if (wire1Count == 0) Log.print("(none)");
+    Log.println();
 #endif
 
-    Serial.printf("Total modules: %d\n", numModules);
-    Serial.println("=========================");
+    Log.printf("Total modules: %d\n", numModules);
+    Log.println("=========================");
 }
 
 void SplitFlapDisplay::scanI2cModules() {
-    Serial.println("\n=== I2C Scanner ===");
+    Log.println("\n=== I2C Scanner ===");
 
     struct BusCfg
     {
@@ -136,7 +137,7 @@ void SplitFlapDisplay::scanI2cModules() {
         bool cfgFound[MAX_MODULES] = {};
         bool anyFound = false;
 
-        Serial.printf("%-6s:", busName);
+        Log.printf("%-6s:", busName);
 
         for (uint8_t addr = 1; addr < 127; addr++) {
             bus->beginTransmission(addr);
@@ -156,24 +157,24 @@ void SplitFlapDisplay::scanI2cModules() {
             }
 
             if (modIdx >= 0) {
-                Serial.printf(" [%d]0x%02X", modIdx, addr);
+                Log.printf(" [%d]0x%02X", modIdx, addr);
             } else {
-                Serial.printf(" 0x%02X(unexpected)", addr);
+                Log.printf(" 0x%02X(unexpected)", addr);
             }
         }
 
-        if (! anyFound) Serial.print(" (none found)");
-        Serial.println();
+        if (! anyFound) Log.print(" (none found)");
+        Log.println();
 
         // Report any configured modules that did not respond
         for (int i = 0; i < cfgCount; i++) {
             if (! cfgFound[i]) {
-                Serial.printf("  -> [%d]0x%02X MISSING\n", idxOff + i, cfgAddrs[i]);
+                Log.printf("  -> [%d]0x%02X MISSING\n", idxOff + i, cfgAddrs[i]);
             }
         }
     }
 
-    Serial.println("===================\n");
+    Log.println("===================\n");
 }
 
 void SplitFlapDisplay::testAll() {
@@ -184,15 +185,15 @@ void SplitFlapDisplay::testAll() {
 
     int charPos;
     for (int i = 0; i < numChars; i++) {
-        // Serial.print("Target Positions: [");
+        // Log.print("Target Positions: [");
         // fill array with same char
 
         for (int j = 0; j < numModules; j++) {
             targetPositions[j] = modules[j].getCharPosition(testChars[i]);
-            // Serial.print(targetPositions[j]);
-            // Serial.print(" , ");
+            // Log.print(targetPositions[j]);
+            // Log.print(" , ");
         }
-        // Serial.println("]");
+        // Log.println("]");
 
         moveTo(targetPositions);
         delay(500);
@@ -206,13 +207,13 @@ void SplitFlapDisplay::testRandom(float speed) {
     int targetPositions[numModules];
     char randChar;
 
-    Serial.print("Target: ");
+    Log.print("Target: ");
     for (int i = 0; i < numModules; i++) {
         randChar = testChars[random(0, 37)];
         targetPositions[i] = modules[i].getCharPosition(randChar);
-        Serial.print(randChar);
+        Log.print(randChar);
     }
-    Serial.println(" ");
+    Log.println(" ");
     moveTo(targetPositions, speed);
 }
 
@@ -238,7 +239,7 @@ void SplitFlapDisplay::testCount() {
 }
 
 void SplitFlapDisplay::home(float speed) {
-    Serial.println("Homing");
+    Log.println("Homing");
 
 #ifdef ENABLE_DUAL_I2C
     if (wire1Count > 0) {
@@ -262,7 +263,7 @@ void SplitFlapDisplay::home(float speed) {
 }
 
 void SplitFlapDisplay::homeToString(String homeString, float speed, bool centering) {
-    Serial.println("Homing");
+    Log.println("Homing");
     int targetPositions[numModules];
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
@@ -273,7 +274,7 @@ void SplitFlapDisplay::homeToString(String homeString, float speed, bool centeri
 }
 
 void SplitFlapDisplay::homeToChar(char homeChar, float speed) {
-    Serial.println("Homing");
+    Log.println("Homing");
     int targetPositions[numModules];
     for (int i = 0; i < numModules; i++) {
         targetPositions[i] = (modules[i].getPosition() - 1 + stepsPerRot) % stepsPerRot;
@@ -328,7 +329,7 @@ void SplitFlapDisplay::writeString(String inputString, float speed, bool centeri
     // Iterate through the input string and process each character
     for (int i = 0; i < displayString.length(); i++) {
         char currentChar = displayString[i];
-        // Serial.println(currentChar);
+        // Log.println(currentChar);
         targetPositions[i] = modules[i].getCharPosition(currentChar);
     }
     moveTo(targetPositions, speed);
@@ -412,14 +413,14 @@ void SplitFlapDisplay::moveModules(
                     if (! resetLatches[i]) {
                         // UNCOMMENTING THIS WILL PROBBALY MAKE THE MOTORS INACCURATE, DUE
                         // TO TIME TAKEN TO PRINT
-                        //  Serial.print("Module: ");
-                        //  Serial.print(i);
-                        //  Serial.print(" Magnet Position: ");
-                        //  Serial.print(modules[i].getMagnetPosition());
-                        //  Serial.print(" Actual Position: ");
-                        //  Serial.print(modules[i].getPosition());
-                        //  Serial.print(" Error: ");
-                        //  Serial.println((modules[i].getMagnetPosition() -
+                        //  Log.print("Module: ");
+                        //  Log.print(i);
+                        //  Log.print(" Magnet Position: ");
+                        //  Log.print(modules[i].getMagnetPosition());
+                        //  Log.print(" Actual Position: ");
+                        //  Log.print(modules[i].getPosition());
+                        //  Log.print(" Error: ");
+                        //  Log.println((modules[i].getMagnetPosition() -
                         //  modules[i].getPosition()));
                         mods[i].magnetDetected(); // update position to the modules
                         // magnet position
@@ -526,7 +527,7 @@ void SplitFlapDisplay::moveToDual(int *targetPositions, float speed, bool releas
 }
 
 void SplitFlapDisplay::homeToStringDual(String row1, String row2, float speed, bool centering) {
-    Serial.println("Homing");
+    Log.println("Homing");
     int targetPositions[numModules];
 
     // Phase 1: spin nearly full rotation to find magnets

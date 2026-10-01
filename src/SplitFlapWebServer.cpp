@@ -1,6 +1,7 @@
 #include "SplitFlapWebServer.h"
 
 #include "BackgroundTick.h"
+#include "Log.h"
 #include "LogRedaction.h"
 
 #include <ArduinoJson.h>
@@ -25,7 +26,7 @@ SplitFlapWebServer::SplitFlapWebServer(JsonSettings &settings)
 
 void SplitFlapWebServer::init() {
     if (! LittleFS.begin()) {
-        Serial.println("An Error has occurred while mounting LittleFS");
+        Log.println("An Error has occurred while mounting LittleFS");
         return;
     }
 
@@ -40,7 +41,7 @@ void SplitFlapWebServer::setTimezone() {
 
     File file = LittleFS.open("/timezones.json", "r");
     if (! file) {
-        Serial.println("Failed to open timezones.json; defaulting to UTC");
+        Log.println("Failed to open timezones.json; defaulting to UTC");
         configTzTime(defaultTz, sntpServer);
         return;
     }
@@ -54,7 +55,7 @@ void SplitFlapWebServer::setTimezone() {
     DeserializationError error = deserializeJson(timezones, buffer.get());
 
     if (error) {
-        Serial.println("Failed to parse timezones.json: " + String(error.c_str()));
+        Log.println("Failed to parse timezones.json: " + String(error.c_str()));
         configTzTime(defaultTz, sntpServer);
         return;
     }
@@ -69,7 +70,7 @@ void SplitFlapWebServer::setTimezone() {
         }
     }
 
-    Serial.println("POSIX Timezone set to: " + posixTimezone);
+    Log.println("POSIX Timezone set to: " + posixTimezone);
     configTzTime(posixTimezone.c_str(), sntpServer);
 }
 
@@ -157,7 +158,7 @@ int SplitFlapWebServer::getMode() {
 void SplitFlapWebServer::checkWiFi() {
     if (connectionMode == 1) {
         if (WiFi.status() != WL_CONNECTED) {
-            Serial.println("Wi-Fi lost! Forcing reconnect...");
+            Log.println("Wi-Fi lost! Forcing reconnect...");
             WiFi.disconnect();
             WiFi.reconnect();
         }
@@ -170,9 +171,9 @@ bool SplitFlapWebServer::loadWiFiCredentials() {
     String password = String(WIFI_PASS).isEmpty() ? settings.getString("password") : String(WIFI_PASS);
 
     if (ssid != "" && password != "") {
-        Serial.println("Wi-Fi credentials loaded successfully.");
-        Serial.print("Connecting to Network: ");
-        Serial.println(ssid);
+        Log.println("Wi-Fi credentials loaded successfully.");
+        Log.print("Connecting to Network: ");
+        Log.println(ssid);
         WiFi.mode(WIFI_STA);
 #ifdef WIFI_TX_POWER
         delay(100);
@@ -186,7 +187,7 @@ bool SplitFlapWebServer::loadWiFiCredentials() {
 
 void SplitFlapWebServer::checkRebootRequired() {
     if (rebootRequired) {
-        Serial.println("Reboot required. Restarting...");
+        Log.println("Reboot required. Restarting...");
         delay(1000);
         ESP.restart();
     }
@@ -213,32 +214,32 @@ void SplitFlapWebServer::enableOta() {
             type = "filesystem";
             LittleFS.end(); // Unmount the filesystem before update
         }
-        Serial.println("Start updating " + type);
+        Log.println("Start updating " + type);
     })
         .onEnd([]() {
-        Serial.println("\nEnd");
+        Log.println("\nEnd");
         LittleFS.begin(); // Remount filesystem
     })
         .onProgress([](unsigned int progress, unsigned int total) {
-        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+        Log.printf("Progress: %u%%\r", (progress / (total / 100)));
     }).onError([](ota_error_t error) {
-        Serial.printf("Error[%u]: ", error);
+        Log.printf("Error[%u]: ", error);
         LittleFS.begin(); // Remount filesystem
         if (error == OTA_AUTH_ERROR) {
-            Serial.println("Auth Failed");
+            Log.println("Auth Failed");
         } else if (error == OTA_BEGIN_ERROR) {
-            Serial.println("Begin Failed");
+            Log.println("Begin Failed");
         } else if (error == OTA_CONNECT_ERROR) {
-            Serial.println("Connect Failed");
+            Log.println("Connect Failed");
         } else if (error == OTA_RECEIVE_ERROR) {
-            Serial.println("Receive Failed");
+            Log.println("Receive Failed");
         } else if (error == OTA_END_ERROR) {
-            Serial.println("End Failed");
+            Log.println("End Failed");
         }
     });
 
     ArduinoOTA.begin();
-    Serial.println("OTA Initialized");
+    Log.println("OTA Initialized");
 }
 
 bool SplitFlapWebServer::connectToWifi() {
@@ -250,12 +251,12 @@ bool SplitFlapWebServer::connectToWifi() {
         while (WiFi.status() != WL_CONNECTED) {
             backgroundTick();
             if (millis() - startAttemptTime >= timeout) {
-                Serial.println("_");
-                Serial.println("Wi-Fi connection failed! Timeout reached.");
+                Log.println("_");
+                Log.println("Wi-Fi connection failed! Timeout reached.");
                 return false; // Return false if unable to connect within the timeout
             }
             if ((millis() - lastPrintTime) > 1000) {
-                Serial.print(".");
+                Log.print(".");
                 lastPrintTime = millis();
             }
             yield();
@@ -268,8 +269,8 @@ bool SplitFlapWebServer::connectToWifi() {
         WiFi.setAutoReconnect(true);
         WiFi.persistent(true); // Saves Wi-Fi settings to flash memory
         WiFi.setSleep(false);
-        Serial.println("Connected to Wi-Fi!");
-        Serial.println("IP Address: http://" + WiFi.localIP().toString());
+        Log.println("Connected to Wi-Fi!");
+        Log.println("IP Address: http://" + WiFi.localIP().toString());
         return true;
     }
     return false;
@@ -283,31 +284,31 @@ void SplitFlapWebServer::startAccessPoint() {
     delay(100);
     WiFi.setTxPower((wifi_power_t) WIFI_TX_POWER);
 #endif
-    Serial.println("AP Mode Started!");
-    Serial.println("Connect to: " + String(apSSID));
-    Serial.println("AP IP Address: http://" + WiFi.softAPIP().toString());
+    Log.println("AP Mode Started!");
+    Log.println("Connect to: " + String(apSSID));
+    Log.println("AP IP Address: http://" + WiFi.softAPIP().toString());
 }
 
 void fourOhFour(AsyncWebServerRequest *request) {
-    Serial.println("Request: " + request->url());
-    Serial.println("Method: " + String(request->methodToString()));
+    Log.println("Request: " + request->url());
+    Log.println("Method: " + String(request->methodToString()));
     request->send(404);
 }
 
 void SplitFlapWebServer::endMDNS() {
     MDNS.end();
-    Serial.println("mDNS responder stopped");
+    Log.println("mDNS responder stopped");
 }
 
 void SplitFlapWebServer::startMDNS() {
     if (! MDNS.begin(settings.getString("mdns").c_str())) {
-        Serial.println("Error setting up MDNS responder!");
+        Log.println("Error setting up MDNS responder!");
         while (1) {
             delay(1000);
         }
     }
 
-    Serial.println("mDNS: http://" + settings.getString("mdns") + ".local");
+    Log.println("mDNS: http://" + settings.getString("mdns") + ".local");
 }
 
 void SplitFlapWebServer::startWebServer() {
@@ -315,7 +316,7 @@ void SplitFlapWebServer::startWebServer() {
 
     File root = LittleFS.open("/");
     if (! root || ! root.isDirectory()) {
-        Serial.println("Failed to open directory or not a directory");
+        Log.println("Failed to open directory or not a directory");
         return;
     }
 
@@ -362,12 +363,12 @@ void SplitFlapWebServer::startWebServer() {
             return request->send(405, "application/json", "{\"error\":\"Method Not Allowed\"}");
         }
 
-        Serial.println("Received settings update request");
+        Log.println("Received settings update request");
         JsonDocument loggedSettings;
         if (loggedSettings.set(json)) {
             redactSecrets(loggedSettings);
             if (! loggedSettings.overflowed()) {
-                Serial.println(loggedSettings.as<String>());
+                Log.println(loggedSettings.as<String>());
             }
         }
 
@@ -446,8 +447,8 @@ void SplitFlapWebServer::startWebServer() {
             return request->send(405, "application/json", "{\"error\":\"Method Not Allowed\"}");
         }
 
-        Serial.println("Received text update request");
-        Serial.println(json.as<String>());
+        Log.println("Received text update request");
+        Log.println(json.as<String>());
 
         JsonDocument response;
 
