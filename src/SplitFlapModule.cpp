@@ -1,6 +1,7 @@
 #include "SplitFlapModule.h"
 
 #include "BackgroundTick.h"
+#include "Log.h"
 
 // Settle delay that stays Improv-responsive: init()'s delays total 500ms per
 // module (~8s for 16 modules), long enough to matter to the web flasher.
@@ -23,8 +24,6 @@ const char SplitFlapModule::ExtendedChars[48] = {
     'P', 'Q', 'R', 'S', 'T', 'U',  'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4',
     '5', '6', '7', '8', '9', '\'', ':', '?', '!', '.', '-', '/', '$', '@', '#', '%',
 };
-
-bool hasErrored = false;
 
 // Default Constructor
 SplitFlapModule::SplitFlapModule()
@@ -52,12 +51,9 @@ void SplitFlapModule::writeIO(uint16_t data) {
 
     byte error = wire->endTransmission();
 
-    if (error > 0 && ! hasErrored) {
-        hasErrored = true; // Set the error flag
-        Serial.print("Error writing data to module ");
-        Serial.print(address);
-        Serial.print(", error code: ");
-        Serial.println(error); // Error codes:
+    if (error > 0 && ! getHasErrored()) {
+        __atomic_store_n(&hasErrored, true, __ATOMIC_RELAXED);
+        Log.printf("Error writing data to module %u, error code: %u\n", address, error); // Error codes:
         // 0 = success
         // 1 = data too long to fit in transmit buffer
         // 2 = received NACK on transmit of address
@@ -142,7 +138,7 @@ void SplitFlapModule::step(bool updatePosition) {
 }
 
 bool SplitFlapModule::readHallEffectSensor() {
-    if (hasErrored) {
+    if (getHasErrored()) {
         return false;
     }
 
