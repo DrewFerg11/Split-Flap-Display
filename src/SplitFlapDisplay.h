@@ -41,6 +41,16 @@ class SplitFlapDisplay {
     int getCharsetSize() const { return charSetSize; }
     void setMqtt(SplitFlapMqtt *mqttHandler);
 
+    struct ModuleStatus
+    {
+        int index;
+        int bus;
+        uint8_t address;
+        bool ok;
+        bool hasErrored;
+    };
+    bool getModuleStatus(int index, ModuleStatus &status) const;
+
     // Static movement engine — operates on a subset of modules.
     // `idleCallback` runs every ~20ms during the move (used for Improv Wi-Fi).
     // Must be nullptr when called from a background task — not thread-safe.
@@ -94,4 +104,6 @@ class SplitFlapDisplay {
     int magnetPosition; // position of drum wheel when magnet is detected
 
     SplitFlapMqtt *mqtt = nullptr;
+    bool moduleFound[MAX_MODULES] = {};
+    bool diagnosticsReady = false;
 };

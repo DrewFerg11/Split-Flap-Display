@@ -814,6 +814,133 @@
                 </button>
             </div>
 
+            <section x-data="diagnostics" class="w-full mt-6 text-left">
+                <h2
+                    class="text-xl font-semibold text-left w-full border-b border-gray-600 pb-2 mb-4 relative flex justify-between"
+                >
+                    <button
+                        type="button"
+                        @click="toggle()"
+                        :aria-expanded="expanded"
+                        aria-controls="diagnostics-panel"
+                        class="flex justify-between w-full"
+                    >
+                        <span>Diagnostics</span
+                        ><span x-text="expanded ? '−' : '+'"></span>
+                    </button>
+                </h2>
+                <div id="diagnostics-panel" x-show="expanded" x-cloak>
+                    <p
+                        class="text-sm text-red-400"
+                        x-show="statusError"
+                        x-text="statusError"
+                        role="status"
+                    ></p>
+                    <template x-if="status">
+                        <div class="text-sm space-y-2 mb-4">
+                            <p
+                                x-text="status.version + ' · ' + status.buildSource + ' · ' + status.chip"
+                            ></p>
+                            <p>
+                                Uptime: <span x-text="uptime"></span> · Reset:
+                                <span
+                                    :class="{'text-red-400 font-semibold': abnormalReset}"
+                                    x-text="status.resetReason"
+                                ></span>
+                            </p>
+                            <p>
+                                Free heap:
+                                <span
+                                    x-text="status.freeHeap.toLocaleString() + ' B'"
+                                ></span>
+                                · Minimum:
+                                <span
+                                    x-text="status.minFreeHeap.toLocaleString() + ' B'"
+                                ></span>
+                            </p>
+                            <p>
+                                Wi-Fi:
+                                <span
+                                    x-text="status.wifi.mode === 'ap' ? 'AP · ' + status.wifi.ssid : status.wifi.connected ? status.wifi.ssid + ' · ' + status.wifi.rssi + ' dBm' : 'Disconnected'"
+                                ></span>
+                                · <span x-text="status.wifi.ip"></span>
+                            </p>
+                            <p>
+                                MQTT:
+                                <span
+                                    x-text="!status.mqtt.configured ? 'Not configured' : status.mqtt.connected ? 'Connected' : 'Disconnected'"
+                                ></span>
+                            </p>
+                            <p class="text-gray-400 text-xs">
+                                Module presence is from the boot scan. Reboot
+                                after changing connections to refresh it.
+                            </p>
+                            <p
+                                x-show="status.modules.length === 0"
+                                class="text-gray-400"
+                            >
+                                Modules are initializing…
+                            </p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <template
+                                    x-for="module in status.modules"
+                                    :key="module.index"
+                                >
+                                    <div
+                                        class="rounded p-2 border"
+                                        :class="module.ok &amp;&amp; !module.hasErrored ? 'bg-green-950 border-green-700' : 'bg-red-950 border-red-700'"
+                                    >
+                                        <span
+                                            x-text="'#' + module.index + ' · Bus ' + module.bus + ' · 0x' + module.address.toString(16).toUpperCase().padStart(2, '0')"
+                                        ></span>
+                                        <span
+                                            class="block font-semibold"
+                                            x-text="!module.ok ? 'MISSING' : module.hasErrored ? 'I2C ERROR' : 'OK'"
+                                        ></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <p
+                        class="text-sm text-red-400"
+                        x-show="logError"
+                        x-text="logError"
+                        role="status"
+                    ></p>
+                    <div class="flex flex-wrap gap-2 mb-2 text-sm">
+                        <button
+                            type="button"
+                            class="rounded bg-neutral-700 px-3 py-2"
+                            @click="paused = !paused; scroll()"
+                            :aria-pressed="paused"
+                            x-text="paused ? 'Resume scrolling' : 'Pause scrolling'"
+                        ></button>
+                        <button
+                            type="button"
+                            class="rounded bg-neutral-700 px-3 py-2"
+                            @click="clear()"
+                            title="Clear the visible log; device history is retained"
+                        >
+                            Clear
+                        </button>
+                        <button
+                            type="button"
+                            class="rounded bg-neutral-700 px-3 py-2"
+                            @click="download()"
+                        >
+                            Download .txt
+                        </button>
+                    </div>
+                    <pre
+                        x-ref="logBox"
+                        x-text="text"
+                        class="h-64 overflow-auto whitespace-pre-wrap break-all bg-neutral-950 rounded p-3 font-mono text-xs"
+                        aria-label="Device log"
+                    ></pre>
+                </div>
+            </section>
+
             <div
                 class="w-full text-center text-xs text-gray-500"
                 x-show="firmwareVersion"
