@@ -25,8 +25,6 @@ const char SplitFlapModule::ExtendedChars[48] = {
     '5', '6', '7', '8', '9', '\'', ':', '?', '!', '.', '-', '/', '$', '@', '#', '%',
 };
 
-bool hasErrored = false;
-
 // Default Constructor
 SplitFlapModule::SplitFlapModule()
     : address(0), wire(&Wire), position(0), stepNumber(0), stepsPerRot(0), chars(StandardChars), numChars(37),
@@ -53,12 +51,9 @@ void SplitFlapModule::writeIO(uint16_t data) {
 
     byte error = wire->endTransmission();
 
-    if (error > 0 && ! hasErrored) {
-        hasErrored = true; // Set the error flag
-        Log.print("Error writing data to module ");
-        Log.print(address);
-        Log.print(", error code: ");
-        Log.println(error); // Error codes:
+    if (error > 0 && ! getHasErrored()) {
+        __atomic_store_n(&hasErrored, true, __ATOMIC_RELAXED);
+        Log.printf("Error writing data to module %u, error code: %u\n", address, error); // Error codes:
         // 0 = success
         // 1 = data too long to fit in transmit buffer
         // 2 = received NACK on transmit of address
@@ -143,7 +138,7 @@ void SplitFlapModule::step(bool updatePosition) {
 }
 
 bool SplitFlapModule::readHallEffectSensor() {
-    if (hasErrored) {
+    if (getHasErrored()) {
         return false;
     }
 

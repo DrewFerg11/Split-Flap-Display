@@ -116,6 +116,7 @@ static bool improvActive = true; // latched off; never re-arms (millis rollover 
 // flasher gets answers during boot too. Main thread only - Improv's frame
 // parser isn't thread-safe, so the dual-I2C bus tasks must never call this.
 void backgroundTick() {
+    webServer.pollDiagnostics(splitflapMqtt.isConnected());
     if (! improvActive) return;
     if (millis() >= IMPROV_ACTIVE_MS) {
         improvActive = false;
@@ -172,6 +173,7 @@ const char *resetReasonToString(esp_reset_reason_t reason) {
 void setup() {
     Serial.begin(SERIAL_SPEED);
     Log.begin();
+    webServer.setDiagnostics(&display, resetReasonToString(esp_reset_reason()));
 
     // Set up Improv first: the web flasher probes it exactly once, ~1-2s after
     // opening the port (which resets the board). Miss that window and the

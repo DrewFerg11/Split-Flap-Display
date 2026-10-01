@@ -80,6 +80,20 @@ void SplitFlapDisplay::init() {
     for (int i = 0; i < numModules; i++) {
         modules[i].init();
     }
+    __atomic_store_n(&diagnosticsReady, true, __ATOMIC_RELEASE);
+}
+
+bool SplitFlapDisplay::getModuleStatus(int index, ModuleStatus &status) const {
+    if (! __atomic_load_n(&diagnosticsReady, __ATOMIC_ACQUIRE) || index < 0 || index >= numModules) return false;
+    status.index = index;
+    status.bus = index < wireCount ? 1 : 2;
+    status.address = index < wireCount ? wireAddresses[index] : 0;
+#ifdef ENABLE_DUAL_I2C
+    if (index >= wireCount) status.address = wire1Addresses[index - wireCount];
+#endif
+    status.ok = moduleFound[index];
+    status.hasErrored = modules[index].getHasErrored();
+    return true;
 }
 
 void SplitFlapDisplay::configI2cModules() {
@@ -168,6 +182,7 @@ void SplitFlapDisplay::scanI2cModules() {
 
         // Report any configured modules that did not respond
         for (int i = 0; i < cfgCount; i++) {
+            moduleFound[idxOff + i] = cfgFound[i];
             if (! cfgFound[i]) {
                 Log.printf("  -> [%d]0x%02X MISSING\n", idxOff + i, cfgAddrs[i]);
             }
