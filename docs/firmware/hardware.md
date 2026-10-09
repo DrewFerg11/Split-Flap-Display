@@ -31,7 +31,7 @@ Verified against [espressif.com/en/products/socs](https://www.espressif.com/en/p
 | **ESP32-C3** | RISC-V       | 1     | 160 MHz   | Wi-Fi 4, BLE 5                | ✅ Serial/JTAG | 1         | ✅         | ❌           |
 | **ESP32-S3** | Xtensa LX7   | **2** | 240 MHz   | Wi-Fi 4, BLE 5                | ✅ OTG         | 2         | ✅         | ⚠️[^s3-dual] |
 
-[^s3-dual]: The silicon can do it, but the S3 SuperMini / S3-Zero (`esp32s3_n4r2`) was less reliable and slower than the ESP32 in testing, so it won't get a dual build. The 44-pin S3 board (`esp32s3_n16r8`) will, once it's added.
+[^s3-dual]: The S3 has two I²C controllers, same as the ESP32, so dual mode is possible in principle — but it isn't planned for the **ESP32-S3 SuperMini / S3-Zero** (`esp32s3_n4r2`): in testing that board has been less reliable and slower than the ESP32, so it's not a good candidate for the dual-bus build regardless of what the silicon can do. The **ESP32-S3-WROOM-1 44-pin board** (`esp32s3_n16r8`) is a different, more capable carrier design and will get dual-bus support once it's added to the project.
 
 ## Boards this project has been built on
 
