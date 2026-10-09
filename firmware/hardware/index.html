@@ -753,17 +753,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#naming-convention" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Naming convention
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#what-makes-a-chip-a-candidate-for-this-project" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -790,6 +779,17 @@
     <span class="md-ellipsis">
       
         Boards this project has been built on
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#naming-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming convention
       
     </span>
   </a>
@@ -923,17 +923,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#naming-convention" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Naming convention
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#what-makes-a-chip-a-candidate-for-this-project" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -960,6 +949,17 @@
     <span class="md-ellipsis">
       
         Boards this project has been built on
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#naming-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming convention
       
     </span>
   </a>
@@ -993,17 +993,15 @@
 
 <h1 id="supported-hardware">Supported Hardware<a class="headerlink" href="#supported-hardware" title="Permanent link">&para;</a></h1>
 <p>Which Espressif chips this project targets, and the specific boards it has actually been built and tested on. For the firmware environment each board maps to, see the <a href="../#supported-boards">Supported boards</a> table.</p>
-<h2 id="naming-convention">Naming convention<a class="headerlink" href="#naming-convention" title="Permanent link">&para;</a></h2>
-<p>Firmware environments — the <code>esp32_n4</code>, <code>esp32c3_n4</code>, <code>esp32s3_n4r2</code> names used throughout this page — follow one pattern:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>esp32[&lt;chip-suffix&gt;]_n&lt;flashMB&gt;[r&lt;psramMB&gt;][_ota]
-</span></code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">New here? Just buy an ESP32.</p>
+<p>The rest of this page goes deep on chips, modules, and memory. You don't need any of it to get started:</p>
 <ul>
-<li><strong>Chip suffix</strong> — the Espressif family token, lowercase, no separator (<code>c3</code>, <code>s3</code>, ...). The original ESP32 has no suffix.</li>
-<li><strong><code>n&lt;MB&gt;</code></strong> — flash size, always present. This selects the partition table (<code>n4</code> → <code>partitions_4MB.csv</code>).</li>
-<li><strong><code>r&lt;MB&gt;</code></strong> — PSRAM size, only present when PSRAM is enabled. This selects the board definition / bootloader memory mode (quad vs. octal), not the partition table.</li>
-<li><strong><code>_ota</code></strong> — the OTA-upload variant of the same board; everything else about the build is identical.</li>
+<li><strong>Building the dual display (two rows)?</strong> Get a plain <strong>ESP32 30-pin DevKit</strong> (<code>ESP32 30-PIN</code> sled, <code>esp32_n4</code> firmware). It's the only board with full dual-row support today.</li>
+<li><strong>Building a single row?</strong> The same ESP32 is still the safest pick — it's the most tested board and leaves you room to go dual later. The <strong>ESP32-C3 SuperMini</strong> also works if you want something smaller, but it can't drive a dual display.</li>
 </ul>
-<p><strong>Why chip + memory instead of a brand name?</strong> Carrier-board brands are the least stable identifier in the stack — the same silicon gets resold under different names by different sellers (see <a href="#boards-this-project-has-been-built-on">Boards this project has been built on</a> below). Packaging names don't even uniquely identify a chip: <code>ESP32-WROOM-32</code> and <code>ESP32-S3-WROOM-1</code> are both "WROOM" parts, and the S3-WROOM-1 module alone ships in several flash/PSRAM configurations that each need their own partition table or bootloader. Naming envs after what actually determines the build — chip family, flash, PSRAM — means a new board with a different outline or brand but the same chip and memory is just a new row in the boards table below, not a new env.</p>
+<p>Either of the ESP32 listings in <a href="#boards-this-project-has-been-built-on">Boards this project has been built on</a> will do; USB-C vs. Micro-USB is the only real difference.</p>
+</div>
 <h2 id="what-makes-a-chip-a-candidate-for-this-project">What makes a chip a candidate for this project<a class="headerlink" href="#what-makes-a-chip-a-candidate-for-this-project" title="Permanent link">&para;</a></h2>
 <p>Any future board is judged against one bar:</p>
 <ol>
@@ -1024,8 +1022,8 @@
 <th>Wireless</th>
 <th style="text-align: center;">Native USB</th>
 <th style="text-align: center;">I²C buses</th>
-<th style="text-align: center;">Original support</th>
-<th style="text-align: center;">Dual support</th>
+<th style="text-align: center;">Single row</th>
+<th style="text-align: center;">Dual row</th>
 </tr>
 </thead>
 <tbody>
@@ -1065,7 +1063,7 @@
 </tbody>
 </table>
 <h2 id="boards-this-project-has-been-built-on">Boards this project has been built on<a class="headerlink" href="#boards-this-project-has-been-built-on" title="Permanent link">&para;</a></h2>
-<p>Ordered by firmware environment so the many-boards-to-one-build relationship is visible at a glance, and carrying the sled tag so the cradle, the docs, and the web flasher all say the same word for a given board.</p>
+<p>Grouped by firmware build. The sled tag matches the label on the printed cradle and in the web flasher.</p>
 <table>
 <thead>
 <tr>
@@ -1132,7 +1130,17 @@
 </tr>
 </tbody>
 </table>
-<p>Two boards share <code>esp32_n4</code> despite different USB connectors — this is the model working, not a gap. A reader adding a board appends a row and picks the env whose chip + flash + PSRAM matches theirs.</p>
+<h2 id="naming-convention">Naming convention<a class="headerlink" href="#naming-convention" title="Permanent link">&para;</a></h2>
+<p>Firmware environments — the <code>esp32_n4</code>, <code>esp32c3_n4</code>, <code>esp32s3_n4r2</code> names used throughout this page — follow one pattern:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>esp32[&lt;chip-suffix&gt;]_n&lt;flashMB&gt;[r&lt;psramMB&gt;][_ota]
+</span></code></pre></div>
+<ul>
+<li><strong>Chip suffix</strong> — the Espressif family token, lowercase, no separator (<code>c3</code>, <code>s3</code>, ...). The original ESP32 has no suffix.</li>
+<li><strong><code>n&lt;MB&gt;</code></strong> — flash size, always present. This selects the partition table (<code>n4</code> → <code>partitions_4MB.csv</code>).</li>
+<li><strong><code>r&lt;MB&gt;</code></strong> — PSRAM size, only present when PSRAM is enabled. This selects the board definition / bootloader memory mode (quad vs. octal), not the partition table.</li>
+<li><strong><code>_ota</code></strong> — the OTA-upload variant of the same board; everything else about the build is identical.</li>
+</ul>
+<p>Envs are named after the chip and memory, never the board brand, so a new board with the same chip and memory as an existing one is just a new row in the boards table, not a new env. The notes below explain why.</p>
 <details class="note">
 <summary>Chip vs. module vs. board — three layers, only one of them stable</summary>
 <table>
@@ -1165,7 +1173,7 @@
 </tr>
 </tbody>
 </table>
-<p>This is why env names use chip + memory and never a brand: the brand layer is the one nobody controls. Same board, three sellers, three names.</p>
+<p>The brand layer is the one nobody controls: the same board gets resold under different names by different sellers. Packaging names don't uniquely identify a chip either — <code>ESP32-WROOM-32</code> and <code>ESP32-S3-WROOM-1</code> are both "WROOM" parts, and the S3-WROOM-1 alone ships in several flash/PSRAM configurations that each need their own partition table or bootloader. Chip family, flash, and PSRAM are what actually determine the build, so that's what the env name carries.</p>
 </details>
 <details class="note">
 <summary>Three memories, and why only two of them are in the env name</summary>
@@ -1225,7 +1233,7 @@
 <tr>
 <td>This project</td>
 <td>what actually constrains runtime; check <code>ESP.getFreeHeap()</code></td>
-<td>~1.17 MB firmware in a 1.5 MB app slot</td>
+<td>firmware fits in a 1.5 MB app slot with room to spare</td>
 <td>unused — zero bytes allocated</td>
 </tr>
 </tbody>
@@ -1267,7 +1275,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-08-08T17:23:25+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-08-08</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-10-09T11:27:46+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-10-09</span>
   </span>
 
     
