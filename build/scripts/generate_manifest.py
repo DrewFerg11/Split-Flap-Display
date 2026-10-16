@@ -23,16 +23,24 @@ def asset_name(env, version, kind):
     return "splitflap-%s-%s-%s.bin" % (env, version, kind)
 
 
-def build_manifest(version, download_base_url, kind, offset):
+# partitions_4MB.csv's two OTA app slots. The app-only manifest writes the
+# same app image to both, since it doesn't know (and ESP Web Tools' static
+# manifest format has no way to express) which slot otadata currently marks
+# bootable - only the factory image's boot_app0.bin write resets that. A
+# single-offset app-only write that lands in the inactive slot succeeds but
+# never actually boots, silently leaving the board on its old firmware.
+OTA_APP_OFFSETS = [0x10000, 0x190000]
+
+
+def build_manifest(version, download_base_url, kind, offsets):
     builds = []
     for board in load_boards():
         filename = asset_name(board["env"], version, kind)
+        path = download_base_url.rstrip("/") + "/" + filename
         builds.append(
             {
                 "chipFamily": board["chipFamily"],
-                "parts": [
-                    {"path": download_base_url.rstrip("/") + "/" + filename, "offset": offset}
-                ],
+                "parts": [{"path": path, "offset": offset} for offset in offsets],
             }
         )
     return {
@@ -67,8 +75,8 @@ def main():
 
     version, download_base_url, out_dir = sys.argv[1], sys.argv[2], sys.argv[3]
 
-    factory = build_manifest(version, download_base_url, "factory", offset=0)
-    app = build_manifest(version, download_base_url, "app", offset=0x10000)
+    factory = build_manifest(version, download_base_url, "factory", offsets=[0])
+    app = build_manifest(version, download_base_url, "app", offsets=OTA_APP_OFFSETS)
 
     with open(out_dir + "/manifest.json", "w") as f:
         json.dump(factory, f, indent=2)
