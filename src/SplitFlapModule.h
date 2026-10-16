@@ -30,7 +30,7 @@ class SplitFlapModule {
         position = magnetPosition;
     } // update position to magnetposition, called when magnet is detected
 
-    bool getHasErrored() const { return hasErrored; }
+    bool getHasErrored() const { return __atomic_load_n(&hasErrored, __ATOMIC_RELAXED); }
 
     static const char StandardChars[37];
     static const char ExtendedChars[48];

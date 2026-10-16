@@ -6,6 +6,7 @@
 // Enjoy :)
 #include "BackgroundTick.h"
 #include "JsonSettings.h"
+#include "Log.h"
 #include "SplitFlapDisplay.h"
 #include "SplitFlapMqtt.h"
 #include "SplitFlapWebServer.h"
@@ -98,11 +99,11 @@ bool improvConnectWifi(const char *ssid, const char *password) {
 }
 
 void improvOnConnected(const char *ssid, const char *password) {
-    Serial.printf("Improv: connected to Wi-Fi network \"%s\"\n", ssid);
+    Log.printf("Improv: connected to Wi-Fi network \"%s\"\n", ssid);
 }
 
 void improvOnError(ImprovTypes::Error err) {
-    Serial.printf("Improv: error %d\n", (int) err);
+    Log.printf("Improv: error %d\n", (int) err);
 }
 
 // Improv is a setup-time tool (Wi-Fi config over USB), so only listen for the
@@ -115,6 +116,7 @@ static bool improvActive = true; // latched off; never re-arms (millis rollover 
 // flasher gets answers during boot too. Main thread only - Improv's frame
 // parser isn't thread-safe, so the dual-I2C bus tasks must never call this.
 void backgroundTick() {
+    webServer.pollDiagnostics(splitflapMqtt.isConnected());
     if (! improvActive) return;
     if (millis() >= IMPROV_ACTIVE_MS) {
         improvActive = false;
@@ -170,6 +172,8 @@ const char *resetReasonToString(esp_reset_reason_t reason) {
 
 void setup() {
     Serial.begin(SERIAL_SPEED);
+    Log.begin();
+    webServer.setDiagnostics(&display, resetReasonToString(esp_reset_reason()));
 
     // Set up Improv first: the web flasher probes it exactly once, ~1-2s after
     // opening the port (which resets the board). Miss that window and the
@@ -206,14 +210,14 @@ void setup() {
         improv.setDeviceInfo(improvChipFamily, "Split Flap Display", FIRMWARE_VERSION, improvDeviceName.c_str());
     }
 
-    Serial.println("=== Split Flap Display ===");
-    Serial.printf("Firmware: %s (%s)\n", FIRMWARE_VERSION, FIRMWARE_BUILD_SOURCE);
-    Serial.printf("Chip: %s rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
-    Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
-    Serial.printf("Reset reason: %s\n", resetReasonToString(esp_reset_reason()));
-    Serial.println("===========================");
+    Log.println("=== Split Flap Display ===");
+    Log.printf("Firmware: %s (%s)\n", FIRMWARE_VERSION, FIRMWARE_BUILD_SOURCE);
+    Log.printf("Chip: %s rev %d\n", ESP.getChipModel(), ESP.getChipRevision());
+    Log.printf("MAC: %s\n", WiFi.macAddress().c_str());
+    Log.printf("Reset reason: %s\n", resetReasonToString(esp_reset_reason()));
+    Log.println("===========================");
 
-    Serial.println("Init Web Server");
+    Log.println("Init Web Server");
     webServer.init();
 
     // The long blocking sections below (Wi-Fi connect, module init, homing)
