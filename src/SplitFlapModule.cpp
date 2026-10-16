@@ -1,6 +1,7 @@
 #include "SplitFlapModule.h"
 
 #include "BackgroundTick.h"
+#include "Log.h"
 
 // Settle delay that stays Improv-responsive: init()'s delays total 500ms per
 // module (~8s for 16 modules), long enough to matter to the web flasher.
@@ -54,10 +55,10 @@ void SplitFlapModule::writeIO(uint16_t data) {
 
     if (error > 0 && ! hasErrored) {
         hasErrored = true; // Set the error flag
-        Serial.print("Error writing data to module ");
-        Serial.print(address);
-        Serial.print(", error code: ");
-        Serial.println(error); // Error codes:
+        Log.print("Error writing data to module ");
+        Log.print(address);
+        Log.print(", error code: ");
+        Log.println(error); // Error codes:
         // 0 = success
         // 1 = data too long to fit in transmit buffer
         // 2 = received NACK on transmit of address

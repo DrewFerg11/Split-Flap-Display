@@ -1,5 +1,6 @@
 #include "SplitFlapMqtt.h"
 
+#include "Log.h"
 #include "Version.h"
 
 SplitFlapMqtt::SplitFlapMqtt(JsonSettings &settings, WiFiClient &wifiClient)
@@ -26,7 +27,7 @@ void SplitFlapMqtt::setup() {
         for (unsigned int i = 0; i < length; i++) {
             message += (char) payload[i];
         }
-        Serial.printf("[MQTT] Message received: %s\n", message.c_str());
+        Log.printf("[MQTT] Message received: %s\n", message.c_str());
         if (display) {
             float maxVel = settings.getFloat("maxVel");
 #ifdef ENABLE_DUAL_I2C
@@ -47,7 +48,7 @@ void SplitFlapMqtt::setup() {
 
 void SplitFlapMqtt::connectToMqtt() {
     if (! mqttClient.connected()) {
-        Serial.println("[MQTT] Attempting to connect...");
+        Log.println("[MQTT] Attempting to connect...");
         String mdns = settings.getString("mdns");
         String name = settings.getString("name");
 
@@ -58,7 +59,7 @@ void SplitFlapMqtt::connectToMqtt() {
         }
 
         if (mqttClient.connected()) {
-            Serial.println("[MQTT] Connected to broker");
+            Log.println("[MQTT] Connected to broker");
 
             // clang-format off
             int numModules = display ? display->getNumModules() : 16;
@@ -102,7 +103,7 @@ void SplitFlapMqtt::connectToMqtt() {
             mqttClient.publish(topic_config_text.c_str(), payload_text.c_str(), true);
             mqttClient.publish(topic_config_sensor.c_str(), payload_sensor.c_str(), true);
         } else {
-            Serial.println("[MQTT] Failed to connect");
+            Log.println("[MQTT] Failed to connect");
         }
     }
 }
@@ -112,7 +113,7 @@ void SplitFlapMqtt::setDisplay(SplitFlapDisplay *d) {
 }
 
 void SplitFlapMqtt::publishState(const String &message) {
-    Serial.println("[MQTT] Publishing state: " + message);
+    Log.println("[MQTT] Publishing state: " + message);
     mqttClient.publish(topic_state.c_str(), message.c_str(), true);
 }
 
