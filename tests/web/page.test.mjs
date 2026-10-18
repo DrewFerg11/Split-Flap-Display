@@ -178,14 +178,15 @@ test("save reports validation errors and releases saving state", async () => {
         json: async () => ({
             type: "error",
             message: "Bad pin",
-            errors: { sdaPin: "Conflict" },
+            errors: { key: "sdaPin", message: "Conflict" },
         }),
     }));
     p.save();
     assert.equal(p.saving, true);
     await settle();
     assert.equal(p.saving, false);
-    assert.equal(p.errors.sdaPin, "Conflict");
+    assert.equal(p.errors.key, "sdaPin");
+    assert.equal(p.errors.message, "Conflict");
     assert.equal(p.dialog.type, "error");
 });
 test("network failure posting text is visible", async () => {
