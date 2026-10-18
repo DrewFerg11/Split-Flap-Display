@@ -38,5 +38,11 @@ jobs:
             clang-format-version: '20'
             check-path: 'src'
 
+      - name: Check test C++ formatting
+        uses: jidicula/clang-format-action@v4.15.0
+        with:
+            clang-format-version: '20'
+            check-path: 'tests'
+
       - name: Run Prettier
         run: ./node_modules/.bin/prettier --check 'src/**/*.{js,json,css,html}' platformio.ini package.json README.md vite.config.mjs tailwind.config.js
