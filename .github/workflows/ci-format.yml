@@ -45,4 +45,4 @@ jobs:
             check-path: 'tests'
 
       - name: Run Prettier
-        run: ./node_modules/.bin/prettier --check 'src/**/*.{js,json,css,html}' platformio.ini package.json README.md vite.config.mjs tailwind.config.js
+        run: ./node_modules/.bin/prettier --check 'src/**/*.{js,json,css,html}' 'tests/web/*.mjs' platformio.ini package.json README.md vite.config.mjs tailwind.config.js
