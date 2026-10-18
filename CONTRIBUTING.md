@@ -91,6 +91,12 @@ does not establish coverage of `setup()`, other display modes, actual MQTT
 reconnection, or physical hardware. The native sketch target uses the single-bus
 configuration; the three firmware builds still check board-specific compilation.
 
+The [MQTT regression suite](tests/MQTT.md) separately compiles the real
+`SplitFlapMqtt` class and PubSubClient3, with an in-memory broker peer and a
+simulated clock. It covers connection-loss recovery and retry timing without
+replacing the MQTT implementation under test. See that page for the original
+bug characterization, regression checks, and limits of the simulation.
+
 To grow coverage:
 
 1. Add a descriptive `*Test.cpp` under `tests/unit/` with GoogleTest `TEST` or
