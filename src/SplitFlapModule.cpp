@@ -39,7 +39,9 @@ SplitFlapModule::SplitFlapModule(
 )
     : address(I2Caddress), wire(wireBus), position(0), stepNumber(0), stepsPerRot(stepsPerFullRotation),
       charSetSize(charsetSize) {
-    magnetPosition = magnetPos + stepOffset;
+    const int64_t calibrated = static_cast<int64_t>(magnetPos) + stepOffset;
+    magnetPosition = stepsPerRot > 0 ? static_cast<int>(calibrated % stepsPerRot) : 0;
+    if (magnetPosition < 0) magnetPosition += stepsPerRot;
 
     chars = (charsetSize == 48) ? ExtendedChars : StandardChars;
     numChars = (charsetSize == 48) ? 48 : 37;
@@ -112,7 +114,8 @@ void SplitFlapModule::stop() {
 
 void SplitFlapModule::start() {
     stepNumber = (stepNumber + 3) % 4; // effectively take one off stepNumber
-    step(false);                       // write the "previous" step high again, in case turned off
+    step(false);                       // Re-energize the last phase without changing position.
+    stepNumber = (stepNumber + 1) % 4; // Keep the next physical step in sequence.
 }
 
 void SplitFlapModule::step(bool updatePosition) {

@@ -422,6 +422,7 @@ void SplitFlapDisplay::moveModules(
                         //  Serial.println((modules[i].getMagnetPosition() -
                         //  modules[i].getPosition()));
                         mods[i].magnetDetected(); // update position to the modules
+                        if (mods[i].getPosition() == targets[i]) needsStepping[i] = false;
                         // magnet position
                         resetLatches[i] = true;
                     }

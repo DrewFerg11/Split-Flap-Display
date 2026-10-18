@@ -4,6 +4,8 @@
 
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
+#include <climits>
+#include <cmath>
 
 #define AP_SSID "Split Flap Display"
 
@@ -50,7 +52,7 @@ void SplitFlapWebServer::setTimezone() {
     file.close();
 
     JsonDocument timezones;
-    DeserializationError error = deserializeJson(timezones, buffer.get());
+    DeserializationError error = deserializeJson(timezones, buffer.get(), size);
 
     if (error) {
         Serial.println("Failed to parse timezones.json: " + String(error.c_str()));
@@ -398,6 +400,18 @@ void SplitFlapWebServer::startWebServer() {
             response["message"] = "Hardware settings changed. Rebooting to apply...";
         }
 
+        // These values are cached by display/module init(), just like I2C pins.
+        for (const char *key : {"stepsPerRot", "magnetPosition", "displayOffset", "charset"}) {
+            if (json[key].is<int>() && json[key].as<int>() != settings.getInt(key)) {
+                rebootRequired = true;
+                response["message"] = "Hardware settings changed. Rebooting to apply...";
+            }
+        }
+        if (json["maxVel"].is<float>() && json["maxVel"].as<float>() != settings.getFloat("maxVel")) {
+            rebootRequired = true;
+            response["message"] = "Hardware settings changed. Rebooting to apply...";
+        }
+
         if (json["mdns"].is<String>() && json["mdns"].as<String>() != settings.getString("mdns")) {
             reconnect = true;
             response["message"] =
@@ -451,7 +465,36 @@ void SplitFlapWebServer::startWebServer() {
         }
 
         String mode = json["mode"].as<String>();
-        centering = json["center"].is<bool>() ? (json["center"].as<bool>() ? 1 : 0) : 0;
+        auto reject = [&](const char *message) {
+            response["message"] = message;
+            response["type"] = "error";
+            request->send(400, "application/json", response.as<String>());
+        };
+#ifndef ENABLE_DUAL_I2C
+        if (mode == "dual-single" || mode == "dual-multiple") {
+            reject("Dual-row mode requires a dual-bus build");
+            return;
+        }
+#endif
+        if (mode == "single" || mode == "multiple" || mode == "dual-multiple") {
+            if (! json["words"].is<JsonArray>() || json["words"].as<JsonArray>().size() == 0) {
+                reject("Words must be a non-empty array");
+                return;
+            }
+            for (JsonVariant word : json["words"].as<JsonArray>()) {
+                if (! word.is<String>()) {
+                    reject("Words must be strings");
+                    return;
+                }
+            }
+        }
+        if (mode == "multiple" || mode == "dual-multiple" || mode == "accuracy") {
+            const float seconds = json["delay"].as<float>();
+            if (! json["delay"].is<float>() || ! std::isfinite(seconds) || seconds < 1 || seconds > INT_MAX / 1000) {
+                reject("Delay is outside the supported range");
+                return;
+            }
+        }
 
         auto buildCsv = [this](JsonArray arr) -> String {
             String csv = "";
@@ -547,6 +590,7 @@ void SplitFlapWebServer::startWebServer() {
             response["type"] = "error";
             return request->send(400, "application/json", response.as<String>());
         }
+        centering = json["center"].is<bool>() ? (json["center"].as<bool>() ? 1 : 0) : 0;
         response["message"] = "Text updated successfully!";
         response["type"] = "success";
         request->send(200, "application/json", response.as<String>());
@@ -559,41 +603,24 @@ void SplitFlapWebServer::startWebServer() {
 }
 
 String SplitFlapWebServer::decodeURIComponent(String encodedString) {
-    String decodedString = encodedString;
-    // Replace common URL-encoded characters with their actual symbols
-    decodedString.replace("%20", " ");  // space
-    decodedString.replace("%21", "!");  // exclamation mark
-    decodedString.replace("%22", "\""); // double quote
-    decodedString.replace("%23", "#");  // hash
-    decodedString.replace("%24", "$");  // dollar sign
-    decodedString.replace("%25", "%");  // percent
-    decodedString.replace("%26", "&");  // ampersand
-    decodedString.replace("%27", "'");  // single quote
-    decodedString.replace("%28", "(");  // left parenthesis
-    decodedString.replace("%29", ")");  // right parenthesis
-    decodedString.replace("%2A", "*");  // asterisk
-    decodedString.replace("%2B", "+");  // plus
-    decodedString.replace("%2C", ",");  // comma
-    decodedString.replace("%2D", "-");  // hyphen
-    decodedString.replace("%2E", ".");  // period
-    decodedString.replace("%2F", "/");  // forward slash
-    decodedString.replace("%3A", ":");  // colon
-    decodedString.replace("%3B", ";");  // semicolon
-    decodedString.replace("%3C", "<");  // less than
-    decodedString.replace("%3D", "=");  // equal sign
-    decodedString.replace("%3E", ">");  // greater than
-    decodedString.replace("%3F", "?");  // question mark
-    decodedString.replace("%40", "@");  // at symbol
-    decodedString.replace("%5B", "[");  // left bracket
-    decodedString.replace("%5C", "\\"); // backslash
-    decodedString.replace("%5D", "]");  // right bracket
-    decodedString.replace("%5E", "^");  // caret
-    decodedString.replace("%5F", "_");  // underscore
-    decodedString.replace("%60", "`");  // grave accent
-    decodedString.replace("%7B", "{");  // left brace
-    decodedString.replace("%7C", "|");  // vertical bar
-    decodedString.replace("%7D", "}");  // right brace
-    decodedString.replace("%7E", "~");  // tilde
-
-    return decodedString;
+    auto hexDigit = [](char ch) -> int {
+        if (ch >= '0' && ch <= '9') return ch - '0';
+        if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
+        if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+        return -1;
+    };
+    String decoded;
+    for (unsigned int i = 0; i < encodedString.length(); ++i) {
+        if (encodedString[i] == '%' && i + 2 < encodedString.length()) {
+            const int high = hexDigit(encodedString[i + 1]);
+            const int low = hexDigit(encodedString[i + 2]);
+            if (high >= 0 && low >= 0) {
+                decoded += static_cast<char>((high << 4) | low);
+                i += 2;
+                continue;
+            }
+        }
+        decoded += encodedString[i];
+    }
+    return decoded;
 }

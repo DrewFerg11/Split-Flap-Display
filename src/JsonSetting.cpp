@@ -1,5 +1,9 @@
 #include "JsonSetting.h"
 
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+
 String JsonSetting::intVectorToString(const std::vector<int> &vec) {
     String result;
     for (size_t i = 0; i < vec.size(); ++i) {
@@ -19,14 +23,21 @@ bool JsonSetting::validate(String str) {
 }
 
 bool JsonSetting::validateIntVector(String str) {
-    for (size_t i = 0; i < str.length(); ++i) {
-        if (str[i] == ',' || str[i] == '-') {
-            continue;
-        }
-        if (str[i] < '0' || str[i] > '9') {
-            lastValidationError = "Non-integer value found";
+    if (str.isEmpty()) return true;
+    const char *cursor = str.c_str();
+    while (*cursor) {
+        if (*cursor != '-' && (*cursor < '0' || *cursor > '9')) break;
+        char *end;
+        errno = 0;
+        const long value = strtol(cursor, &end, 10);
+        if (end == cursor || errno == ERANGE || value < INT_MIN || value > INT_MAX || (*end != ',' && *end != '\0')) {
+            lastValidationError = "Invalid integer list";
             return false;
         }
+        if (*end == '\0') return true;
+        cursor = end + 1;
+        if (*cursor == '\0') break;
     }
-    return true;
+    lastValidationError = "Invalid integer list";
+    return false;
 }

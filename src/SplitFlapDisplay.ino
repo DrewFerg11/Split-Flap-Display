@@ -25,7 +25,7 @@ JsonSettings settings = JsonSettings("config", {
     {"otaPass", JsonSetting("")},
     {"timezone", JsonSetting("UTC0")},
     {"dateFormat", JsonSetting("{dd}-{mm}-{yy}")},
-    {"timeFormat", JsonSetting("{HH}:{mm}")},
+    {"timeFormat", JsonSetting("{HH}:{MM}")},
     // Wifi Settings
     {"ssid", JsonSetting("")},
     {"password", JsonSetting("")},
@@ -300,6 +300,7 @@ void singleInputMode() {
 }
 
 void multiInputMode() {
+    if (webServer.getNumMultiWords() <= 0) return;
     if (millis() - webServer.getLastSwitchMultiTime() > webServer.getMultiWordDelay()) {
         // get user input, extract correct word from index using webserver counter, and display
         String userInput = webServer.getMultiInputString();
@@ -340,7 +341,8 @@ void timeMode() {
     if (millis() - webServer.getLastCheckDateTime() > webServer.getDateCheckInterval()) {
         webServer.setLastCheckDateTime(millis());
 
-        String userFormat = settings.getString("timeFormat").length() > 0 ? settings.getString("timeFormat") : "HH:mm";
+        String userFormat =
+            settings.getString("timeFormat").length() > 0 ? settings.getString("timeFormat") : "{HH}:{MM}";
         String result = renderTime(convertToStrftime(userFormat));
 
         if (result != webServer.getWrittenString()) {
@@ -392,6 +394,7 @@ void dualSingleInputMode() {
 }
 
 void dualMultiInputMode() {
+    if (webServer.getNumMultiWords() <= 0) return;
     if (millis() - webServer.getLastSwitchMultiTime() > webServer.getMultiWordDelay()) {
         String userInput = webServer.getMultiInputString();
         int idx = webServer.getMultiWordCurrentIndex();

@@ -99,37 +99,52 @@ JsonDocument JsonSettings::toJson() {
 }
 
 bool JsonSettings::fromJson(JsonDocument settings) {
-    if (! validateCrossFields(settings)) {
+    lastValidationError = "";
+    lastValidationKey = "";
+    if (! settings.is<JsonObject>()) {
+        lastValidationError = "Settings must be an object";
         return false;
     }
-
-    preferences.begin(name, false);
-
+    // Validate every supplied field before opening a writable storage session.
+    // A later invalid field must not leave an earlier field partially saved.
     for (JsonPair kv : settings.as<JsonObject>()) {
-        const char *key = kv.key().c_str();
-        JsonSetting setting = this->find(key);
-
-        if (! setting.validate(kv.value().as<String>())) {
-            lastValidationError = setting.getLastValidationError();
-            lastValidationKey = String(key);
+        auto it = map.find(String(kv.key().c_str()));
+        lastValidationKey = kv.key().c_str();
+        if (it == map.end()) {
+            lastValidationError = "Unknown setting";
             return false;
         }
-
-        switch (setting.type) {
-            case JsonSettingType::JST_INT_VECTOR:
-            case JsonSettingType::JST_STR: preferences.putString(key, kv.value().as<String>()); break;
-            case JsonSettingType::JST_INT: preferences.putInt(key, kv.value().as<int>()); break;
-            case JsonSettingType::JST_FLOAT: preferences.putFloat(key, kv.value().as<float>()); break;
+        JsonSetting field = it->second;
+        const bool validType = ((field.type == JST_STR || field.type == JST_INT_VECTOR) && kv.value().is<String>()) ||
+            (field.type == JST_INT && kv.value().is<int>()) || (field.type == JST_FLOAT && kv.value().is<float>());
+        if (! validType || ! field.validate(kv.value().as<String>())) {
+            lastValidationError = validType ? field.getLastValidationError() : "Invalid setting type";
+            return false;
         }
     }
+    // Cross-field rules apply to the resulting configuration, including values
+    // omitted by a partial update.
+    JsonDocument candidate = toJson();
+    for (JsonPair kv : settings.as<JsonObject>()) candidate[kv.key().c_str()] = kv.value();
+    if (! validateCrossFields(candidate)) return false;
 
+    preferences.begin(name, false);
+    for (JsonPair kv : settings.as<JsonObject>()) {
+        const char *key = kv.key().c_str();
+        switch (map.at(String(key)).type) {
+            case JST_INT_VECTOR:
+            case JST_STR: preferences.putString(key, kv.value().as<String>()); break;
+            case JST_INT: preferences.putInt(key, kv.value().as<int>()); break;
+            case JST_FLOAT: preferences.putFloat(key, kv.value().as<float>()); break;
+        }
+    }
     preferences.end();
-
+    lastValidationKey = "";
     return true;
 }
 
 bool JsonSettings::reset() {
-    preferences.begin("config", false);
+    preferences.begin(name, false);
     preferences.clear();
     preferences.end();
 
@@ -145,6 +160,17 @@ JsonSetting JsonSettings::find(const char *key) {
 }
 
 bool JsonSettings::validateCrossFields(const JsonDocument &doc) {
+    const char *invalidMotionKey = nullptr;
+    if (! doc["stepsPerRot"].isNull() && doc["stepsPerRot"].as<int>() <= 0) invalidMotionKey = "stepsPerRot";
+    if (! doc["charset"].isNull() && doc["charset"].as<int>() != 37 && doc["charset"].as<int>() != 48)
+        invalidMotionKey = "charset";
+    if (! doc["maxVel"].isNull() && doc["maxVel"].as<float>() < 2.0f) invalidMotionKey = "maxVel";
+    if (invalidMotionKey) {
+        lastValidationError = "Invalid motion configuration";
+        lastValidationKey = invalidMotionKey;
+        return false;
+    }
+
     auto csvLen = [](const String &s) -> int {
         if (s.isEmpty()) return 0;
         int count = 1;
@@ -160,6 +186,7 @@ bool JsonSettings::validateCrossFields(const JsonDocument &doc) {
         std::string token;
         while (std::getline(stream, token, ',')) {
             try {
+                if (count >= 16) return false;
                 out[count++] = std::stoi(token);
             } catch (...) {
                 return false;
