@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <gtest/gtest.h>
 #include <limits>
+#include <string>
 #include <tuple>
 
 namespace {
@@ -25,6 +26,19 @@ class MqttSessionTest : public testing::Test {
     void tick(unsigned int milliseconds) {
         fakeMillis += milliseconds;
         mqtt.loop();
+    }
+    // Loops in 100 ms steps until the session is usable; returns false on timeout.
+    bool recoversWithin(unsigned int milliseconds) {
+        for (unsigned int elapsed = 0; elapsed <= milliseconds; elapsed += 100) {
+            if (mqtt.isConnected() && transport.subscriptions.count(commandTopic)) return true;
+            tick(100);
+        }
+        return false;
+    }
+    bool commandReachesDisplay(const std::string &message) {
+        if (! transport.deliver(commandTopic, message)) return false;
+        mqtt.loop();
+        return display.lastMessage == message;
     }
 };
 
@@ -211,6 +225,119 @@ TEST_F(MqttSessionTest, HealthyConnectionKeepsReceivingMinuteUpdatesForSimulated
     }
     EXPECT_EQ(display.writeCalls, 24 * 60);
     EXPECT_EQ(transport.connectAttempts, 1);
+}
+
+TEST_F(MqttSessionTest, RefusedConnectIsRetriedEveryFiveSecondsThenRecovers) {
+    transport.connackCode = 5; // Not authorized, e.g. a broker-side credential change.
+    mqtt.setup();
+    EXPECT_FALSE(mqtt.isConnected());
+    for (int step = 0; step < 600; ++step) tick(100);
+    EXPECT_FALSE(mqtt.isConnected());
+    EXPECT_EQ(transport.connectAttempts, 13);
+    transport.connackCode = 0;
+    ASSERT_TRUE(recoversWithin(5000));
+    EXPECT_TRUE(commandReachesDisplay("MON12:34"));
+    EXPECT_EQ(transport.retained.at(availabilityTopic), "online");
+}
+
+TEST_F(MqttSessionTest, UnresponsiveBrokerTimesOutAndRetriesUntilItAnswers) {
+    transport.silentBroker = true;
+    mqtt.setup();
+    EXPECT_FALSE(mqtt.isConnected());
+    ASSERT_EQ(transport.connectAttempts, 1);
+    for (int step = 0; step < 1200; ++step) tick(100);
+    EXPECT_GT(transport.connectAttempts, 2);
+    transport.silentBroker = false;
+    ASSERT_TRUE(recoversWithin(25000));
+    EXPECT_TRUE(commandReachesDisplay("MON12:34"));
+}
+
+TEST_F(MqttSessionTest, HalfOpenSessionIsReplacedWithinTwoKeepalivesWhilePublishingState) {
+    mqtt.setup();
+    ASSERT_TRUE(commandReachesDisplay("MON12:00"));
+    transport.blackhole = true;
+    // Outbound state publishes must not mask the missing inbound traffic.
+    unsigned int elapsed = 0;
+    while (transport.connections.size() == 1 && elapsed <= 40000) {
+        if (elapsed % 2000 == 0) mqtt.publishState("MON12:00");
+        tick(100);
+        elapsed += 100;
+    }
+    ASSERT_EQ(transport.connections.size(), 2u);
+    EXPECT_LE(elapsed, 31000u);
+    ASSERT_TRUE(recoversWithin(0));
+    EXPECT_TRUE(commandReachesDisplay("MON12:01"));
+    EXPECT_EQ(transport.retained.at(availabilityTopic), "online");
+}
+
+TEST_F(MqttSessionTest, WifiLossWithStaleSocketRecoversWhenWifiReturns) {
+    mqtt.setup();
+    ASSERT_TRUE(commandReachesDisplay("MON12:00"));
+    WiFi.online = false;
+    transport.blackhole = true; // The old socket still looks open.
+    for (int step = 0; step < 600; ++step) tick(100);
+    EXPECT_FALSE(mqtt.isConnected());
+    EXPECT_EQ(transport.connectAttempts, 1);
+    EXPECT_EQ(transport.retained.at(availabilityTopic), "offline");
+    WiFi.online = true;
+    ASSERT_TRUE(recoversWithin(5000));
+    EXPECT_TRUE(commandReachesDisplay("MON12:05"));
+}
+
+TEST_F(MqttSessionTest, PublishingStateWhileDisconnectedIsHarmless) {
+    mqtt.setup();
+    transport.networkAvailable = false;
+    transport.stop();
+    for (int step = 0; step < 20; ++step) {
+        mqtt.publishState("X");
+        tick(500);
+    }
+    EXPECT_FALSE(mqtt.isConnected());
+    transport.networkAvailable = true;
+    ASSERT_TRUE(recoversWithin(5000));
+    EXPECT_TRUE(commandReachesDisplay("OK"));
+}
+
+// A week of minute updates with ~200 seeded outages of every modeled kind.
+// Commands sent mid-outage are lost (QoS 0), but the clock must never stay frozen.
+TEST_F(MqttSessionTest, WeekOfMinuteUpdatesSelfHealsAfterRepeatedMixedOutages) {
+    mqtt.setup();
+    ASSERT_TRUE(mqtt.isConnected());
+    uint32_t seed = 12345;
+    auto nextRandom = [&seed] {
+        seed = seed * 1103515245u + 12345u;
+        return (seed >> 16) & 0x7fff;
+    };
+    int outages = 0, outageMinutesLeft = 0, kind = 0, lastShownMinute = 0;
+    for (int minute = 1; minute <= 7 * 24 * 60; ++minute) {
+        if (outageMinutesLeft == 0 && nextRandom() % 50 == 0) {
+            ++outages;
+            kind = nextRandom() % 4;
+            outageMinutesLeft = 1 + nextRandom() % 3;
+            switch (kind) {
+                case 0: transport.stop(); break;           // Broker restart or TCP reset.
+                case 1: transport.blackhole = true; break; // Idle TCP dropped by NAT.
+                case 2:                                    // Wi-Fi blip leaving a stale socket.
+                    WiFi.online = false;
+                    transport.blackhole = true;
+                    break;
+                case 3: // Broker down for a few minutes.
+                    transport.networkAvailable = false;
+                    transport.stop();
+                    break;
+            }
+        }
+        if (outageMinutesLeft > 0 && --outageMinutesLeft == 0) {
+            WiFi.online = true;
+            transport.networkAvailable = true;
+        }
+        if (commandReachesDisplay("T" + std::to_string(minute))) lastShownMinute = minute;
+        for (int second = 0; second < 60; ++second) tick(1000);
+        ASSERT_LE(minute - lastShownMinute, 6) << "Frozen at minute " << minute << " after outage kind " << kind;
+    }
+    EXPECT_GE(outages, 150);
+    EXPECT_TRUE(mqtt.isConnected());
+    EXPECT_EQ(transport.retained.at(availabilityTopic), "online");
 }
 
 INSTANTIATE_TEST_SUITE_P(

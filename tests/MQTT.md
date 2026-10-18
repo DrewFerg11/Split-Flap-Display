@@ -38,7 +38,7 @@ checks were performed during implementation; they do not modify source in CI.
 
 ## Current regression coverage
 
-The suite contains 11 MQTT cases, plus the existing sketch entry-point test:
+The suite contains 17 MQTT cases, plus the existing sketch entry-point test:
 
 - Closed sockets and half-open keepalive timeouts, with and without credentials.
 - Fresh clock commands delivered after automatic recovery, including a second
@@ -53,6 +53,15 @@ The suite contains 11 MQTT cases, plus the existing sketch entry-point test:
 - Settings changes ending the old session and using the new topics/credentials.
 - A simulated day of 1,440 minute updates on a healthy session without needless
   reconnections. This advances logical time; it is not a real-time soak test.
+- A broker refusing CONNECT (e.g. not authorized) or accepting TCP but never
+  answering: retries stay paced and recovery follows once the broker answers.
+- A half-open session replaced within two keepalive periods even while the
+  display keeps publishing state, so outbound traffic cannot mask the loss.
+- Wi-Fi loss that leaves a stale socket: no dialing until Wi-Fi returns.
+- Publishing state while disconnected is harmless.
+- A simulated week of minute updates with about 200 seeded outages of every
+  modeled kind; the clock never stays frozen, though commands sent during an
+  outage are lost because they are QoS 0.
 
 These tests demonstrate a reproducible firmware recovery defect. They do not
 prove what originally disconnected the reporter's hardware, nor emulate radio,

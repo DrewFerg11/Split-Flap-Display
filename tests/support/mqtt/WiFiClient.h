@@ -25,6 +25,8 @@ class WiFiClient : public Client {
     unsigned long connectDelayMs = 0;
     int connectAttempts = 0;
     int pingRequests = 0;
+    uint8_t connackCode = 0;   // Non-zero refuses CONNECT, e.g. 5 = not authorized.
+    bool silentBroker = false; // TCP accepts, but the broker never answers.
     std::vector<Connection> connections;
     std::map<std::string, std::string> retained;
     std::set<std::string> subscriptions;
@@ -52,7 +54,11 @@ class WiFiClient : public Client {
         output.clear();
         subscriptions.clear();
     }
-    int available() override { return static_cast<int>(input.size()); }
+    int available() override {
+        // The library polls this while awaiting CONNACK; let the socket timeout elapse.
+        if (silentBroker && input.empty()) fakeMillis += 50;
+        return static_cast<int>(input.size());
+    }
     int read() override {
         if (input.empty()) return -1;
         const int value = input.front();
@@ -142,7 +148,7 @@ class WiFiClient : public Client {
                 if (flags & 0x80) session.user = takeString(body, pos);
                 if (flags & 0x40) session.password = takeString(body, pos);
                 connections.push_back(session);
-                input.insert(input.end(), {0x20, 0x02, 0x00, 0x00}); // CONNACK
+                if (! silentBroker) input.insert(input.end(), {0x20, 0x02, 0x00, connackCode}); // CONNACK
                 break;
             }
             case 0x80:   // SUBSCRIBE: new sessions start without subscriptions.
