@@ -198,3 +198,22 @@ test("network failure posting text is visible", async () => {
     assert.equal(p.dialog.message, "offline");
     assert.equal(p.dialog.type, "error");
 });
+
+// The API rejects numeric strings. Keep form bindings consistent with that
+// contract so editing an input does not turn a valid number into a string.
+test("numeric settings inputs use Alpine numeric bindings", async () => {
+    const html = await readFile(
+        new URL("../../src/web/settings.html", import.meta.url),
+        "utf8",
+    );
+    const inputs = [...html.matchAll(/<input\b[\s\S]*?>/g)]
+        .map((match) => match[0])
+        .filter(
+            (input) =>
+                /type="number"/.test(input) &&
+                /x-model(?:\.number)?="settings\./.test(input),
+        );
+    assert.ok(inputs.length > 0, "numeric settings inputs were found");
+    for (const input of inputs)
+        assert.match(input, /x-model\.number="settings\./);
+});
