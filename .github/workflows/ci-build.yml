@@ -18,6 +18,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  unit-tests:
+    name: C++ unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure unit tests
+        run: cmake -S tests -B build/unit-tests -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build unit tests
+        run: cmake --build build/unit-tests --config Debug --parallel
+
+      - name: Run unit tests
+        run: ctest --test-dir build/unit-tests -C Debug --output-on-failure --no-tests=error
+
   boards-sync:
     name: Boards sync check
     runs-on: ubuntu-latest

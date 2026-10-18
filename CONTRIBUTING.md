@@ -27,8 +27,80 @@ is itself based on the original design by
 4. Push to your fork and open a PR against `main` here.
 5. Be patient — this is a side project; reviews may take a few days.
 
-For build setup, see the [Setup Instructions](README.md#setup-instructions) in
-the README.
+For firmware build setup, see the [manual install guide](docs/firmware/install-manual.md).
+
+## C++ unit tests
+
+Host tests use GoogleTest, CMake, and CTest. They run on your computer without
+an ESP32, MQTT broker, or network services. The first CMake configuration needs
+internet access to download the pinned GoogleTest dependency. PlatformIO still
+builds the firmware; the host test build is separate.
+
+### Prerequisites and commands
+
+Install CMake 3.24 or newer and a C++17 compiler with its build tools:
+
+- Ubuntu/Debian: `sudo apt install build-essential cmake`.
+- macOS: install the Xcode Command Line Tools (`xcode-select --install`) and
+  CMake (for example, `brew install cmake`).
+- Windows: install Visual Studio Build Tools with the **Desktop development
+  with C++** workload and CMake. Run from a Developer PowerShell. CMake can use
+  the Visual Studio generator; MinGW with a suitable CMake generator also works.
+
+From the repository root, on all three platforms:
+
+```sh
+cmake -S tests -B build/unit-tests -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/unit-tests --config Debug --parallel
+ctest --test-dir build/unit-tests -C Debug --output-on-failure --no-tests=error
+```
+
+`--config Debug` / `-C Debug` also support Visual Studio's multi-configuration
+generator. `CMAKE_BUILD_TYPE` applies to single-configuration generators.
+
+List discovered tests or run just the entry-point test:
+
+```sh
+ctest --test-dir build/unit-tests -C Debug -N
+ctest --test-dir build/unit-tests -C Debug -R AppEntryPointTest --output-on-failure --no-tests=error
+```
+
+### Initial coverage and adding tests
+
+There is one initial test, `IdleLoopStillServicesMqttAndWebMaintenance`, in
+`tests/unit/AppEntryPointTest.cpp`. It invokes the actual firmware `loop()`
+from `src/AppLoop.cpp`, with the display in idle mode, and checks that MQTT,
+OTA, and reboot maintenance are still serviced once. `loop()` was relocated
+from the sketch without changing its body so it can be compiled separately.
+
+`tests/support/` contains only the dependency surfaces needed by that source
+file. CMake puts this directory first in the test target's include path, so
+its angle-bracket includes resolve to the substitutes. PlatformIO uses the
+real headers and never includes `tests/support/`. This test does not cover
+`setup()`, mode-handler internals, MQTT reconnection, or physical hardware.
+
+To grow coverage:
+
+1. Add a descriptive `*Test.cpp` under `tests/unit/` with GoogleTest `TEST` or
+   `TEST_F` cases named for observable behavior.
+2. Register the source and relevant production files in `tests/CMakeLists.txt`.
+   For an independent component, add a separate executable, link
+   `GTest::gtest_main`, and register it with `gtest_discover_tests`. Keep the
+   entry-point substitutes private to their target; other tests should use
+   real production headers whenever possible.
+3. Keep tests deterministic: use controlled inputs or fakes instead of real
+   hardware, network connections, elapsed-time sleeps, or copied production
+   implementations. Add only the test seams the behavior under test needs.
+   Google Mock can be enabled later when a specific test benefits from it.
+4. Run the tests and format changed C++ files with the repository's
+   `.clang-format`. `npm run format:cpp` covers `src/` and `tests/` in a POSIX
+   shell with clang-format available. In PowerShell, run
+   `clang-format -i path/to/ChangedTest.cpp` for each changed C++ file.
+
+GitHub Actions runs CTest on pull requests and pushes to `main`; failed
+assertions or zero discovered tests fail the unit-test job. The existing board
+builds and C++ formatting checks remain in place. Making **C++ unit tests** a
+required merge check is configured separately in GitHub's branch rules.
 
 ## A note on licensing
 
