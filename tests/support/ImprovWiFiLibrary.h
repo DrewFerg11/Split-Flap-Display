@@ -19,6 +19,12 @@ class ImprovWiFi {
     void setDeviceInfo(ImprovTypes::ChipFamily, const char *, const char *, const char *) {}
     void onImprovError(void (*)(ImprovTypes::Error)) {}
     void onImprovConnected(void (*)(const char *, const char *)) {}
-    void setCustomConnectWiFi(bool (*)(const char *, const char *)) {}
-    void handleSerial() {}
+    bool (*connectCallback)(const char *, const char *) = nullptr;
+    int handled = 0;
+    void setCustomConnectWiFi(bool (*fn)(const char *, const char *)) { connectCallback = fn; }
+    void handleSerial() {
+        ++handled;
+        Serial.read();
+        if (connectCallback && connectCallback("new-ssid", "new-password")) runtimeEvents.push_back("response");
+    }
 };
