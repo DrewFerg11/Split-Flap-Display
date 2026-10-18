@@ -354,7 +354,7 @@
                         class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                         type="number"
                         id="mqtt_port"
-                        x-model="settings.mqtt_port"
+                        x-model.number="settings.mqtt_port"
                         placeholder="1883"
                     />
                 </div>
@@ -613,7 +613,7 @@
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
                             id="magnetPosition"
-                            x-model="settings.magnetPosition"
+                            x-model.number="settings.magnetPosition"
                             placeholder="730"
                         />
                         <div
@@ -631,7 +631,7 @@
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
                             id="sdaPin"
-                            x-model="settings.sdaPin"
+                            x-model.number="settings.sdaPin"
                             placeholder="Enter SDA pin"
                         />
                         <div
@@ -650,7 +650,7 @@
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
                             id="sclPin"
-                            x-model="settings.sclPin"
+                            x-model.number="settings.sclPin"
                             placeholder="Enter SCL pin"
                         />
                         <div
@@ -671,7 +671,7 @@
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
                             id="sda2Pin"
-                            x-model="settings.sda2Pin"
+                            x-model.number="settings.sda2Pin"
                             placeholder="Enter SDA2 pin"
                         />
                         <div
@@ -692,7 +692,7 @@
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
                             id="scl2Pin"
-                            x-model="settings.scl2Pin"
+                            x-model.number="settings.scl2Pin"
                             placeholder="Enter SCL2 pin"
                         />
                         <div
@@ -713,7 +713,7 @@
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
                             id="displayOffset"
-                            x-model="settings.displayOffset"
+                            x-model.number="settings.displayOffset"
                             placeholder="Enter display offset"
                         />
                         <div
@@ -734,7 +734,7 @@
                             class="w-full p-3 mt-2 text-lg border border-gray-600 rounded-md text-center bg-neutral-700 text-gray-100"
                             type="number"
                             id="stepsPerRot"
-                            x-model="settings.stepsPerRot"
+                            x-model.number="settings.stepsPerRot"
                             placeholder="Enter steps per rotation"
                         />
                         <div
@@ -754,7 +754,7 @@
                             type="number"
                             id="maxVel"
                             step="0.1"
-                            x-model="settings.maxVel"
+                            x-model.number="settings.maxVel"
                             placeholder="Enter max velocity"
                         />
                         <div
