@@ -1,47 +1,30 @@
-#include "AppLoop.h"
-#include "BackgroundTick.h"
+#include "SketchDeclarations.h"
 
+#include <SplitFlapDisplay.h>
 #include <SplitFlapMqtt.h>
 #include <SplitFlapWebServer.h>
 #include <gtest/gtest.h>
 
-SplitFlapMqtt splitflapMqtt;
-SplitFlapWebServer webServer;
-
-// These handlers belong to the sketch. Their internals are outside this test.
-void backgroundTick() {}
-void checkConnection() {}
-void reconnectIfNeeded() {}
-void yield() {}
-
-void singleInputMode() {
-    ADD_FAILURE() << "Idle mode must not dispatch a display handler";
-}
-void multiInputMode() {
-    ADD_FAILURE() << "Idle mode must not dispatch a display handler";
-}
-void dateMode() {
-    ADD_FAILURE() << "Idle mode must not dispatch a display handler";
-}
-void timeMode() {
-    ADD_FAILURE() << "Idle mode must not dispatch a display handler";
-}
-void randomTest() {
-    ADD_FAILURE() << "Idle mode must not dispatch a display handler";
-}
-void accuracyTestMode() {
-    ADD_FAILURE() << "Idle mode must not dispatch a display handler";
-}
+// These globals and loop() are defined by the unmodified production sketch.
+extern SplitFlapMqtt splitflapMqtt;
+extern SplitFlapWebServer webServer;
+extern SplitFlapDisplay display;
 
 TEST(AppEntryPointTest, IdleLoopStillServicesMqttAndWebMaintenance) {
-    splitflapMqtt = SplitFlapMqtt{};
-    webServer = SplitFlapWebServer{};
+    fakeMillis = 0;
+    yieldCalls = 0;
+    splitflapMqtt.loopCalls = 0;
+    webServer.otaCalls = 0;
+    webServer.rebootChecks = 0;
+    display.writeCalls = 0;
     webServer.mode = 4;
 
-    // Invoke the actual firmware entry point, compiled from src/AppLoop.cpp.
+    // Invoke loop() compiled from the complete SplitFlapDisplay.ino sketch.
     loop();
 
     EXPECT_EQ(splitflapMqtt.loopCalls, 1);
     EXPECT_EQ(webServer.otaCalls, 1);
     EXPECT_EQ(webServer.rebootChecks, 1);
+    EXPECT_EQ(display.writeCalls, 0);
+    EXPECT_EQ(yieldCalls, 1);
 }

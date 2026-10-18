@@ -4,7 +4,6 @@
 // Thom Koopman 03/30/2025
 
 // Enjoy :)
-#include "AppLoop.h"
 #include "BackgroundTick.h"
 #include "JsonSettings.h"
 #include "SplitFlapDisplay.h"
@@ -138,6 +137,21 @@ void backgroundTick() {
     }
 }
 
+// Forward declarations for functions defined after loop()
+void singleInputMode();
+void multiInputMode();
+void dateMode();
+void timeMode();
+void randomTest();
+void accuracyTestMode();
+void checkConnection();
+void reconnectIfNeeded();
+#ifdef ENABLE_DUAL_I2C
+void dualSingleInputMode();
+void dualMultiInputMode();
+void dateTimeMode();
+#endif
+
 const char *resetReasonToString(esp_reset_reason_t reason) {
     switch (reason) {
         case ESP_RST_POWERON: return "power-on";
@@ -243,6 +257,37 @@ void setup() {
         delay(250);
         display.writeString("");
     }
+}
+
+void loop() {
+    backgroundTick(); // Improv Wi-Fi (first 5 min after boot only)
+
+    splitflapMqtt.loop();
+
+    // check what mode the display is in, this value is updated by the web server
+    switch (webServer.getMode()) {
+        case 0: singleInputMode(); break;
+        case 1: multiInputMode(); break;
+        case 2: dateMode(); break;
+        case 3: timeMode(); break;
+        case 4: break;
+        case 5: randomTest(); break;
+        case 9: accuracyTestMode(); break;
+#ifdef ENABLE_DUAL_I2C
+        case 7: dualSingleInputMode(); break;
+        case 8: dualMultiInputMode(); break;
+        case 10: dateTimeMode(); break;
+#endif
+        default: break;
+    }
+
+    webServer.handleOta();
+    checkConnection();
+
+    reconnectIfNeeded();
+
+    webServer.checkRebootRequired();
+    yield();
 }
 
 void singleInputMode() {

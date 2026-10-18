@@ -69,15 +69,27 @@ ctest --test-dir build/unit-tests -C Debug -R AppEntryPointTest --output-on-fail
 
 There is one initial test, `IdleLoopStillServicesMqttAndWebMaintenance`, in
 `tests/unit/AppEntryPointTest.cpp`. It invokes the actual firmware `loop()`
-from `src/AppLoop.cpp`, with the display in idle mode, and checks that MQTT,
-OTA, and reboot maintenance are still serviced once. `loop()` was relocated
-from the sketch without changing its body so it can be compiled separately.
+from `src/SplitFlapDisplay.ino`, with the display in idle mode, and checks that
+MQTT, OTA, and reboot maintenance are serviced once, no display write occurs,
+and the loop yields. The sketch stays intact, with no production test hooks.
 
-`tests/support/` contains only the dependency surfaces needed by that source
-file. CMake puts this directory first in the test target's include path, so
-its angle-bracket includes resolve to the substitutes. PlatformIO uses the
-real headers and never includes `tests/support/`. This test does not cover
-`setup()`, mode-handler internals, MQTT reconnection, or physical hardware.
+CMake uses `configure_file(COPYONLY)` to mirror the complete, unmodified `.ino`
+into the ignored test build directory and compiles it as C++. The copy is
+refreshed automatically when the original changes. This changes the location
+used to resolve quoted includes, allowing `tests/support/` to supply hardware
+and application dependency substitutes instead of adjacent production headers.
+`SketchDeclarations.h` supplies forward declarations that Arduino normally
+generates. No source parsing, extraction, or rewriting is used.
+
+The substitutes implement just enough of the dependencies to compile the
+sketch and run the idle-loop scenario. They are not general Arduino emulation
+or replacements for testing the real application classes. Sketch functions
+such as `backgroundTick()` and `checkConnection()` are compiled from the `.ino`
+too; the test provides no serial input, a fixed clock, and no reconnect request.
+PlatformIO uses the real headers and never includes `tests/support/`. This test
+does not establish coverage of `setup()`, other display modes, actual MQTT
+reconnection, or physical hardware. The native sketch target uses the single-bus
+configuration; the three firmware builds still check board-specific compilation.
 
 To grow coverage:
 
@@ -86,7 +98,7 @@ To grow coverage:
 2. Register the source and relevant production files in `tests/CMakeLists.txt`.
    For an independent component, add a separate executable, link
    `GTest::gtest_main`, and register it with `gtest_discover_tests`. Keep the
-   entry-point substitutes private to their target; other tests should use
+   sketch substitutes private to their targets; other tests should use
    real production headers whenever possible.
 3. Keep tests deterministic: use controlled inputs or fakes instead of real
    hardware, network connections, elapsed-time sleeps, or copied production
