@@ -46,3 +46,27 @@ else()
     target_compile_options(app_entry_point_test PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 gtest_discover_tests(app_entry_point_test)
+
+# Exercise the actual MQTT implementation and protocol library. Only the
+# transport and unrelated application/Arduino services are substituted.
+FetchContent_Declare(
+    pubsubclient3
+    URL https://github.com/hmueller01/pubsubclient3/archive/a69cc5c44fffda7e07963863dcffdeb4384f0579.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_MakeAvailable(pubsubclient3)
+configure_file(../src/SplitFlapMqtt.cpp mqtt/SplitFlapMqtt.cpp COPYONLY)
+configure_file(../src/SplitFlapMqtt.h mqtt/SplitFlapMqtt.h COPYONLY)
+add_library(firmware_mqtt STATIC
+    "${CMAKE_CURRENT_BINARY_DIR}/mqtt/SplitFlapMqtt.cpp"
+    "${pubsubclient3_SOURCE_DIR}/src/PubSubClient.cpp"
+)
+target_include_directories(firmware_mqtt PUBLIC
+    "${CMAKE_CURRENT_BINARY_DIR}/mqtt"
+    support/mqtt
+    "${pubsubclient3_SOURCE_DIR}/src"
+    ../src
+)
+add_executable(mqtt_recovery_test unit/MqttRecoveryTest.cpp)
+target_link_libraries(mqtt_recovery_test PRIVATE firmware_mqtt GTest::gtest_main)
+gtest_discover_tests(mqtt_recovery_test)
