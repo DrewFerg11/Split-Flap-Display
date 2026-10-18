@@ -10,6 +10,7 @@ class String {
   public:
     String(const char *value = "") : value(value) {}
     String(std::string value) : value(std::move(value)) {}
+    String(int value) : value(std::to_string(value)) {}
     unsigned int length() const { return static_cast<unsigned int>(value.length()); }
     bool isEmpty() const { return value.empty(); }
     const char *c_str() const { return value.c_str(); }
@@ -25,10 +26,23 @@ class String {
     }
     bool operator!=(const String &other) const { return value != other.value; }
     String operator+(const String &other) const { return value + other.value; }
+    String &operator+=(char ch) {
+        value += ch;
+        return *this;
+    }
+    int indexOf(char ch) const {
+        const auto pos = value.find(ch);
+        return pos == std::string::npos ? -1 : static_cast<int>(pos);
+    }
+    String substring(int start) const { return value.substr(start); }
 
   private:
     std::string value;
 };
+
+inline String operator+(const char *left, const String &right) {
+    return String(left) + right;
+}
 
 inline uint32_t fakeMillis = 0;
 inline int yieldCalls = 0;
@@ -48,6 +62,7 @@ struct SerialFake
     int available() const { return 0; }
     void flush() {}
     void println(const char *) {}
+    void println(const String &) {}
     template <typename... Args> void printf(const char *, Args...) {}
 };
 inline SerialFake Serial;
