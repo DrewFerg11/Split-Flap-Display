@@ -2,10 +2,19 @@
 
 #include "Version.h"
 
+#include <WiFi.h>
+
 SplitFlapMqtt::SplitFlapMqtt(JsonSettings &settings, WiFiClient &wifiClient)
     : settings(settings), wifiClient(wifiClient), mqttClient(wifiClient), display(nullptr) {}
 
 void SplitFlapMqtt::setup() {
+    // Settings can change the broker, credentials or topics. End the old
+    // session first, including its retained availability, before replacing them.
+    if (mqttClient.connected()) {
+        mqttClient.publish(topic_avail.c_str(), "offline", true);
+        mqttClient.disconnect();
+    }
+
     mqttServer = settings.getString("mqtt_server");
     mqttPort = settings.getInt("mqtt_port");
     mqttUser = settings.getString("mqtt_user");
@@ -46,15 +55,19 @@ void SplitFlapMqtt::setup() {
 }
 
 void SplitFlapMqtt::connectToMqtt() {
+    if (mqttServer.isEmpty() || WiFi.status() != WL_CONNECTED) return;
+
     if (! mqttClient.connected()) {
         Serial.println("[MQTT] Attempting to connect...");
         String mdns = settings.getString("mdns");
         String name = settings.getString("name");
 
         if (mqttUser.length() > 0) {
-            mqttClient.connect(mdns.c_str(), mqttUser.c_str(), mqttPass.c_str());
+            mqttClient.connect(
+                mdns.c_str(), mqttUser.c_str(), mqttPass.c_str(), topic_avail.c_str(), 0, true, "offline"
+            );
         } else {
-            mqttClient.connect(mdns.c_str());
+            mqttClient.connect(mdns.c_str(), topic_avail.c_str(), 0, true, "offline");
         }
 
         if (mqttClient.connected()) {
@@ -104,6 +117,8 @@ void SplitFlapMqtt::connectToMqtt() {
         } else {
             Serial.println("[MQTT] Failed to connect");
         }
+        // An attempt may block on a socket timeout. Space retries from its end.
+        lastAttempt = millis();
     }
 }
 
@@ -118,6 +133,10 @@ void SplitFlapMqtt::publishState(const String &message) {
 
 void SplitFlapMqtt::loop() {
     mqttClient.loop();
+    const uint32_t now = millis();
+    if (! mqttClient.connected() && static_cast<uint32_t>(now - lastAttempt) >= reconnectInterval) {
+        connectToMqtt();
+    }
 }
 
 bool SplitFlapMqtt::isConnected() {

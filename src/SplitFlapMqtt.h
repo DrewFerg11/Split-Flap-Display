@@ -5,6 +5,7 @@
 
 #include <PubSubClient.h>
 #include <WiFiClient.h>
+#include <stdint.h>
 
 class SplitFlapMqtt {
   public:
@@ -36,6 +37,6 @@ class SplitFlapMqtt {
     String topic_config_text;
     String topic_config_sensor;
 
-    unsigned long lastAttempt = 0;
-    int retryCount = 0;
+    uint32_t lastAttempt = 0;
+    static constexpr uint32_t reconnectInterval = 5000;
 };
