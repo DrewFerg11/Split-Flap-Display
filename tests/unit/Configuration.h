@@ -1,6 +1,6 @@
 #pragma once
 #include <JsonSettings.h>
-inline JsonSettings configuration() {
+inline JsonSettings configuration(const char *storageNamespace = "test-config") {
     std::map<String, JsonSetting> defaults = {
         {"name", JsonSetting(String("Default"))},
         {"mdns", JsonSetting(String("clock"))},
@@ -29,5 +29,5 @@ inline JsonSettings configuration() {
     defaults.emplace("sda2Pin", JsonSetting(10));
     defaults.emplace("scl2Pin", JsonSetting(11));
 #endif
-    return JsonSettings("test-config", defaults);
+    return JsonSettings(storageNamespace, defaults);
 }

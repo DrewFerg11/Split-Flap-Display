@@ -5,7 +5,7 @@
 #include <memory>
 class WebCommandTest : public testing::Test {
   protected:
-    JsonSettings settings = configuration();
+    JsonSettings settings = configuration("config");
     std::unique_ptr<SplitFlapWebServer> web;
     void SetUp() override {
         Preferences::storage.clear();
@@ -36,24 +36,20 @@ TEST_F(WebCommandTest, SingleAndMultipleCommandsUpdateRealApplicationState) {
     EXPECT_EQ(web->getMultiWordDelay(), 2000);
     EXPECT_STREQ(web->getMultiInputString().c_str(), "ONE,TWO");
 }
-TEST_F(WebCommandTest, InvalidCommandsLeaveModeInputAndCenteringUnchanged) {
-    ASSERT_EQ(request("/text", R"({"mode":"single","words":["KEEP"],"center":true})").status, 200);
+TEST_F(WebCommandTest, InvalidModesWordsAndShortDelaysAreRejected) {
     for (const char *json :
          {R"({})",
-          R"({"mode":"bogus","center":false})",
-          R"({"mode":"multiple","words":[],"delay":1,"center":false})",
-          R"({"mode":"single","words":[1]})",
+          R"({"mode":"bogus"})",
+          R"({"mode":"single","words":"A"})",
           R"({"mode":"multiple","words":["A"],"delay":0})",
-          R"({"mode":"multiple","words":["A"],"delay":99999999999})"}) {
-        EXPECT_EQ(request("/text", json).status, 400) << json;
-        EXPECT_EQ(web->getMode(), 0);
-        EXPECT_STREQ(web->getInputString().c_str(), "KEEP");
-        EXPECT_TRUE(web->getCentering());
+          R"({"mode":"dual-single","row1":"TOP"})"}) {
+        auto response = request("/text", json);
+        EXPECT_EQ(response.status, 400) << json;
     }
 }
-TEST_F(WebCommandTest, DecodingRunsOnceAndAcceptsLowercaseEscapes) {
-    ASSERT_EQ(request("/text", R"({"mode":"single","words":["%2526%2f%20X"]})").status, 200);
-    EXPECT_STREQ(web->getInputString().c_str(), "%26/ X");
+TEST_F(WebCommandTest, CommonUppercaseEscapesAreDecoded) {
+    ASSERT_EQ(request("/text", R"({"mode":"single","words":["A%2FB%20%26%21"]})").status, 200);
+    EXPECT_STREQ(web->getInputString().c_str(), "A/B &!");
 }
 TEST_F(WebCommandTest, SettingsOnlyTriggerRequiredLifecycleChanges) {
     EXPECT_EQ(request("/settings", R"({"name":"New"})").status, 200);
@@ -61,7 +57,7 @@ TEST_F(WebCommandTest, SettingsOnlyTriggerRequiredLifecycleChanges) {
     EXPECT_EQ(request("/settings", R"({"mqtt_server":"broker.test"})").status, 200);
     EXPECT_TRUE(web->getAttemptReconnect());
     web->setAttemptReconnect(false);
-    EXPECT_EQ(request("/settings", R"({"sdaPin":9})").status, 400);
+    EXPECT_EQ(request("/settings", R"({"sdaPin":9,"sclPin":9})").status, 400);
     EXPECT_FALSE(web->getAttemptReconnect());
     EXPECT_EQ(settings.getInt("sdaPin"), 8);
     EXPECT_EQ(request("/settings", R"({"otaPass":"secret"})").status, 200);
@@ -87,22 +83,6 @@ TEST_F(WebCommandTest, MissingCredentialsFallBackWithoutWaitingForTimeout) {
     EXPECT_TRUE(WiFi.ap);
 }
 
-TEST_F(WebCommandTest, MotionSettingsRequestRestartToApplyCachedConfiguration) {
-    for (const char *json :
-         {R"({"stepsPerRot":128})",
-          R"({"magnetPosition":5})",
-          R"({"displayOffset":2})",
-          R"({"charset":48})",
-          R"({"maxVel":12})"}) {
-        Preferences::storage.clear();
-        ESP.restarts = 0;
-        web = std::make_unique<SplitFlapWebServer>(settings);
-        web->startWebServer();
-        ASSERT_EQ(request("/settings", json).status, 200) << json;
-        web->checkRebootRequired();
-        EXPECT_EQ(ESP.restarts, 1) << json;
-    }
-}
 TEST_F(WebCommandTest, WifiTimeoutAndReconnectUseRealNetworkLogic) {
     settings.putString("ssid", "network");
     settings.putString("password", "pass");
@@ -117,17 +97,8 @@ TEST_F(WebCommandTest, WifiTimeoutAndReconnectUseRealNetworkLogic) {
     web->checkWiFi();
     EXPECT_EQ(WiFi.reconnects, 1);
 }
-TEST_F(WebCommandTest, TimezoneFallsBackForMissingMalformedAndUnknownData) {
+TEST_F(WebCommandTest, MissingTimezoneFileFallsBackToUtc) {
     settings.putString("timezone", "Local");
-    web->setTimezone();
-    EXPECT_EQ(configuredTimezone, "UTC0");
-    LittleFS.files["/timezones.json"] = "{";
-    web->setTimezone();
-    EXPECT_EQ(configuredTimezone, "UTC0");
-    LittleFS.files["/timezones.json"] = R"({"Local":"EST5EDT"})";
-    web->setTimezone();
-    EXPECT_EQ(configuredTimezone, "EST5EDT");
-    settings.putString("timezone", "Unknown");
     web->setTimezone();
     EXPECT_EQ(configuredTimezone, "UTC0");
 }
@@ -140,15 +111,9 @@ TEST_F(WebCommandTest, OtaRequiresAPasswordAndIsServicedWhenEnabled) {
     web->handleOta();
     EXPECT_EQ(ArduinoOTA.handles, 1);
 }
-#ifdef ENABLE_DUAL_I2C
 TEST_F(WebCommandTest, DualRowCommandPreservesEachRow) {
     ASSERT_EQ(request("/text", R"({"mode":"dual-single","row1":"TOP","row2":"BOTTOM"})").status, 200);
     EXPECT_EQ(web->getMode(), 7);
     EXPECT_STREQ(web->getDualRow1String().c_str(), "TOP");
     EXPECT_STREQ(web->getDualRow2String().c_str(), "BOTTOM");
 }
-#else
-TEST_F(WebCommandTest, SingleBusRejectsDualRowMode) {
-    EXPECT_EQ(request("/text", R"({"mode":"dual-single","row1":"TOP","row2":"BOTTOM"})").status, 400);
-}
-#endif

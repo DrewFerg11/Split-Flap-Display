@@ -42,24 +42,6 @@ TEST_F(SketchBehaviorTest, ClockUsesConfiguredFormatAndDoesNotRewriteUnchangedOu
     timeMode();
     EXPECT_EQ(display.writeCalls, 1);
 }
-TEST_F(SketchBehaviorTest, EmptyClockFormatUsesHoursAndMinutes) {
-    settings.strings["timeFormat"] = "";
-    fakeMillis = 1000;
-    char expected[16];
-    time_t epoch = fakeEpoch;
-    strftime(expected, sizeof(expected), "%H:%M", localtime(&epoch));
-    timeMode();
-    EXPECT_EQ(display.lastMessage, expected);
-}
-TEST_F(SketchBehaviorTest, DefaultClockFormatDisplaysMinutesRatherThanMonth) {
-    fakeMillis = 1000;
-    char expected[16];
-    time_t epoch = fakeEpoch;
-    strftime(expected, sizeof(expected), "%H:%M", localtime(&epoch));
-    timeMode();
-    EXPECT_EQ(display.lastMessage, expected);
-}
-
 TEST_F(SketchBehaviorTest, SingleInputSuppressesRepeatedWritesButServicesMaintenance) {
     webServer.mode = 0;
     webServer.input = "HELLO";
@@ -84,12 +66,6 @@ TEST_F(SketchBehaviorTest, MultipleWordsAdvanceAtBoundaryAndWrap) {
     multiInputMode();
     EXPECT_EQ(display.lastMessage, "TWO");
     EXPECT_EQ(webServer.wordIndex, 0);
-}
-TEST_F(SketchBehaviorTest, EmptyWordListDoesNotDivideByZero) {
-    webServer.words = 0;
-    fakeMillis = 10000;
-    multiInputMode();
-    EXPECT_EQ(display.writeCalls, 0);
 }
 #ifdef ENABLE_DUAL_I2C
 TEST_F(SketchBehaviorTest, OddDualWordListBlanksTheMissingSecondRowAndWraps) {

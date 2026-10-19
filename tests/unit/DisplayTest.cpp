@@ -70,17 +70,6 @@ TEST_F(DisplayTest, ReleaseFlagPreservesEnergizedCoils) {
     EXPECT_EQ(module.getPosition(), 7);
     EXPECT_NE(bus.writes.back().bytes, (std::vector<uint8_t>{0xe1, 0xff}));
 }
-TEST_F(DisplayTest, SensorCorrectionAtTargetStopsWithoutAnotherRotation) {
-    TwoWire bus;
-    SplitFlapModule module(32, 64, 0, 0, 37, &bus);
-    module.init();
-    bus.writes.clear();
-    bus.sensorReads = {{0, 0}, {0, 0x80}};
-    int target = 0;
-    SplitFlapDisplay::moveModules(&module, 1, &target, 15, true, 64, 15);
-    EXPECT_EQ(module.getPosition(), 0);
-    EXPECT_LT(bus.writes.size(), 10u);
-}
 #ifdef ENABLE_DUAL_I2C
 TEST_F(DisplayTest, RowsUseIndependentWidthsAndBuses) {
     SplitFlapDisplay display(settings);

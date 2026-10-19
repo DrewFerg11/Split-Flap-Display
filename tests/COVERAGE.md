@@ -3,6 +3,11 @@
 Related issues share the `[Test coverage]` prefix. Implementation branches use
 `test-coverage/`; this initial backfill is on `test-coverage/backfill`.
 
+This backfill changes tests, test support, CI, and documentation only. Production
+files under `src/` match the main baseline. Known defects are tracked in
+[#82](https://github.com/DrewFerg11/Split-Flap-Display/issues/82), which remains
+open independently of the coverage stories.
+
 | Issue | Area | Real code exercised | Controlled boundary |
 | --- | --- | --- | --- |
 | [#73](https://github.com/DrewFerg11/Split-Flap-Display/issues/73) | Settings | `JsonSetting`, `JsonSettings`, ArduinoJson 7.4.3 | In-memory Preferences |
@@ -51,31 +56,66 @@ ctest --test-dir build/unit-tests-asan --output-on-failure --no-tests=error --ti
 GitHub Actions runs the native, sanitized, JavaScript, and Python suites, along
 with the existing three firmware builds. There is no coverage-percentage gate.
 
-## Regression evidence
+## Coverage and known gaps
 
-Backfilling tests exposed rejected updates saving values, unknown settings
-throwing, incomplete cross-field validation for partial updates, permissive CSV
-parsing, reset using a hardcoded namespace, invalid motion settings, repeated
-motor phases after restart, an extra rotation after sensor correction at the
-target, clock defaults rendering months instead of minutes, empty message-list
-division, and invalid HTTP commands changing state. Focused fixes accompany
-the tests. Cached motion settings now request a restart to apply the new values.
-Percent decoding now handles each escape once and accepts either
-hex case, and timezone JSON parsing passes the file length explicitly.
+The suite checks supported behavior in the existing implementation. Settings
+coverage includes typed persistence, JSON export/update, reset in the application's
+`config` namespace, complete-payload address/offset validation, address bounds,
+and complete pin-conflict rejection. It does not promise that every rejected
+update is transactional or that partial updates are validated against saved fields.
 
-During implementation, deliberate regressions were tested in each issue area:
-skip configuration validation, restore the old motor restart behavior, remove
-sensor-arrival handling, change the default clock token, bypass decoding,
-restart before provisioning responds, alter the UI dual-row payload, and
-change manifest offsets. The relevant runner must fail for each mutation; all
-source is restored before the final passing runs. Mutation is a validation
-exercise, not a CI step that rewrites source on each run.
+Module/display coverage includes real character maps, ordinary phase sequencing,
+logical position wrap, stop/re-energize, in-range calibration, sensor read errors,
+layout, movement completion, callbacks, coil release, and dual-bus routing.
+The phase after resume, out-of-range calibration, and arrival during sensor
+correction have separate known defects and are excluded from this passing suite.
+
+Sketch tests cover explicit clock tokens and configured formats, repeated-output
+suppression, non-empty message cycling, odd dual-row lists, startup, provisioning,
+and recovery. Default/fallback clock formatting and empty-list execution remain
+known gaps. HTTP tests cover existing successful commands, common uppercase
+escapes, existing invalid-mode/shape/delay rejection, method checks, network/OTA
+behavior, missing-timezone-file fallback, and existing reconnect/reboot triggers.
+They do not establish unchanged state for all rejected commands, safe arbitrary
+payloads, or immediate application of cached motion settings.
+
+The web suite exercises model behavior and emitted payloads with the existing
+permissive settings API. It does not require stricter types or numeric form
+bindings. Python tests exercise manifest offsets/chip sets, version selection,
+and binary-size boundaries without publishing or flashing.
+
+When a test exposes a defect, record a minimal reproduction and its evidence in
+[#82](https://github.com/DrewFerg11/Split-Flap-Display/issues/82). Do not change
+production behavior, weaken an expected result to endorse a known defect, or
+leave a crashing/known-failing case in the normal suite. Create a focused bug
+issue/PR from the inventory when a fix is prioritized, and add the regression
+case with that fix. Earlier proposed desired-behavior cases are linked in the
+inventory; their removal here does not mean the defects were resolved.
+
+Deliberate regression checks are a local validation exercise, not a CI step that
+rewrites production code. Restore the source byte-for-byte and rerun the normal
+suite afterward. No hardware verification is implied by host test results.
+
+The revised suite detected all eight deliberate changes below against otherwise
+unchanged production code. All changes were restored before the final passing run.
+
+| Story | Deliberate change | Detecting test |
+| --- | --- | --- |
+| #73 | Bypass complete-payload cross-field validation | `CompleteInvalidConfigurationIsRejectedBeforeWriting` |
+| #74 | Change the first coil pattern | `StepsWrapPositionAndFollowCoilSequence` |
+| #75 | Omit the published display state | `CentersTruncatesAndClearsWithPublishedDisplayState` |
+| #76 | Convert the explicit minutes token as month | `TokenConversionDistinguishesMonthAndMinutes` |
+| #77 | Decode a space escape as an underscore | `CommonUppercaseEscapesAreDecoded` |
+| #78 | Restart inside the provisioning callback before its response | `SuccessfulProvisioningPersistsCredentialsAndRespondsBeforeRestart` |
+| #79 | Send single mode for a dual-row command | `dual row single request preserves rows` |
+| #80 | Shift manifest offsets by one | `test_factory_and_app_offsets_and_names` |
 
 ## Scope limits and future work
 
-- Fake storage checks validation-before-write behavior. It does not establish
+- Fake storage checks persistence and rejection before writing for the complete
+  cross-field cases exercised. It does not establish general validation-before-write,
   thread safety, rollback after flash failure, or atomicity across power loss.
-  The concurrency portion of #54 remains separate.
+  The partial-write and concurrency problems in #54 remain separate.
 - Host strings implement only the Arduino surface needed by these tests. New
   tests should verify boundary semantics before relying on additional APIs.
 - I2C tests verify bytes and logical positions, not physical motor alignment,
