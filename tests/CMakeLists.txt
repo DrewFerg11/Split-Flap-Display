@@ -80,8 +80,9 @@ add_executable(mqtt_recovery_test unit/MqttRecoveryTest.cpp)
 target_link_libraries(mqtt_recovery_test PRIVATE firmware_mqtt GTest::gtest_main)
 gtest_discover_tests(mqtt_recovery_test)
 
+# ArduinoJson v7.4.3, pinned to the commit targeted by its annotated release tag.
 FetchContent_Declare(arduinojson
-    URL https://github.com/bblanchon/ArduinoJson/archive/869d440274019939d8f03f5324108d1694e5118a.zip
+    URL https://github.com/bblanchon/ArduinoJson/archive/77771d3c07668e01d8f52acb03910c1110bb373f.zip
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 FetchContent_MakeAvailable(arduinojson)
 

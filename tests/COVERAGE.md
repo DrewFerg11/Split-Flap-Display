@@ -118,6 +118,10 @@ unchanged production code. All changes were restored before the final passing ru
   The partial-write and concurrency problems in #54 remain separate.
 - Host strings implement only the Arduino surface needed by these tests. New
   tests should verify boundary semantics before relying on additional APIs.
+- Sketch/MQTT doubles in `tests/support/SplitFlapDisplay.h` mirror the character
+  arrays in `src/SplitFlapModule.cpp`; keep these copies in sync manually.
+  The module suite uses the production arrays directly. There is no automated
+  comparison between the mirrors and production arrays.
 - I2C tests verify bytes and logical positions, not physical motor alignment,
   power delivery, electrical timing, sensor noise, or radio reliability.
 - Dual-bus task substitutes execute tasks synchronously and check routing and
