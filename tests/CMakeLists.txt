@@ -5,6 +5,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(SPLITFLAP_SANITIZERS "Run host tests with address and undefined-behavior checks" OFF)
+if(SPLITFLAP_SANITIZERS)
+    if(WIN32 OR NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        message(FATAL_ERROR "Sanitizer tests require GCC or Clang on Linux/macOS")
+    endif()
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address,undefined)
+endif()
+
 include(FetchContent)
 # GoogleTest v1.17.0; pin the commit for reproducible test builds.
 FetchContent_Declare(
@@ -70,3 +79,45 @@ target_include_directories(firmware_mqtt PUBLIC
 add_executable(mqtt_recovery_test unit/MqttRecoveryTest.cpp)
 target_link_libraries(mqtt_recovery_test PRIVATE firmware_mqtt GTest::gtest_main)
 gtest_discover_tests(mqtt_recovery_test)
+
+# ArduinoJson v7.4.3, pinned to the commit targeted by its annotated release tag.
+FetchContent_Declare(arduinojson
+    URL https://github.com/bblanchon/ArduinoJson/archive/77771d3c07668e01d8f52acb03910c1110bb373f.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(arduinojson)
+
+# Each component target gets its real headers; unrelated boundary stand-ins are
+# kept in a separate include directory from the sketch and MQTT doubles.
+foreach(variant IN ITEMS single dual)
+    set(component_dir "${CMAKE_CURRENT_BINARY_DIR}/components-${variant}")
+    foreach(file IN ITEMS JsonSetting.cpp JsonSetting.h JsonSettings.cpp JsonSettings.h
+            SplitFlapModule.cpp SplitFlapModule.h SplitFlapDisplay.cpp SplitFlapDisplay.h
+            SplitFlapWebServer.cpp SplitFlapWebServer.h)
+        configure_file("../src/${file}" "${component_dir}/${file}" COPYONLY)
+    endforeach()
+    add_library(components_${variant} STATIC
+        "${component_dir}/JsonSetting.cpp" "${component_dir}/JsonSettings.cpp"
+        "${component_dir}/SplitFlapModule.cpp" "${component_dir}/SplitFlapDisplay.cpp"
+        "${component_dir}/SplitFlapWebServer.cpp"
+        support/firmware/Background.cpp)
+    target_include_directories(components_${variant} PUBLIC "${component_dir}"
+        support/firmware "${arduinojson_SOURCE_DIR}/src" ../src)
+    target_compile_definitions(components_${variant} PUBLIC
+        ARDUINOJSON_ENABLE_ARDUINO_STRING=1 ARDUINOJSON_ENABLE_ARDUINO_STREAM=0
+        ARDUINOJSON_ENABLE_ARDUINO_PRINT=0 ARDUINOJSON_ENABLE_PROGMEM=0)
+    if(variant STREQUAL "dual")
+        target_compile_definitions(components_${variant} PUBLIC ENABLE_DUAL_I2C=1)
+    endif()
+    add_executable(firmware_behavior_${variant} unit/SettingsTest.cpp unit/ModuleTest.cpp unit/DisplayTest.cpp unit/WebCommandTest.cpp)
+    target_link_libraries(firmware_behavior_${variant} PRIVATE components_${variant} GTest::gtest_main)
+    gtest_discover_tests(firmware_behavior_${variant} TEST_PREFIX "${variant}.")
+    add_executable(sketch_behavior_${variant} unit/SketchBehaviorTest.cpp)
+    target_include_directories(sketch_behavior_${variant} PRIVATE support
+        "${CMAKE_CURRENT_BINARY_DIR}/sketch" ../src)
+    target_compile_definitions(sketch_behavior_${variant} PRIVATE SERIAL_SPEED=115200 SDA_PIN=8 SCL_PIN=9)
+    if(variant STREQUAL "dual")
+        target_compile_definitions(sketch_behavior_${variant} PRIVATE ENABLE_DUAL_I2C=1 SDA2_PIN=10 SCL2_PIN=11)
+    endif()
+    target_link_libraries(sketch_behavior_${variant} PRIVATE GTest::gtest_main)
+    gtest_discover_tests(sketch_behavior_${variant} TEST_PREFIX "${variant}.")
+endforeach()

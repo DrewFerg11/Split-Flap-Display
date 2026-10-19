@@ -44,6 +44,29 @@ jobs:
       - name: Check env names are in sync
         run: python3 build/scripts/check_boards_sync.py
 
+  unit-tests-sanitized:
+    name: C++ memory and undefined-behavior checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S tests -B build/unit-tests-asan -DCMAKE_BUILD_TYPE=Debug -DSPLITFLAP_SANITIZERS=ON
+      - run: cmake --build build/unit-tests-asan --parallel 2
+      - run: ctest --test-dir build/unit-tests-asan --output-on-failure --no-tests=error --timeout 30
+
+  script-tests:
+    name: Web UI and release-tool tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: npm run test:web
+      - run: python -m unittest discover -s tests/python -v
+
   build:
     name: Build (${{ matrix.env }})
     needs: [boards-sync]

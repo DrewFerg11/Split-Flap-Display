@@ -9,9 +9,9 @@ class SplitFlapDisplay;
 class SplitFlapMqtt {
   public:
     SplitFlapMqtt(JsonSettings &, WiFiClient &) {}
-    int loopCalls = 0;
+    int loopCalls = 0, setupCalls = 0;
 
     void loop() { ++loopCalls; }
-    void setup() {}
+    void setup() { ++setupCalls; }
     void setDisplay(SplitFlapDisplay *) {}
 };

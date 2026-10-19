@@ -5,6 +5,8 @@
 node_modules/
 build/web/*
 build/unit-tests/
+build/unit-tests-asan/
+__pycache__/
 .idea
 
 # MkDocs build output

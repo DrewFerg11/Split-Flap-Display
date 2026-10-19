@@ -31,6 +31,11 @@ For firmware build setup, see the [manual install guide](docs/firmware/install-m
 
 ## C++ unit tests
 
+The [coverage map](tests/COVERAGE.md) describes the coordinated backfill issues,
+the real code each suite exercises, regression evidence, and simulation limits.
+It also documents `npm run test:web`, the Python release-tool tests, and the
+optional Linux/macOS sanitizer build.
+
 Host tests use GoogleTest, CMake, and CTest. They run on your computer without
 an ESP32, MQTT broker, or network services. The first CMake configuration needs
 internet access to download the pinned GoogleTest dependency. PlatformIO still

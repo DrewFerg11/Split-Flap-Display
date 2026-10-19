@@ -2,9 +2,11 @@
     "name": "split-flap-display",
     "version": "1.0.0",
     "scripts": {
+        "test:web": "node --experimental-vm-modules --test tests/web/*.test.mjs",
+        "test:python": "python -m unittest discover -s tests/python -v",
         "build": "npm run format && npm run assets && npm run pio",
         "format": "npm run format:cpp && npm run format:web",
-        "format:web": "prettier --write 'src/**/*.{js,json,css,html}' platformio.ini package.json README.md vite.config.mjs tailwind.config.js",
+        "format:web": "prettier --write 'src/**/*.{js,json,css,html}' 'tests/web/*.mjs' platformio.ini package.json README.md vite.config.mjs tailwind.config.js",
         "format:cpp": "command -v clang-format >/dev/null 2>&1 && find src tests -iname '*.h' -o -iname '*.cpp' -o -iname '*.ino' | xargs clang-format -i || echo 'clang-format not found, skipping format:cpp'",
         "assets": "vite build --emptyOutDir",
         "pio": "npm run pio:firmware && sleep 2 && npm run pio:filesystem",
