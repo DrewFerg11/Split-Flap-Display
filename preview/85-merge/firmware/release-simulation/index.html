@@ -714,8 +714,8 @@ It retains the existing release environment approval, owner check, tag policy,
 all three chip builds, and release/Pages publication steps. It adds two parallel
 strict ESP32 simulations between builds and publication. No firmware runtime
 code changes.</p>
-<p>The helper is pinned to emulator commit <code>c86c95f5f75e035bb819e535e272db3f26dab8fe</code>.
-<a href="https://github.com/DrewFerg11/Split-Flap-Emulator/blob/c86c95f5f75e035bb819e535e272db3f26dab8fe/docs/release-gate.md">Full contract and reproduction</a>
+<p>The helper is pinned to emulator commit <code>0daba3931356b776735b8f2770c72657cc9594df</code>.
+<a href="https://github.com/DrewFerg11/Split-Flap-Emulator/blob/0daba3931356b776735b8f2770c72657cc9594df/docs/release-gate.md">Full contract and reproduction</a>
 describes input validation, artifact layout, bounded execution, strict version
 matching, diagnostic retention and dry-run assertions.</p>
 <p>Activation is blocked pending the actual verified published immutable image and
@@ -732,7 +732,7 @@ as <code>FIRMWARE_VERSION</code>, no golden version exception or known-issues ba
 Existing firmware defects tracked in SFD54/84 and emulator14 can still prevent
 the strict positive case. Baseline accommodation in emulator golden CI does not
 establish a firmware fix or passing release acceptance.</p>
-<p>Manually dispatch Release on an approved trusted version tag containing this
+<p>Manually dispatch <strong>Release / Tag</strong> on an approved trusted version tag containing this
 workflow with <code>dry_run=true</code> (manual default). Approval and all builds/tests still
 run, but both Pages and GitHub Release publication are disabled. With
 <code>sim_probe=none</code>, both layouts and publication eligibility must pass. With each
@@ -775,7 +775,7 @@ maintainer merges or performs authorized production publication.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-10-20T22:35:28+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-10-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-10-20T22:52:28+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-10-20</span>
   </span>
 
     
