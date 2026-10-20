@@ -6,8 +6,8 @@ all three chip builds, and release/Pages publication steps. It adds two parallel
 strict ESP32 simulations between builds and publication. No firmware runtime
 code changes.
 
-The helper is pinned to emulator commit `79e1f1aab1941ee8cc405e2b269c3c29d44384d5`.
-[Full contract and reproduction](https://github.com/DrewFerg11/Split-Flap-Emulator/blob/79e1f1aab1941ee8cc405e2b269c3c29d44384d5/docs/release-gate.md)
+The helper is pinned to emulator commit `ce0452e49f3fa9637b33e5355147127749342bd9`.
+[Full contract and reproduction](https://github.com/DrewFerg11/Split-Flap-Emulator/blob/ce0452e49f3fa9637b33e5355147127749342bd9/docs/release-gate.md)
 describes input validation, artifact layout, bounded execution, strict version
 matching, diagnostic retention and dry-run assertions.
 
