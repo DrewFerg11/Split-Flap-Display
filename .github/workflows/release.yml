@@ -7,6 +7,16 @@ on:
   # Manual re-run. Select an existing v* tag as the ref -- the release
   # environment's deployment policy rejects anything else.
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and simulate without publishing GitHub Release or Pages
+        type: boolean
+        default: true
+      sim_probe:
+        description: Assert a deliberate rejection (dry run only)
+        type: choice
+        default: none
+        options: [none, wrong-version, missing, corrupt, timeout]
 
 permissions:
   contents: read
@@ -63,6 +73,16 @@ jobs:
             exit 1
           fi
           echo "Releasing $GITHUB_REF_NAME"
+
+      - name: Restrict probes to manual dry runs
+        env:
+          PROBE: ${{ inputs.sim_probe || 'none' }}
+          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+        run: |
+          if [ "$PROBE" != none ] && [ "$DRY_RUN" != true ]; then
+            echo "::error::Simulation probes require a manual dry run."
+            exit 1
+          fi
 
   build:
     name: Build (${{ matrix.env }})
@@ -174,9 +194,121 @@ jobs:
           path: meta/flash-${{ matrix.env }}.txt
           retention-days: 5
 
+  sim-test:
+    name: Strict release simulation (${{ matrix.layout }})
+    needs: [authorize, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        layout: ['8', '16']
+    steps:
+      - name: Start simulation budget and record runner
+        run: |
+          echo "SIM_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+          lscpu > runner-specs.txt
+      - name: Checkout reviewed gate helper
+        uses: actions/checkout@v4
+        with:
+          repository: DrewFerg11/Split-Flap-Emulator
+          ref: c86c95f5f75e035bb819e535e272db3f26dab8fe
+          path: emulator
+          persist-credentials: false
+      - name: Download this run's ESP32 factory artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bins-esp32_n4
+          path: factory
+      - name: Test the exact release factory image
+        env:
+          # Configure only after publication verification; mutable tags fail closed.
+          FLAPSIM_IMAGE: ${{ vars.FLAPSIM_IMAGE }}
+          RELEASE_VERSION: ${{ github.ref_name }}
+          LAYOUT: ${{ matrix.layout }}
+          PROBE: ${{ inputs.sim_probe || 'none' }}
+        run: |
+          python3 emulator/tools/verify_release_gate.py run \
+            --image "$FLAPSIM_IMAGE" --version "$RELEASE_VERSION" \
+            --artifact-dir factory --out evidence --layout "$LAYOUT" --probe "$PROBE"
+      - name: Retain available simulation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-sim-${{ matrix.layout }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            evidence/
+            runner-specs.txt
+      - name: Record total simulation job duration
+        if: always()
+        run: |
+          ELAPSED=$(( $(date +%s) - SIM_STARTED ))
+          echo "Simulation job (including checkout, pull, artifacts): ${ELAPSED}s" >> "$GITHUB_STEP_SUMMARY"
+
+  publish-eligibility:
+    name: Verify publication dependencies
+    needs: [authorize, build, sim-test]
+    if: always()
+    runs-on: ubuntu-24.04
+    outputs:
+      publish: ${{ steps.check.outputs.publish }}
+    steps:
+      - name: Require every build and both strict simulations
+        id: check
+        env:
+          AUTH_RESULT: ${{ needs.authorize.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          SIM_RESULT: ${{ needs.sim-test.result }}
+          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+        run: |
+          if [ "$AUTH_RESULT" != success ] || [ "$BUILD_RESULT" != success ] || [ "$SIM_RESULT" != success ]; then
+            echo "::error::Publication blocked: authorization=$AUTH_RESULT build=$BUILD_RESULT simulations=$SIM_RESULT"
+            exit 1
+          fi
+          echo "Both layouts passed; publication dependencies are eligible." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$DRY_RUN" = true ]; then
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+            echo 'Dry run: release and Pages publication disabled.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          fi
+
+  assert-rejection:
+    name: Assert dry-run failure blocks publication
+    needs: [authorize, build, sim-test, publish-eligibility]
+    if: >-
+      always() && needs.authorize.result == 'success' && needs.build.result == 'success' &&
+      github.event_name == 'workflow_dispatch' && inputs.dry_run && inputs.sim_probe != 'none'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: DrewFerg11/Split-Flap-Emulator
+          ref: c86c95f5f75e035bb819e535e272db3f26dab8fe
+          path: emulator
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-sim-*
+          path: sim-evidence
+      - name: Require the intended failure in both layouts and failed eligibility
+        env:
+          PROBE: ${{ inputs.sim_probe }}
+          SIM_RESULT: ${{ needs.sim-test.result }}
+          ELIGIBILITY_RESULT: ${{ needs.publish-eligibility.result }}
+        run: |
+          python3 emulator/tools/verify_release_gate.py assert-probe \
+            --directory sim-evidence --probe "$PROBE" \
+            --sim-result "$SIM_RESULT" --eligibility-result "$ELIGIBILITY_RESULT"
+
   release:
     name: Publish release
-    needs: [build]
+    needs: [build, sim-test, publish-eligibility]
+    if: needs.publish-eligibility.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
