@@ -117,6 +117,10 @@ jobs:
         run: pip install -U platformio
 
       - name: Build firmware
+        # Embed the tag being released. git describe can pick a prerelease tag
+        # when vX.Y.Z and vX.Y.Z-rc.N point at the same commit.
+        env:
+          FIRMWARE_VERSION_OVERRIDE: ${{ github.ref_name }}
         run: pio run -e ${{ matrix.env }} | tee build.log
 
       - name: Extract flash usage

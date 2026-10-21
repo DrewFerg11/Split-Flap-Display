@@ -129,6 +129,64 @@ class FirmwareMetadataTest(unittest.TestCase):
         definitions = dict(env.definitions["CPPDEFINES"])
         self.assertIn("v1.4.1-rc.1", definitions["FIRMWARE_VERSION"])
 
+    def run_git(self, describe, points_at, environ=None):
+        def check_output(command, **_):
+            if command[1] == "describe":
+                return describe.encode() + b"\n"
+            if command[1:3] == ["tag", "--points-at"]:
+                return points_at.encode() + b"\n"
+            raise AssertionError(command)
+
+        environ = {"GITHUB_ACTIONS": "false", **(environ or {})}
+        with patch("subprocess.check_output", side_effect=check_output), patch.dict(
+            os.environ, environ
+        ):
+            if "FIRMWARE_VERSION_OVERRIDE" not in environ:
+                os.environ.pop("FIRMWARE_VERSION_OVERRIDE", None)
+            return build_script("inject_version", BuildEnvironment("."))[
+                "get_firmware_version"
+            ]()
+
+    def test_stable_tag_wins_over_rc_on_the_same_commit(self):
+        # v1.4.0 and v1.4.0-rc.1 both point at c0ff3dd; git describe picked the rc.
+        self.assertEqual(self.run_git("v1.4.0-rc.1", "v1.4.0-rc.1\nv1.4.0"), "v1.4.0")
+        self.assertEqual(
+            self.run_git("v1.4.0-rc.1-dirty", "v1.4.0\nv1.4.0-rc.1"), "v1.4.0-dirty"
+        )
+
+    def test_highest_prerelease_wins_when_no_stable_tag(self):
+        self.assertEqual(
+            self.run_git("v1.5.0-rc.1", "v1.5.0-rc.1\nv1.5.0-rc.2"), "v1.5.0-rc.2"
+        )
+
+    def test_rc_outranks_beta_regardless_of_git_order(self):
+        for listing in ["v1.5.0-beta.2\nv1.5.0-rc.2", "v1.5.0-rc.2\nv1.5.0-beta.2"]:
+            self.assertEqual(self.run_git("v1.5.0-beta.2", listing), "v1.5.0-rc.2")
+
+    def test_untagged_commits_keep_git_describe(self):
+        self.assertEqual(self.run_git("v1.4.0-3-gabc1234", ""), "v1.4.0-3-gabc1234")
+        self.assertEqual(self.run_git("abc1234", "nightly"), "abc1234")
+
+    def test_release_workflow_override_wins(self):
+        self.assertEqual(
+            self.run_git(
+                "v1.4.0-rc.1",
+                "v1.4.0-rc.1\nv1.4.0",
+                {"FIRMWARE_VERSION_OVERRIDE": "v1.4.0"},
+            ),
+            "v1.4.0",
+        )
+        self.assertEqual(
+            self.run_git(
+                "v1.4.0", "v1.4.0", {"FIRMWARE_VERSION_OVERRIDE": " v1.4.1-rc.2 "}
+            ),
+            "v1.4.1-rc.2",
+        )
+
+    def test_release_workflow_passes_the_tag_to_the_firmware_build(self):
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text()
+        self.assertIn("FIRMWARE_VERSION_OVERRIDE: ${{ github.ref_name }}", workflow)
+
     def test_version_failure_and_local_build_fall_back(self):
         with patch(
             "subprocess.check_output", side_effect=OSError("no git")
