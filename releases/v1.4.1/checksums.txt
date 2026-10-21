@@ -1,0 +1,6 @@
+6384da5f51fc3f0621da2409257f5ce96dbbed8000441810375cb60f632971bd  splitflap-esp32_n4-v1.4.1-app.bin
+5a71579b127ee87f0716cb1df938c9f98d3519a9283f72c003dfb857db32e6f4  splitflap-esp32_n4-v1.4.1-factory.bin
+0dc6b4f62de9970f87a1308f421c8ddc0d0a3ad8ea10f7343920d7cf6852f8da  splitflap-esp32c3_n4-v1.4.1-app.bin
+f5b7a7bb27bfd6ace10c846d4422f2d4fd9f738630413fdc9c8ede16c3a8388b  splitflap-esp32c3_n4-v1.4.1-factory.bin
+1fb2be5060eefbbb68fff051f2d1016cdd30980ee86241bbc1345d0790358b4f  splitflap-esp32s3_n4r2-v1.4.1-app.bin
+a36cbd7f06f6a6978815ede519cb6492227e1079892c154154507ddd24555986  splitflap-esp32s3_n4r2-v1.4.1-factory.bin
