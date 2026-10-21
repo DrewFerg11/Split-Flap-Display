@@ -1,0 +1,83 @@
+name: CI / Native emulator
+
+# Builds this PR's own firmware source natively against Split-Flap-Emulator's
+# host shims and runs its scenarios strictly (no known-issues baseline).
+# Non-gating while the released firmware still fails on #54 (and #84); make it
+# required once it is green and stable. Details:
+# https://github.com/DrewFerg11/Split-Flap-Emulator/blob/main/docs/firmware-ci.md
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-emulator-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # A merged Split-Flap-Emulator commit; bump deliberately.
+  EMULATOR_REF: 97040bad1ebb440fe7607041e5e3164ba8bacd05
+
+jobs:
+  native:
+    name: Native emulator (non-gating)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: firmware
+          fetch-depth: 0 # tags, for the firmware's own version rule
+      - uses: actions/checkout@v4
+        with:
+          repository: DrewFerg11/Split-Flap-Emulator
+          ref: ${{ env.EMULATOR_REF }}
+          path: emulator
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential cmake ninja-build \
+            pkg-config libjson-c-dev mosquitto
+          python -m pip install -e emulator
+      - name: Build this pull request's source natively
+        run: python emulator/native/build.py --firmware-src firmware --out native-build --test
+      - name: Run the emulator scenarios strictly (no baseline)
+        run: |
+          version=$(python -c 'import json; print(json.load(open("native-build/build-info.json"))["firmware"]["version"])')
+          echo "Firmware version under test: $version" >> "$GITHUB_STEP_SUMMARY"
+          status=0
+          for case in "release-smoke-8 esp32-8-single" "release-smoke-16 esp32-16-dual" \
+                      "mqtt-native-8 esp32-8-single" "clock-dst-native-8 esp32-8-single" \
+                      "date-rollover-native-8 esp32-8-single"; do
+            set -- $case
+            if flapsim run --mode native --native-build native-build --hardware "$2" \
+                 --scenario "$1" --seed 7 --var "FIRMWARE_VERSION=$version" --out "runs/$1"; then
+              echo "- $1: pass" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- $1: **FAIL** (see runs/$1/report.md)" >> "$GITHUB_STEP_SUMMARY"
+              status=1
+            fi
+          done
+          exit $status
+      - name: Upload native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-emulator-evidence
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            native-build/build-info.json
+            runs/**/*.json
+            runs/**/*.jsonl
+            runs/**/*.log
+            runs/**/*.md
+            runs/**/*.xml
+            runs/**/*.html

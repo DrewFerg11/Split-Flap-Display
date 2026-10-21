@@ -125,6 +125,22 @@ assertions or zero discovered tests fail the unit-test job. The existing board
 builds and C++ formatting checks remain in place. Making **C++ unit tests** a
 required merge check is configured separately in GitHub's branch rules.
 
+## Native emulator check
+
+**CI / Native emulator** builds each PR's firmware source on Linux against
+[Split-Flap-Emulator](https://github.com/DrewFerg11/Split-Flap-Emulator)'s
+host shims, then runs five scenarios: 8- and 16-module release smoke, MQTT/Home
+Assistant, time mode across a DST change, and date mode across New Year. The
+job summary lists each result. Reports, serial logs and replays are uploaded
+as the `native-emulator-evidence` artifact.
+
+The job is **not** a merge requirement. Released v1.4.1 fails it on
+[#54](https://github.com/DrewFerg11/Split-Flap-Display/issues/54): lost
+settings in the smoke scenarios, and `NOT_FOUND` errors for unset keys in the
+rest (see also [#84](https://github.com/DrewFerg11/Split-Flap-Display/issues/84)).
+A fix for those should turn the scenarios green. `EMULATOR_REF` in the
+workflow pins the emulator version; bump it on purpose.
+
 ## A note on licensing
 
 Neither this fork nor its upstream currently has an explicit software license,
