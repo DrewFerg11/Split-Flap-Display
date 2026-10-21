@@ -2,21 +2,51 @@
 Import("env")
 
 import os
+import re
 import subprocess
+
+# Release tags: vX.Y.Z, or a prerelease such as vX.Y.Z-rc.N / vX.Y.Z-beta.N.
+TAG_PATTERN = re.compile(r"v(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z]+)(?:\.(\d+))?)?")
+
+
+def git(*args):
+    return (
+        subprocess.check_output(["git", *args], stderr=subprocess.DEVNULL)
+        .strip()
+        .decode("utf-8")
+    )
+
+
+def tag_rank(tag):
+    # A stable tag outranks any prerelease of the same version, so a commit
+    # tagged both vX.Y.Z-rc.N and vX.Y.Z reports vX.Y.Z.
+    match = TAG_PATTERN.fullmatch(tag)
+    major, minor, patch, label, number = match.groups()
+    return (int(major), int(minor), int(patch), label is None, int(number or 0))
 
 
 def get_firmware_version():
+    # release.yml passes the tag it is releasing. Prefer it over git describe,
+    # which picks arbitrarily among tags that point at the same commit.
+    override = os.environ.get("FIRMWARE_VERSION_OVERRIDE", "").strip()
+    if override:
+        return override
     try:
-        return (
-            subprocess.check_output(
-                ["git", "describe", "--tags", "--always", "--dirty"],
-                stderr=subprocess.DEVNULL,
-            )
-            .strip()
-            .decode("utf-8")
-        )
+        described = git("describe", "--tags", "--always", "--dirty")
     except Exception:
         return "unknown"
+    try:
+        tags = [
+            t
+            for t in git("tag", "--points-at", "HEAD").splitlines()
+            if TAG_PATTERN.fullmatch(t)
+        ]
+    except Exception:
+        tags = []
+    suffix = "-dirty" if described.endswith("-dirty") else ""
+    if tags and described[: len(described) - len(suffix)] in tags:
+        return max(tags, key=tag_rank) + suffix
+    return described
 
 
 def get_build_source():
