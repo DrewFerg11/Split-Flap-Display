@@ -19,10 +19,12 @@ def git(*args):
 
 def tag_rank(tag):
     # A stable tag outranks any prerelease of the same version, so a commit
-    # tagged both vX.Y.Z-rc.N and vX.Y.Z reports vX.Y.Z.
+    # tagged both vX.Y.Z-rc.N and vX.Y.Z reports vX.Y.Z. Prerelease labels
+    # order alphabetically, which gives alpha < beta < rc.
     match = TAG_PATTERN.fullmatch(tag)
     major, minor, patch, label, number = match.groups()
-    return (int(major), int(minor), int(patch), label is None, int(number or 0))
+    stable = label is None
+    return (int(major), int(minor), int(patch), stable, label or "", int(number or 0))
 
 
 def get_firmware_version():

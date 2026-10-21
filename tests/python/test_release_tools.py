@@ -159,6 +159,10 @@ class FirmwareMetadataTest(unittest.TestCase):
             self.run_git("v1.5.0-rc.1", "v1.5.0-rc.1\nv1.5.0-rc.2"), "v1.5.0-rc.2"
         )
 
+    def test_rc_outranks_beta_regardless_of_git_order(self):
+        for listing in ["v1.5.0-beta.2\nv1.5.0-rc.2", "v1.5.0-rc.2\nv1.5.0-beta.2"]:
+            self.assertEqual(self.run_git("v1.5.0-beta.2", listing), "v1.5.0-rc.2")
+
     def test_untagged_commits_keep_git_describe(self):
         self.assertEqual(self.run_git("v1.4.0-3-gabc1234", ""), "v1.4.0-3-gabc1234")
         self.assertEqual(self.run_git("abc1234", "nightly"), "abc1234")
