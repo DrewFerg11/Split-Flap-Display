@@ -218,7 +218,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: DrewFerg11/Split-Flap-Emulator
-          ref: ce0452e49f3fa9637b33e5355147127749342bd9
+          ref: 3ba32a9d85bdcfa655907c793e2d1c30a7859f0f  # emulator v0.1.0
           path: emulator
           persist-credentials: false
       - name: Download this run's ESP32 factory artifact
@@ -228,8 +228,9 @@ jobs:
           path: factory
       - name: Test the exact release factory image
         env:
-          # Configure only after publication verification; mutable tags fail closed.
-          FLAPSIM_IMAGE: ${{ vars.FLAPSIM_IMAGE }}
+          # Emulator v0.1.0, pinned by digest (the gate helper accepts only a digest). Update it
+          # together with the helper ref above, from the release's recorded publication result.
+          FLAPSIM_IMAGE: ghcr.io/drewferg11/split-flap-emulator@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935
           RELEASE_VERSION: ${{ github.ref_name }}
           LAYOUT: ${{ matrix.layout }}
           PROBE: ${{ inputs.sim_probe || 'none' }}
@@ -292,7 +293,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: DrewFerg11/Split-Flap-Emulator
-          ref: ce0452e49f3fa9637b33e5355147127749342bd9
+          ref: 3ba32a9d85bdcfa655907c793e2d1c30a7859f0f  # emulator v0.1.0
           path: emulator
           persist-credentials: false
       - uses: actions/download-artifact@v4

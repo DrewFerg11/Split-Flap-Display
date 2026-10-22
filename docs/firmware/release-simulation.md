@@ -6,18 +6,17 @@ all three chip builds, and release/Pages publication steps. It adds two parallel
 strict ESP32 simulations between builds and publication. No firmware runtime
 code changes.
 
-The helper is pinned to emulator commit `ce0452e49f3fa9637b33e5355147127749342bd9`.
-[Full contract and reproduction](https://github.com/DrewFerg11/Split-Flap-Emulator/blob/ce0452e49f3fa9637b33e5355147127749342bd9/docs/release-gate.md)
+The helper is pinned to emulator release v0.1.0, commit `3ba32a9d85bdcfa655907c793e2d1c30a7859f0f`.
+[Full contract and reproduction](https://github.com/DrewFerg11/Split-Flap-Emulator/blob/3ba32a9d85bdcfa655907c793e2d1c30a7859f0f/docs/release-gate.md)
 describes input validation, artifact layout, bounded execution, strict version
 matching, diagnostic retention and dry-run assertions.
 
-Activation is blocked pending the actual verified published immutable image and
-trusted hosted positive/negative evidence. There is no placeholder digest.
-Configure the repository Actions variable `FLAPSIM_IMAGE` only from verified
-phase5 publication proof, with the actual reference
-`ghcr.io/drewferg11/flapsim@sha256:` plus its real64-character digest. Empty
-configuration or a mutable tag fails closed. Keep this PR draft until actual
-activation evidence exists.
+The simulator image is emulator v0.1.0, pinned in the workflow by digest:
+`ghcr.io/drewferg11/split-flap-emulator@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935`.
+That is the digest the emulator's own publication run recorded. Keeping it in the
+workflow, not in a repository variable, means every change to it is reviewed. The
+helper accepts only a digest; a mutable tag or an empty value fails closed. Keep
+this PR draft until trusted hosted positive and negative evidence exists.
 
 The gate downloads this workflow run's `bins-esp32_n4` artifact and requires
 `splitflap-esp32_n4-${GITHUB_REF_NAME}-factory.bin`; each layout has independent
@@ -47,6 +46,6 @@ all four negative probes, exact image/helper pins and measured durations in
 emulator issue7 before requesting production activation.
 
 To update the emulator, verify/publish the new image first, review source/helper
-diffs, update both the immutable image variable and reviewed helper commit,
+diffs, update both the pinned image digest and the reviewed helper commit,
 repeat trusted dry-run proofs, and record old/new pins and evidence. Only the
 maintainer merges or performs authorized production publication.
