@@ -291,7 +291,7 @@ jobs:
     needs: [authorize, build, sim-test, publish-eligibility]
     if: >-
       always() && needs.authorize.result == 'success' && needs.build.result == 'success' &&
-      github.event_name == 'workflow_dispatch' && format('{0}', inputs.dry_run) != 'false' && inputs.sim_probe != 'none'
+      github.event_name == 'workflow_dispatch' && format('{0}', inputs.dry_run) != 'false' && (inputs.sim_probe || 'none') != 'none'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
