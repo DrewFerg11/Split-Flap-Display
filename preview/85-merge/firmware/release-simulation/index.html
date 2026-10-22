@@ -709,7 +709,7 @@
 
 
 <h1 id="esp32-release-simulation">ESP32 release simulation<a class="headerlink" href="#esp32-release-simulation" title="Permanent link">&para;</a></h1>
-<p>This draft workflow integration implements <a href="https://github.com/DrewFerg11/Split-Flap-Emulator/issues/7">emulator MVP6/6 issue7</a>.
+<p>This workflow integration implements <a href="https://github.com/DrewFerg11/Split-Flap-Emulator/issues/7">emulator MVP6/6 issue7</a>.
 It retains the existing release environment approval, owner check, tag policy,
 all three chip builds, and release/Pages publication steps. It adds two parallel
 strict ESP32 simulations between builds and publication. No firmware runtime
@@ -722,15 +722,17 @@ matching, diagnostic retention and dry-run assertions.</p>
 <code>ghcr.io/drewferg11/split-flap-emulator@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935</code>.
 That is the digest the emulator's own publication run recorded. Keeping it in the
 workflow, not in a repository variable, means every change to it is reviewed. The
-helper accepts only a digest; a mutable tag or an empty value fails closed. Keep
-this PR draft until trusted hosted positive and negative evidence exists.</p>
+helper accepts only a digest; a mutable tag or an empty value fails closed.</p>
 <p>The gate downloads this workflow run's <code>bins-esp32_n4</code> artifact and requires
 <code>splitflap-esp32_n4-${GITHUB_REF_NAME}-factory.bin</code>; each layout has independent
 flash/output. It uses strict installed smoke scenarios with the authorized tag
 as <code>FIRMWARE_VERSION</code>, no golden version exception or known-issues baseline.
-Existing firmware defects tracked in SFD54/84 and emulator14 can still prevent
-the strict positive case. Baseline accommodation in emulator golden CI does not
-establish a firmware fix or passing release acceptance.</p>
+The settings race that failed the strict case on v1.4.x (#54/#84) is fixed in #91.
+A hosted trial of this exact job against <code>main</code> at that fix (<code>ef65640</code>), with a
+factory image built by these release steps, passed strictly 3/3 on each layout
+(about 2 minutes of simulation each; <a href="https://github.com/DrewFerg11/Split-Flap-Display/actions/runs/39792984149">run</a>).
+The intermittent emulator I2C timeouts tracked in emulator #14 (fix in #90) can
+still fail a run; a failure blocks publication and leaves the evidence below.</p>
 <p>Manually dispatch <strong>Release / Tag</strong> on an approved trusted version tag containing this
 workflow with <code>dry_run=true</code> (manual default). Approval and all builds/tests still
 run, but both Pages and GitHub Release publication are disabled. With
@@ -774,7 +776,7 @@ maintainer merges or performs authorized production publication.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-10-22T08:19:55+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-10-22</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2026-10-22T14:18:17+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2026-10-22</span>
   </span>
 
     
