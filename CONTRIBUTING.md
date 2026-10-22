@@ -127,19 +127,19 @@ required merge check is configured separately in GitHub's branch rules.
 
 ## Native emulator check
 
-**CI / Native emulator** builds each PR's firmware source on Linux against
-[Split-Flap-Emulator](https://github.com/DrewFerg11/Split-Flap-Emulator)'s
-host shims, then runs five scenarios: 8- and 16-module release smoke, MQTT/Home
-Assistant, time mode across a DST change, and date mode across New Year. The
-job summary lists each result. Reports, serial logs and replays are uploaded
+**CI / Native emulator** builds each PR's firmware source natively inside the
+published [Split-Flap-Emulator](https://github.com/DrewFerg11/Split-Flap-Emulator)
+container image, without network access. It then runs five scenarios in the
+same image: 8- and 16-module release smoke, MQTT/Home Assistant, time mode
+across a DST change, and date mode across New Year. The job summary lists each result. Reports, serial logs and replays are uploaded
 as the `native-emulator-evidence` artifact.
 
 The job is **not** a merge requirement. Released v1.4.1 fails it on
 [#54](https://github.com/DrewFerg11/Split-Flap-Display/issues/54): lost
 settings in the smoke scenarios, and `NOT_FOUND` errors for unset keys in the
 rest (see also [#84](https://github.com/DrewFerg11/Split-Flap-Display/issues/84)).
-A fix for those should turn the scenarios green. `EMULATOR_REF` in the
-workflow pins the emulator version; bump it on purpose.
+A fix for those should turn the scenarios green. `FLAPSIM_IMAGE` in the
+workflow pins the emulator image by digest; bump it on purpose.
 
 ## A note on licensing
 
