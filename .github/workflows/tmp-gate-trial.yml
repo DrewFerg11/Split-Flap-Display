@@ -1,0 +1,84 @@
+# TEMPORARY (throwaway branch, never merged): strict positive trial of the #85 release gate
+# against firmware main, using release.yml's exact build steps and the pinned helper/image.
+name: TMP gate trial
+on:
+  push:
+    branches: [ci/gate-trial-85]
+permissions:
+  contents: read
+env:
+  VERSION: v1.4.2-rc.1
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run assets
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+      - run: pip install -U platformio
+      - run: pio run -e esp32_n4
+        env:
+          FIRMWARE_VERSION_OVERRIDE: ${{ env.VERSION }}
+      - run: pio run -e esp32_n4 -t buildfs
+      - name: Merge factory image
+        run: |
+          PKG_DIR=$(find "$HOME/.platformio/packages" -maxdepth 1 -iname 'framework-arduinoespressif32*' -type d | head -1)
+          ESPTOOL=$(find "$HOME/.platformio/packages" -maxdepth 3 -iname 'esptool.py' -path '*tool-esptoolpy*' | head -1)
+          mkdir -p factory
+          python "$ESPTOOL" --chip esp32 merge_bin -o "factory/splitflap-esp32_n4-${VERSION}-factory.bin" \
+            --flash_mode keep --flash_freq keep --flash_size keep \
+            0x1000 .pio/build/esp32_n4/bootloader.bin 0x8000 .pio/build/esp32_n4/partitions.bin \
+            0xe000 "$PKG_DIR/tools/partitions/boot_app0.bin" 0x10000 .pio/build/esp32_n4/firmware.bin \
+            0x310000 .pio/build/esp32_n4/littlefs.bin
+          echo "main $(git rev-parse HEAD)" ; sha256sum factory/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: factory
+          path: factory/
+  sim:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        layout: ['8', '16']
+        attempt: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: DrewFerg11/Split-Flap-Emulator
+          ref: 3ba32a9d85bdcfa655907c793e2d1c30a7859f0f  # emulator v0.1.0, as in #85
+          path: emulator
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: factory
+          path: factory
+      - name: Strict gate run (exactly as release.yml sim-test)
+        env:
+          FLAPSIM_IMAGE: ghcr.io/drewferg11/split-flap-emulator@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935
+        run: |
+          python3 emulator/tools/verify_release_gate.py run --image "$FLAPSIM_IMAGE" --version "$VERSION" \
+            --artifact-dir factory --out evidence --layout "${{ matrix.layout }}" --probe none
+      - name: Summarize
+        if: always()
+        run: |
+          echo "layout=${{ matrix.layout }} attempt=${{ matrix.attempt }}"
+          find evidence -name result.json -o -name gate-result.json | head
+          for f in $(find evidence -maxdepth 2 -name '*.json' | head -5); do echo "== $f"; head -c 1500 "$f"; echo; done
+          test -f evidence/run/report.md && head -60 evidence/run/report.md || true
