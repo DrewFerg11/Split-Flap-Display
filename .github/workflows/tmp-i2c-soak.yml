@@ -1,7 +1,8 @@
 # TEMPORARY evidence for #89 - removed before this PR leaves draft.
 # Boots the 16-module dual-bus layout repeatedly in the published Split-Flap-Emulator
 # QEMU image, for this PR's build and for released v1.4.1, and counts I2C write
-# timeouts (error code 5) and drum stalls.
+# timeouts (error code 5), read timeouts (Error 263) and drum stalls. --trace matches
+# the local runs that reproduced the race (2 of 12 boots on v1.4.1).
 name: TEMP / I2C soak (#89)
 
 on:
@@ -14,7 +15,7 @@ env:
   FLAPSIM_IMAGE: ghcr.io/drewferg11/split-flap-emulator:0.1.0@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935
   BASELINE_URL: https://github.com/DrewFerg11/Split-Flap-Display/releases/download/v1.4.1/splitflap-esp32_n4-v1.4.1-factory.bin
   BASELINE_SHA256: 5a71579b127ee87f0716cb1df938c9f98d3519a9283f72c003dfb857db32e6f4
-  RUNS_PER_SHARD: 6
+  RUNS_PER_SHARD: 8
 
 jobs:
   build:
@@ -69,7 +70,7 @@ jobs:
       fail-fast: false
       matrix:
         variant: [fixed, baseline]
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/download-artifact@v4
         if: matrix.variant == 'fixed'
@@ -94,14 +95,15 @@ jobs:
                  --mount "type=bind,source=$PWD/firmware.bin,target=/firmware.bin,readonly" \
                  --mount "type=bind,source=$PWD/out,target=/out" "$FLAPSIM_IMAGE" \
                  run --firmware /firmware.bin --hardware esp32-16-dual --scenario boot \
-                 --timing ci --seed "$seed" --out "/out/run-$seed" > "out/run-$seed.log" 2>&1; then
+                 --timing ci --trace --seed "$seed" --out "/out/run-$seed" > "out/run-$seed.log" 2>&1; then
               result=pass
             else
               result=fail
             fi
             timeouts=$(grep -c 'error code: 5' "out/run-$seed/serial.log" 2>/dev/null || true)
+            reads=$(grep -c 'Error 263' "out/run-$seed/serial.log" 2>/dev/null || true)
             error=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('error') or '')" "out/run-$seed/run.json" 2>/dev/null || true)
-            echo "${{ matrix.variant }} seed=$seed result=$result write_timeouts=${timeouts:-0} error=$error" | tee -a out/results.txt
+            echo "${{ matrix.variant }} seed=$seed result=$result write_timeouts=${timeouts:-0} read_timeouts=${reads:-0} error=$error" | tee -a out/results.txt
           done
       - name: Summary
         if: always()
