@@ -46,6 +46,21 @@ TEST_F(SettingsTest, IntegerListsAcceptSignedValuesAndRejectNonIntegerCharacters
     EXPECT_TRUE(field.validate(""));
     for (const char *text : {"32junk", "+1", " 1", "1, 2", "1.5"}) EXPECT_FALSE(field.validate(text)) << text;
 }
+TEST_F(SettingsTest, IntegerListsRejectWhatWouldThrowWhenReadBackAtBoot) {
+    JsonSetting field(std::vector<int>{});
+    EXPECT_TRUE(field.validate("2147483647,-2147483648"));
+    for (const char *text : {"999999999999", "2147483648", "-2147483649", "1,,2", ",1", "-", "--1", "1-2"}) {
+        EXPECT_FALSE(field.validate(text)) << text;
+    }
+}
+TEST_F(SettingsTest, AnOutOfRangeOffsetIsRejectedAndWritesNothing) {
+    auto s = configuration();
+    EXPECT_FALSE(apply(s, R"({"wireOffsets":"999999999999"})"));
+    EXPECT_STREQ(s.getLastValidationKey().c_str(), "wireOffsets");
+    EXPECT_EQ(Preferences::writes, 0);
+    EXPECT_NO_THROW(s.getIntVector("wireOffsets"));
+    EXPECT_EQ(Preferences::openSessions, 0);
+}
 TEST_F(SettingsTest, JsonUpdatesPersistValuesAndExportTheirTypes) {
     auto s = configuration();
     ASSERT_TRUE(apply(s, R"({"name":"Changed","mqtt_port":1884,"maxVel":12.5})"));
