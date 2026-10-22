@@ -9,6 +9,9 @@ inline int fakeMutexesHeld = 0;
 inline SemaphoreHandle_t xSemaphoreCreateCounting(int, int count) {
     return new int(count);
 }
+inline SemaphoreHandle_t xSemaphoreCreateBinary() {
+    return new int(0);
+}
 // Firmware objects own their mutex for the program's lifetime, so the fake keeps them in
 // static storage (stable addresses) rather than leaking one per test object.
 inline std::deque<int> fakeMutexStorage;

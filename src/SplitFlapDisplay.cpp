@@ -9,6 +9,40 @@
 
 SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
 
+#ifdef ENABLE_DUAL_I2C
+// Core that drives Wire1: bus2Move in moveToDual() is pinned here. Wire1.begin()
+// installs the ESP-IDF I2C driver, which binds the bus's interrupt to the calling
+// core, so it must run on this core too. With the ISR on the other core, the
+// driver's completion path (post DONE, then set the bus idle) can interleave with
+// the next transfer and drop it: a 1 s timeout, error code 5, and a lost step (#89).
+static const int WIRE1_CORE = 0;
+
+struct Wire1Init
+{
+    int sda;
+    int scl;
+    bool ok;
+    SemaphoreHandle_t done;
+};
+
+static void wire1InitTask(void *param) {
+    Wire1Init *init = static_cast<Wire1Init *>(param);
+    init->ok = Wire1.begin(init->sda, init->scl);
+    Wire1.setClock(400000);
+    xSemaphoreGive(init->done);
+    vTaskDelete(NULL);
+}
+
+// Runs Wire1.begin() on WIRE1_CORE and waits for it, so its ISR shares that core.
+static bool beginWire1OnItsCore(int sda, int scl) {
+    Wire1Init init = {sda, scl, false, xSemaphoreCreateBinary()};
+    xTaskCreatePinnedToCore(wire1InitTask, "wire1Init", 3072, &init, 2, NULL, WIRE1_CORE);
+    xSemaphoreTake(init.done, portMAX_DELAY);
+    vSemaphoreDelete(init.done);
+    return init.ok;
+}
+#endif
+
 void SplitFlapDisplay::init() {
     stepsPerRot = settings.getInt("stepsPerRot");
     displayOffset = settings.getInt("displayOffset");
@@ -50,8 +84,7 @@ void SplitFlapDisplay::init() {
     // Init Wire1 (Bus 2)
     SDA2Pin = settings.getInt("sda2Pin");
     SCL2Pin = settings.getInt("scl2Pin");
-    bool wire1Ok = Wire1.begin(SDA2Pin, SCL2Pin);
-    Wire1.setClock(400000);
+    bool wire1Ok = beginWire1OnItsCore(SDA2Pin, SCL2Pin);
     if (! wire1Ok) {
         Serial.printf("[ERROR] Wire1.begin() failed (SDA=%d, SCL=%d)\n", SDA2Pin, SCL2Pin);
     }
@@ -511,7 +544,8 @@ void SplitFlapDisplay::moveToDual(int *targetPositions, float speed, bool releas
         tasksToWait++;
     }
     if (wire1Count > 0) {
-        xTaskCreatePinnedToCore(busMovementTask, "bus2Move", 4096, &wire1Params, 1, NULL, 0);
+        // Must match WIRE1_CORE, where Wire1's interrupt was installed (#89).
+        xTaskCreatePinnedToCore(busMovementTask, "bus2Move", 4096, &wire1Params, 1, NULL, WIRE1_CORE);
         tasksToWait++;
     }
 
