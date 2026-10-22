@@ -4,6 +4,9 @@ using SemaphoreHandle_t = int *;
 inline SemaphoreHandle_t xSemaphoreCreateCounting(int, int count) {
     return new int(count);
 }
+inline SemaphoreHandle_t xSemaphoreCreateBinary() {
+    return new int(0);
+}
 inline void xSemaphoreGive(SemaphoreHandle_t s) {
     ++*s;
 }
@@ -24,3 +27,4 @@ inline int xTaskCreatePinnedToCore(void (*fn)(void *), const char *, int, void *
 }
 #define pdMS_TO_TICKS(value) (value)
 #define pdTRUE 1
+#define portMAX_DELAY 0xffffffff

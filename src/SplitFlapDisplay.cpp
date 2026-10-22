@@ -15,7 +15,7 @@ SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) 
 // core, so it must run on this core too. With the ISR on the other core, the
 // driver's completion path (post DONE, then set the bus idle) can interleave with
 // the next transfer and drop it: a 1 s timeout, error code 5, and a lost step (#89).
-static const BaseType_t WIRE1_CORE = 0;
+static const int WIRE1_CORE = 0;
 
 struct Wire1Init
 {
