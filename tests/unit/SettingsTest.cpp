@@ -8,6 +8,9 @@ class SettingsTest : public testing::Test {
         Preferences::storage.clear();
         Preferences::writes = 0;
         Preferences::openSessions = 0;
+        Preferences::unlockedOpens = 0;
+        Preferences::absentReads = 0;
+        Preferences::opens.clear();
     }
     bool apply(JsonSettings &settings, const char *json) {
         JsonDocument doc;
@@ -96,3 +99,72 @@ TEST_F(SettingsTest, SameAddressesOnSeparateBusesAreValidButCompletePinConflicts
     EXPECT_FALSE(apply(s, R"({"sdaPin":8,"sclPin":9,"sda2Pin":8,"scl2Pin":11})"));
 }
 #endif
+TEST_F(SettingsTest, EveryStoreAccessHoldsTheSettingsLockAndReleasesIt) {
+    auto s = configuration();
+    s.getString("name");
+    s.getInt("mqtt_port");
+    s.getFloat("maxVel");
+    s.getIntVector("wireOffsets");
+    s.putString("name", "Changed");
+    s.putInt("mqtt_port", 1884);
+    s.putFloat("maxVel", 12.5f);
+    s.putIntVector("wireOffsets", {1, 2, 3, 4});
+    s.toJson();
+    ASSERT_TRUE(apply(s, R"({"name":"Again"})"));
+    ASSERT_TRUE(s.reset());
+    EXPECT_FALSE(Preferences::opens.empty());
+    EXPECT_EQ(Preferences::unlockedOpens, 0);
+    EXPECT_EQ(fakeMutexesHeld, 0);
+    EXPECT_EQ(Preferences::openSessions, 0);
+}
+TEST_F(SettingsTest, UnknownKeysAreSkippedInsteadOfCrashing) {
+    auto s = configuration();
+    // A settings page from another firmware version or bus layout can send keys this build lacks.
+    ASSERT_TRUE(apply(s, R"({"name":"Changed","wire9Addresses":"32","noSuchKey":7})"));
+    EXPECT_STREQ(s.getString("name").c_str(), "Changed");
+    EXPECT_EQ(Preferences::storage["test-config"].count("noSuchKey"), 0u);
+    EXPECT_STREQ(s.getString("noSuchKey").c_str(), "");
+    EXPECT_EQ(s.getInt("noSuchKey"), 0);
+    EXPECT_FLOAT_EQ(s.getFloat("noSuchKey"), 0.0f);
+    EXPECT_EQ(Preferences::openSessions, 0);
+}
+TEST_F(SettingsTest, AnInvalidValueWritesNothingAndClosesTheStore) {
+    auto s = configuration();
+    EXPECT_FALSE(apply(s, R"({"name":"Should not save","wireOffsets":"1,x"})"));
+    EXPECT_STREQ(s.getLastValidationKey().c_str(), "wireOffsets");
+    EXPECT_STREQ(s.getString("name").c_str(), "Default");
+    EXPECT_EQ(Preferences::writes, 0);
+    EXPECT_EQ(Preferences::openSessions, 0);
+}
+TEST_F(SettingsTest, TheNamespaceIsCreatedBeforeTheFirstReadOnlyOpen) {
+    auto s = configuration();
+    s.getString("name");
+    s.getInt("mode");
+    ASSERT_EQ(Preferences::opens.size(), 3u);
+    EXPECT_EQ(Preferences::opens[0], std::make_pair(std::string("test-config"), false));
+    EXPECT_EQ(Preferences::opens[1], std::make_pair(std::string("test-config"), true));
+    EXPECT_EQ(Preferences::opens[2], std::make_pair(std::string("test-config"), true));
+}
+TEST_F(SettingsTest, ResetClearsOnlyItsOwnNamespace) {
+    Preferences::storage["config"]["name"] = std::string("Other store");
+    auto s = configuration("test-config");
+    s.putString("name", "Changed");
+    ASSERT_TRUE(s.reset());
+    EXPECT_STREQ(s.getString("name").c_str(), "Default");
+    EXPECT_EQ(std::get<std::string>(Preferences::storage["config"]["name"]), "Other store");
+}
+TEST_F(SettingsTest, UnsetKeysUseDefaultsWithoutMissingKeyReads) {
+    // Fresh flash, then a partial configuration: only some keys are ever written.
+    auto s = configuration();
+    ASSERT_TRUE(apply(s, R"({"wireAddresses":"32,33","wireOffsets":"0,1"})"));
+    auto rebooted = configuration();
+    EXPECT_STREQ(rebooted.getString("name").c_str(), "Default");
+    EXPECT_EQ(rebooted.getInt("mqtt_port"), 1883);
+    EXPECT_FLOAT_EQ(rebooted.getFloat("maxVel"), 15.0f);
+    EXPECT_EQ(rebooted.getIntVector("wireAddresses"), (std::vector<int>{32, 33}));
+    EXPECT_EQ(rebooted.getIntVector("wireOffsets"), (std::vector<int>{0, 1}));
+    auto exported = rebooted.toJson();
+    EXPECT_STREQ(exported["name"].as<const char *>(), "Default");
+    EXPECT_STREQ(exported["wireOffsets"].as<const char *>(), "0,1");
+    EXPECT_EQ(Preferences::absentReads, 0);
+}
