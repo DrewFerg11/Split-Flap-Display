@@ -77,7 +77,9 @@ jobs:
       - name: Restrict probes to manual dry runs
         env:
           PROBE: ${{ inputs.sim_probe || 'none' }}
-          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+          # Only a tag push, or a dispatch that explicitly sets dry_run=false, may publish. A missing
+          # input is a dry run (string compare: in expressions null == false is true).
+          DRY_RUN: ${{ (github.event_name == 'push' || format('{0}', inputs.dry_run) == 'false') && 'false' || 'true' }}
         run: |
           if [ "$PROBE" != none ] && [ "$DRY_RUN" != true ]; then
             echo "::error::Simulation probes require a manual dry run."
@@ -268,7 +270,9 @@ jobs:
           AUTH_RESULT: ${{ needs.authorize.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           SIM_RESULT: ${{ needs.sim-test.result }}
-          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+          # Only a tag push, or a dispatch that explicitly sets dry_run=false, may publish. A missing
+          # input is a dry run (string compare: in expressions null == false is true).
+          DRY_RUN: ${{ (github.event_name == 'push' || format('{0}', inputs.dry_run) == 'false') && 'false' || 'true' }}
         run: |
           if [ "$AUTH_RESULT" != success ] || [ "$BUILD_RESULT" != success ] || [ "$SIM_RESULT" != success ]; then
             echo "::error::Publication blocked: authorization=$AUTH_RESULT build=$BUILD_RESULT simulations=$SIM_RESULT"
@@ -287,7 +291,7 @@ jobs:
     needs: [authorize, build, sim-test, publish-eligibility]
     if: >-
       always() && needs.authorize.result == 'success' && needs.build.result == 'success' &&
-      github.event_name == 'workflow_dispatch' && inputs.dry_run && inputs.sim_probe != 'none'
+      github.event_name == 'workflow_dispatch' && format('{0}', inputs.dry_run) != 'false' && inputs.sim_probe != 'none'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

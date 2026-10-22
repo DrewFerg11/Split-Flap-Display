@@ -40,7 +40,7 @@ remain red by design. Never push a test tag that could trigger production
 publication merely to test a dry run; this integration creates no tags/releases.
 
 Artifacts `release-sim-8` and `release-sim-16` retain `evidence/` plus runner CPU
-specs for14 days on success/failure. They include run provenance, digest/tag/
+specs for 14 days on success/failure. They include run provenance, digest/tag/
 checksum, reports/JUnit/replay, timeline, state/activity and serial/native/Docker
 logs where available. Actions summaries report total matrix-job duration,
 including pull and artifact handling. Record links for a positive dry run and
