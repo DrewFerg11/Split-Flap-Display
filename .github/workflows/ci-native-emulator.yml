@@ -20,9 +20,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Split-Flap-Emulator v0.1.0, as published and verified by its Release / Tag
-  # run; pinned by digest so the checks change only when this is bumped on purpose.
-  FLAPSIM_IMAGE: ghcr.io/drewferg11/split-flap-emulator@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935
+  # Split-Flap-Emulator v0.1.0 as published by its Release / Tag run. Docker pulls by
+  # the digest (the tag is only for readers), so the checks change only when this is
+  # bumped on purpose: update the tag and digest together.
+  FLAPSIM_IMAGE: ghcr.io/drewferg11/split-flap-emulator:0.1.0@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935
 
 jobs:
   native:

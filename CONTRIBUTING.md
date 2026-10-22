@@ -139,7 +139,7 @@ The job is **not** a merge requirement. Released v1.4.1 fails it on
 settings in the smoke scenarios, and `NOT_FOUND` errors for unset keys in the
 rest (see also [#84](https://github.com/DrewFerg11/Split-Flap-Display/issues/84)).
 A fix for those should turn the scenarios green. `FLAPSIM_IMAGE` in the
-workflow pins the emulator image by digest; bump it on purpose.
+workflow pins the emulator image as `version@digest`; bump both on purpose.
 
 ## A note on licensing
 
