@@ -3,31 +3,64 @@
 #include <ArduinoJson.h>
 #include <sstream>
 
+// Opens the shared handle. The first open creates the namespace (read-write), so read-only
+// opens on a factory-fresh device don't log "nvs_open failed: NOT_FOUND" (#54 item 4).
+void JsonSettings::openLocked(bool readOnly) {
+    if (! namespaceReady) {
+        preferences.begin(name, false);
+        preferences.end();
+        namespaceReady = true;
+    }
+    preferences.begin(name, readOnly);
+}
+
+// Unset keys use their defaults without asking Preferences, which logs an error-level
+// "nvs_get_* len fail: <key> NOT_FOUND" for every absent key (#84). Real failures on a
+// key that exists (invalid handle, corruption) still surface from the get call.
+String JsonSettings::readStringLocked(const char *key, const String &fallback) {
+    return preferences.isKey(key) ? preferences.getString(key, fallback) : fallback;
+}
+
+int JsonSettings::readIntLocked(const char *key, int fallback) {
+    return preferences.isKey(key) ? preferences.getInt(key, fallback) : fallback;
+}
+
+float JsonSettings::readFloatLocked(const char *key, float fallback) {
+    return preferences.isKey(key) ? preferences.getFloat(key, fallback) : fallback;
+}
+
 String JsonSettings::getString(const char *key) {
-    preferences.begin(name, true);
-    String value = preferences.getString(key, this->find(key).strDefault);
+    Guard guard(lock);
+    JsonSetting *setting = lookup(key);
+    if (! setting) return "";
+    openLocked(true);
+    String value = readStringLocked(key, setting->strDefault);
     preferences.end();
     return value;
 }
 
 int JsonSettings::getInt(const char *key) {
-    preferences.begin(name, true);
-    int value = preferences.getInt(key, this->find(key).intDefault);
+    Guard guard(lock);
+    JsonSetting *setting = lookup(key);
+    if (! setting) return 0;
+    openLocked(true);
+    int value = readIntLocked(key, setting->intDefault);
     preferences.end();
     return value;
 }
 
 float JsonSettings::getFloat(const char *key) {
-    preferences.begin(name, true);
-    float value = preferences.getFloat(key, this->find(key).floatDefault);
+    Guard guard(lock);
+    JsonSetting *setting = lookup(key);
+    if (! setting) return 0;
+    openLocked(true);
+    float value = readFloatLocked(key, setting->floatDefault);
     preferences.end();
     return value;
 }
 
 std::vector<int> JsonSettings::getIntVector(const char *key) {
-    preferences.begin(name, true);
-    String value = preferences.getString(key, this->find(key).strDefault);
-    preferences.end();
+    String value = getString(key);
 
     std::vector<int> intVector;
     std::istringstream stream(value.c_str());
@@ -45,19 +78,22 @@ std::vector<int> JsonSettings::getIntVector(const char *key) {
 }
 
 void JsonSettings::putString(const char *key, String value) {
-    preferences.begin(name, false);
+    Guard guard(lock);
+    openLocked(false);
     preferences.putString(key, value);
     preferences.end();
 }
 
 void JsonSettings::putInt(const char *key, int value) {
-    preferences.begin(name, false);
+    Guard guard(lock);
+    openLocked(false);
     preferences.putInt(key, value);
     preferences.end();
 }
 
 void JsonSettings::putFloat(const char *key, float value) {
-    preferences.begin(name, false);
+    Guard guard(lock);
+    openLocked(false);
     preferences.putFloat(key, value);
     preferences.end();
 }
@@ -74,9 +110,14 @@ void JsonSettings::putIntVector(const char *key, std::vector<int> value) {
 }
 
 JsonDocument JsonSettings::toJson() {
+    Guard guard(lock);
+    return toJsonLocked();
+}
+
+JsonDocument JsonSettings::toJsonLocked() {
     JsonDocument settings;
 
-    preferences.begin(name, true);
+    openLocked(true);
 
     for (const auto &pair : map) {
         const String &key = pair.first;
@@ -85,12 +126,10 @@ JsonDocument JsonSettings::toJson() {
         switch (setting.type) {
             case JsonSettingType::JST_STR:
             case JsonSettingType::JST_INT_VECTOR:
-                settings[key] = preferences.getString(key.c_str(), setting.strDefault);
+                settings[key] = readStringLocked(key.c_str(), setting.strDefault);
                 break;
-            case JsonSettingType::JST_INT: settings[key] = preferences.getInt(key.c_str(), setting.intDefault); break;
-            case JsonSettingType::JST_FLOAT:
-                settings[key] = preferences.getFloat(key.c_str(), setting.floatDefault);
-                break;
+            case JsonSettingType::JST_INT: settings[key] = readIntLocked(key.c_str(), setting.intDefault); break;
+            case JsonSettingType::JST_FLOAT: settings[key] = readFloatLocked(key.c_str(), setting.floatDefault); break;
         }
     }
 
@@ -99,23 +138,36 @@ JsonDocument JsonSettings::toJson() {
 }
 
 bool JsonSettings::fromJson(JsonDocument settings) {
+    Guard guard(lock);
+    return fromJsonLocked(settings);
+}
+
+// All-or-nothing: every known key is validated before anything is written, and keys this
+// build doesn't have (another firmware version's settings page, the other bus layout) are
+// skipped instead of crashing the web server task (#54 item 2).
+bool JsonSettings::fromJsonLocked(JsonDocument settings) {
     if (! validateCrossFields(settings)) {
         return false;
     }
 
-    preferences.begin(name, false);
-
     for (JsonPair kv : settings.as<JsonObject>()) {
         const char *key = kv.key().c_str();
-        JsonSetting setting = this->find(key);
-
-        if (! setting.validate(kv.value().as<String>())) {
-            lastValidationError = setting.getLastValidationError();
+        JsonSetting *setting = lookup(key);
+        if (setting && ! setting->validate(kv.value().as<String>())) {
+            lastValidationError = setting->getLastValidationError();
             lastValidationKey = String(key);
             return false;
         }
+    }
 
-        switch (setting.type) {
+    openLocked(false);
+
+    for (JsonPair kv : settings.as<JsonObject>()) {
+        const char *key = kv.key().c_str();
+        JsonSetting *setting = lookup(key);
+        if (! setting) continue;
+
+        switch (setting->type) {
             case JsonSettingType::JST_INT_VECTOR:
             case JsonSettingType::JST_STR: preferences.putString(key, kv.value().as<String>()); break;
             case JsonSettingType::JST_INT: preferences.putInt(key, kv.value().as<int>()); break;
@@ -129,19 +181,22 @@ bool JsonSettings::fromJson(JsonDocument settings) {
 }
 
 bool JsonSettings::reset() {
-    preferences.begin("config", false);
+    Guard guard(lock);
+    openLocked(false);
     preferences.clear();
     preferences.end();
 
-    return fromJson(toJson());
+    return fromJsonLocked(toJsonLocked());
 }
 
-JsonSetting JsonSettings::find(const char *key) {
+// The setting for `key`, or nullptr (logged) when this build has no such key.
+JsonSetting *JsonSettings::lookup(const char *key) {
     auto it = this->map.find(key);
     if (it == this->map.end()) {
-        throw std::runtime_error("Key not found in settings map");
+        Serial.printf("[WARN] Ignoring unknown setting: %s\n", key);
+        return nullptr;
     }
-    return it->second;
+    return &it->second;
 }
 
 bool JsonSettings::validateCrossFields(const JsonDocument &doc) {
