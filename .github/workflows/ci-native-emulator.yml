@@ -1,0 +1,84 @@
+name: CI / Native emulator
+
+# Builds this PR's own firmware source natively inside the published
+# Split-Flap-Emulator image and runs its scenarios strictly (no known-issues
+# baseline). Only the image is used: no emulator source checkout, no host
+# toolchain, and no network inside the container.
+# Non-gating while the released firmware still fails on #54 (and #84); make it
+# required once it is green and stable. Details:
+# https://github.com/DrewFerg11/Split-Flap-Emulator/blob/main/docs/firmware-ci.md
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-emulator-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Split-Flap-Emulator v0.1.0 as published by its Release / Tag run. Docker pulls by
+  # the digest (the tag is only for readers), so the checks change only when this is
+  # bumped on purpose: update the tag and digest together.
+  FLAPSIM_IMAGE: ghcr.io/drewferg11/split-flap-emulator:0.1.0@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935
+
+jobs:
+  native:
+    name: Native emulator (non-gating)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: firmware
+          fetch-depth: 0 # tags, for the firmware's own version rule
+      - name: Pull the emulator image
+        run: docker pull "$FLAPSIM_IMAGE"
+      - name: Build this pull request's source natively in the image
+        run: |
+          mkdir -p out
+          docker run --rm --network none --user "$(id -u):$(id -g)" \
+            --mount "type=bind,source=$PWD/firmware,target=/firmware-src,readonly" \
+            --mount "type=bind,source=$PWD/out,target=/out" \
+            --entrypoint python3 "$FLAPSIM_IMAGE" \
+            /opt/flapsim/native/src/native/build.py --firmware-src /firmware-src \
+            --out /out/native-build --test
+      - name: Run the emulator scenarios strictly (no baseline)
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("out/native-build/build-info.json"))["firmware"]["version"])')
+          echo "Firmware version under test: $version" >> "$GITHUB_STEP_SUMMARY"
+          status=0
+          for case in "release-smoke-8 esp32-8-single" "release-smoke-16 esp32-16-dual" \
+                      "mqtt-native-8 esp32-8-single" "clock-dst-native-8 esp32-8-single" \
+                      "date-rollover-native-8 esp32-8-single"; do
+            set -- $case
+            if docker run --rm --network none --user "$(id -u):$(id -g)" \
+                 --mount "type=bind,source=$PWD/out,target=/out" "$FLAPSIM_IMAGE" \
+                 run --mode native --native-build /out/native-build --hardware "$2" \
+                 --scenario "$1" --seed 7 --var "FIRMWARE_VERSION=$version" --out "/out/runs/$1"; then
+              echo "- $1: pass" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- $1: **FAIL** (see runs/$1/report.md)" >> "$GITHUB_STEP_SUMMARY"
+              status=1
+            fi
+          done
+          exit $status
+      - name: Upload native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-emulator-evidence
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            out/native-build/build-info.json
+            out/runs/**/*.json
+            out/runs/**/*.jsonl
+            out/runs/**/*.log
+            out/runs/**/*.md
+            out/runs/**/*.xml
+            out/runs/**/*.html
