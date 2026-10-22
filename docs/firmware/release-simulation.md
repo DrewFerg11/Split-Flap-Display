@@ -1,6 +1,6 @@
 # ESP32 release simulation
 
-This draft workflow integration implements [emulator MVP6/6 issue7](https://github.com/DrewFerg11/Split-Flap-Emulator/issues/7).
+This workflow integration implements [emulator MVP6/6 issue7](https://github.com/DrewFerg11/Split-Flap-Emulator/issues/7).
 It retains the existing release environment approval, owner check, tag policy,
 all three chip builds, and release/Pages publication steps. It adds two parallel
 strict ESP32 simulations between builds and publication. No firmware runtime
@@ -15,16 +15,18 @@ The simulator image is emulator v0.1.0, pinned in the workflow by digest:
 `ghcr.io/drewferg11/split-flap-emulator@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935`.
 That is the digest the emulator's own publication run recorded. Keeping it in the
 workflow, not in a repository variable, means every change to it is reviewed. The
-helper accepts only a digest; a mutable tag or an empty value fails closed. Keep
-this PR draft until trusted hosted positive and negative evidence exists.
+helper accepts only a digest; a mutable tag or an empty value fails closed.
 
 The gate downloads this workflow run's `bins-esp32_n4` artifact and requires
 `splitflap-esp32_n4-${GITHUB_REF_NAME}-factory.bin`; each layout has independent
 flash/output. It uses strict installed smoke scenarios with the authorized tag
 as `FIRMWARE_VERSION`, no golden version exception or known-issues baseline.
-Existing firmware defects tracked in SFD54/84 and emulator14 can still prevent
-the strict positive case. Baseline accommodation in emulator golden CI does not
-establish a firmware fix or passing release acceptance.
+The settings race that failed the strict case on v1.4.x (#54/#84) is fixed in #91.
+A hosted trial of this exact job against `main` at that fix (`ef65640`), with a
+factory image built by these release steps, passed strictly 3/3 on each layout
+(about 2 minutes of simulation each; [run](https://github.com/DrewFerg11/Split-Flap-Display/actions/runs/39792984149)).
+The intermittent emulator I2C timeouts tracked in emulator #14 (fix in #90) can
+still fail a run; a failure blocks publication and leaves the evidence below.
 
 Manually dispatch **Release / Tag** on an approved trusted version tag containing this
 workflow with `dry_run=true` (manual default). Approval and all builds/tests still
