@@ -14,15 +14,15 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 concurrency:
   group: native-emulator-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  # A published, verified Split-Flap-Emulator image, pinned by digest; bump deliberately.
-  FLAPSIM_IMAGE: ghcr.io/drewferg11/flapsim@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  # Split-Flap-Emulator v0.1.0, as published and verified by its Release / Tag
+  # run; pinned by digest so the checks change only when this is bumped on purpose.
+  FLAPSIM_IMAGE: ghcr.io/drewferg11/split-flap-emulator@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935
 
 jobs:
   native:
@@ -35,11 +35,6 @@ jobs:
         with:
           path: firmware
           fetch-depth: 0 # tags, for the firmware's own version rule
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Pull the emulator image
         run: docker pull "$FLAPSIM_IMAGE"
       - name: Build this pull request's source natively in the image
