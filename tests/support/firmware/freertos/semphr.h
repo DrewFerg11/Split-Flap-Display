@@ -37,10 +37,14 @@ inline void vSemaphoreDelete(SemaphoreHandle_t s) {
     delete s;
 }
 inline void vTaskDelete(void *) {}
+// Tests set this to simulate task creation failing (for example, out of memory).
+inline bool fakeTaskCreateFails = false;
 inline int xTaskCreatePinnedToCore(void (*fn)(void *), const char *, int, void *arg, int, void *, int) {
+    if (fakeTaskCreateFails) return 0;
     fn(arg);
     return 1;
 }
 #define pdMS_TO_TICKS(value) (value)
 #define pdTRUE 1
+#define pdPASS pdTRUE
 #define portMAX_DELAY 0xffffffff

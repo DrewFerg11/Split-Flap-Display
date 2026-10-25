@@ -85,4 +85,14 @@ TEST_F(DisplayTest, RowsUseIndependentWidthsAndBuses) {
     for (const auto &w : Wire.writes) EXPECT_GE(w.address, 32);
     for (const auto &w : Wire1.writes) EXPECT_LE(w.address, 34);
 }
+TEST_F(DisplayTest, Wire1InitFallsBackWhenItsTaskCannotStart) {
+    fakeTaskCreateFails = true;
+    SplitFlapDisplay display(settings);
+    display.init();
+    fakeTaskCreateFails = false;
+    EXPECT_EQ(Wire1.begins, 1);
+    Wire1.writes.clear();
+    display.writeStringDual("A", "BCDE", 15, true);
+    EXPECT_FALSE(Wire1.writes.empty());
+}
 #endif

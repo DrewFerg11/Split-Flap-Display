@@ -36,10 +36,18 @@ static void wire1InitTask(void *param) {
 // Runs Wire1.begin() on WIRE1_CORE and waits for it, so its ISR shares that core.
 static bool beginWire1OnItsCore(int sda, int scl) {
     Wire1Init init = {sda, scl, false, xSemaphoreCreateBinary()};
-    xTaskCreatePinnedToCore(wire1InitTask, "wire1Init", 3072, &init, 2, NULL, WIRE1_CORE);
-    xSemaphoreTake(init.done, portMAX_DELAY);
-    vSemaphoreDelete(init.done);
-    return init.ok;
+    if (init.done && xTaskCreatePinnedToCore(wire1InitTask, "wire1Init", 3072, &init, 2, NULL, WIRE1_CORE) == pdPASS) {
+        xSemaphoreTake(init.done, portMAX_DELAY);
+        vSemaphoreDelete(init.done);
+        return init.ok;
+    }
+    // No task (out of memory): begin here rather than wait forever. The bus still works,
+    // but its ISR is back on this core, so #89's timeouts can return.
+    if (init.done) vSemaphoreDelete(init.done);
+    Serial.println("[WARN] Wire1 init task failed to start; initialising on the current core (#89)");
+    bool ok = Wire1.begin(sda, scl);
+    Wire1.setClock(400000);
+    return ok;
 }
 #endif
 
