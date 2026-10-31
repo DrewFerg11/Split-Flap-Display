@@ -1,0 +1,132 @@
+name: CI / Nightly QEMU
+
+# Builds main's esp32_n4 factory image the way release.yml does and boots it in
+# the published Split-Flap-Emulator image under QEMU, for both release layouts.
+# The PR check (ci-native-emulator.yml) only builds the source natively; this is
+# the same real-binary check the release gate runs, done ahead of time so a
+# broken main shows up before a tag is pushed. It doesn't gate anything: the
+# release still runs its own strict simulation of the exact image it publishes.
+# Details: https://github.com/DrewFerg11/Split-Flap-Emulator/blob/main/docs/firmware-ci.md
+
+on:
+  schedule:
+    - cron: "23 7 * * *" # 07:23 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-qemu
+  cancel-in-progress: true
+
+env:
+  # Same emulator as the native check and the release gate. Update all three together.
+  FLAPSIM_IMAGE: ghcr.io/drewferg11/split-flap-emulator:0.1.0@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935
+
+jobs:
+  qemu:
+    name: QEMU release smoke (esp32_n4)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags, for the firmware's own version rule
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run assets
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: pip install -U platformio
+
+      # No FIRMWARE_VERSION_OVERRIDE: the firmware embeds its own git describe
+      # version (e.g. v1.4.2-3-gabc1234), which the scenarios then expect.
+      - name: Build firmware
+        id: build
+        run: |
+          pio run -e esp32_n4 | tee build.log
+          version=$(sed -n 's/^VERSION: Firmware version resolved to //p' build.log | tail -1)
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build filesystem image
+        run: pio run -e esp32_n4 -t buildfs
+
+      # Same layout as release.yml's "Build merged factory image" for esp32_n4.
+      - name: Build merged factory image
+        run: |
+          PKG_DIR=$(find "$HOME/.platformio/packages" -maxdepth 1 -iname 'framework-arduinoespressif32*' -type d | head -1)
+          ESPTOOL=$(find "$HOME/.platformio/packages" -maxdepth 3 -iname 'esptool.py' -path '*tool-esptoolpy*' | head -1)
+          mkdir -p factory
+          python "$ESPTOOL" --chip esp32 merge_bin -o factory/firmware.bin \
+            --flash_mode keep --flash_freq keep --flash_size keep \
+            0x1000 .pio/build/esp32_n4/bootloader.bin \
+            0x8000 .pio/build/esp32_n4/partitions.bin \
+            0xe000 "$PKG_DIR/tools/partitions/boot_app0.bin" \
+            0x10000 .pio/build/esp32_n4/firmware.bin \
+            0x310000 .pio/build/esp32_n4/littlefs.bin
+
+      - name: Pull the emulator image
+        run: docker pull "$FLAPSIM_IMAGE"
+
+      - name: Run both release layouts under QEMU (strict, no baseline)
+        env:
+          VERSION: ${{ steps.build.outputs.version }}
+        run: |
+          echo "Firmware version under test: $VERSION ($(git rev-parse --short HEAD))" >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p out
+          status=0
+          for case in "release-smoke-8 esp32-8-single" "release-smoke-16 esp32-16-dual"; do
+            set -- $case
+            started=$(date +%s)
+            if docker run --rm --network none --user "$(id -u):$(id -g)" \
+                 --mount "type=bind,source=$PWD/factory/firmware.bin,target=/firmware.bin,readonly" \
+                 --mount "type=bind,source=$PWD/out,target=/out" "$FLAPSIM_IMAGE" \
+                 run --firmware /firmware.bin --hardware "$2" --scenario "$1" \
+                 --timing ci --timeout 300 --var "FIRMWARE_VERSION=$VERSION" --out "/out/runs/$1"; then
+              result=pass
+            else
+              result="**FAIL** (see runs/$1/report.md)"
+              status=1
+            fi
+            echo "- $1: $result in $(( $(date +%s) - started ))s" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit $status
+
+      - name: Upload QEMU evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-qemu-evidence
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            factory/firmware.bin
+            out/runs/**/*.json
+            out/runs/**/*.jsonl
+            out/runs/**/*.log
+            out/runs/**/*.md
+            out/runs/**/*.xml
+            out/runs/**/*.html
