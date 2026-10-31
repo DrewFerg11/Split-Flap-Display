@@ -47,7 +47,10 @@ test(
         const base = `http://127.0.0.1:${vite.httpServer.address().port}`;
         const imported = await fetch(`${base}/main.js`);
         assert.equal(imported.status, 200);
-        await imported.text();
+        assert.ok((await imported.text()).includes(projectPath));
+        const publicFile = await fetch(`${base}/@fs${decoy}`);
+        assert.equal(publicFile.status, 200);
+        assert.equal(await publicFile.text(), "PUBLIC PROJECT CONTENT\n");
         const response = await fetch(`${base}/@fs${outside}`);
         assert.equal(response.status, 403);
         assert.ok(!(await response.text()).includes("PRIVATE HOST CONTENT"));
@@ -67,11 +70,27 @@ test("custom HTML transforms cannot inject a protocol-relative attacker script",
     t.after(() => vite.close());
     const template =
         '<script type="module">document.body.textContent = "fixture"</script>';
+    await writeFile(path.join(root, "index.html"), template);
     const normal = await vite.transformIndexHtml("/index.html", template);
-    assert.match(normal, /<script type="module"/);
-    const transformed = await vite.transformIndexHtml(
+    assert.match(normal, /src=["']\/index\.html\?html-proxy&index=0\.js["']/);
+    for (const url of [
         "//attacker.invalid/payload.js?/../../package.json",
-        template,
-    );
-    assert.doesNotMatch(transformed, /src=["']\/\/attacker\.invalid\//);
+        "/index.html//attacker.invalid/payload.js?/../../package.json",
+    ]) {
+        const transformed = await vite.transformIndexHtml(url, template);
+        const sources = [
+            ...transformed.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/g),
+        ].map((match) => match[1]);
+        assert.ok(
+            sources.length > 0,
+            "Vite must inject its development client",
+        );
+        for (const source of sources) {
+            assert.equal(
+                new URL(source, "http://fixture.invalid").origin,
+                "http://fixture.invalid",
+                `Unexpected external script source for ${url}: ${source}`,
+            );
+        }
+    }
 });
