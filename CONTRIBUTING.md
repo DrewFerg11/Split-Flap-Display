@@ -29,6 +29,14 @@ is itself based on the original design by
 
 For firmware build setup, see the [manual install guide](docs/firmware/install-manual.md).
 
+Use Node.js 24 (selected by `.nvmrc`) and install the locked frontend dependencies
+with `npm ci`. Run `npm run test:security` to check the Vite development server's
+file-access and HTML-transform security boundaries. These tests use temporary
+fixtures and loopback connections; the file-access case is skipped on Windows,
+which is outside that advisory's scope. See
+[GHSA-rq7h-c2jc-7f22](https://github.com/advisories/GHSA-rq7h-c2jc-7f22) and
+[GHSA-9jrq-w75r-8gcw](https://github.com/advisories/GHSA-9jrq-w75r-8gcw).
+
 ## C++ unit tests
 
 The [coverage map](tests/COVERAGE.md) describes the coordinated backfill issues,
