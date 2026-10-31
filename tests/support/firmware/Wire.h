@@ -11,7 +11,11 @@ class TwoWire {
     std::vector<I2CWrite> writes;
     std::deque<std::vector<uint8_t>> sensorReads;
     uint8_t error = 0;
-    bool begin(int, int) { return true; }
+    int begins = 0;
+    bool begin(int, int) {
+        ++begins;
+        return true;
+    }
     void setClock(int) {}
     void beginTransmission(uint8_t address) { pending = {address, {}}; }
     size_t write(uint8_t b) {

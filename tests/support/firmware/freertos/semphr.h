@@ -9,6 +9,9 @@ inline int fakeMutexesHeld = 0;
 inline SemaphoreHandle_t xSemaphoreCreateCounting(int, int count) {
     return new int(count);
 }
+inline SemaphoreHandle_t xSemaphoreCreateBinary() {
+    return new int(0);
+}
 // Firmware objects own their mutex for the program's lifetime, so the fake keeps them in
 // static storage (stable addresses) rather than leaking one per test object.
 inline std::deque<int> fakeMutexStorage;
@@ -34,10 +37,22 @@ inline void vSemaphoreDelete(SemaphoreHandle_t s) {
     delete s;
 }
 inline void vTaskDelete(void *) {}
+// Tests set this to make the next N task creations fail (for example, out of memory).
+inline int fakeTaskCreateFailures = 0;
+inline int fakeTaskCreateCalls = 0;
 inline int xTaskCreatePinnedToCore(void (*fn)(void *), const char *, int, void *arg, int, void *, int) {
+    ++fakeTaskCreateCalls;
+    if (fakeTaskCreateFailures > 0) {
+        --fakeTaskCreateFailures;
+        return 0;
+    }
     fn(arg);
+    return 1;
+}
+inline int xPortGetCoreID() {
     return 1;
 }
 #define pdMS_TO_TICKS(value) (value)
 #define pdTRUE 1
+#define pdPASS pdTRUE
 #define portMAX_DELAY 0xffffffff

@@ -9,6 +9,60 @@
 
 SplitFlapDisplay::SplitFlapDisplay(JsonSettings &settings) : settings(settings) {}
 
+#ifdef ENABLE_DUAL_I2C
+// Core that drives Wire1: bus2Move in moveToDual() is pinned here. Wire1.begin()
+// installs the ESP-IDF I2C driver, which binds the bus's interrupt to the calling
+// core, so it must run on this core too. With the ISR on the other core, the
+// driver's completion path (post DONE, then set the bus idle) can interleave with
+// the next transfer and drop it: a 1 s timeout, error code 5, and a lost step (#89).
+// To move Wire1 to another core, change this constant, never bus2Move's argument alone;
+// any later Wire1.end()/begin() (a re-init) must run on this core too, or #89 returns.
+static const int WIRE1_CORE = 0;
+
+struct Wire1Init
+{
+    int sda;
+    int scl;
+    bool ok;
+    SemaphoreHandle_t done;
+};
+
+static void wire1InitTask(void *param) {
+    Wire1Init *init = static_cast<Wire1Init *>(param);
+    init->ok = Wire1.begin(init->sda, init->scl);
+    Wire1.setClock(400000);
+    xSemaphoreGive(init->done);
+    vTaskDelete(NULL);
+}
+
+// Runs Wire1.begin() on WIRE1_CORE and waits for it, so its ISR shares that core.
+static bool beginWire1OnItsCore(int sda, int scl) {
+    Wire1Init init = {sda, scl, false, xSemaphoreCreateBinary()};
+    // begin()/setClock() need little stack, so retry smaller if memory is short.
+    for (int stack : {3072, 2048}) {
+        if (init.done &&
+            xTaskCreatePinnedToCore(wire1InitTask, "wire1Init", stack, &init, 2, NULL, WIRE1_CORE) == pdPASS) {
+            xSemaphoreTake(init.done, portMAX_DELAY);
+            vSemaphoreDelete(init.done);
+            return init.ok;
+        }
+    }
+    // No task (out of memory): begin here rather than wait forever. The bus works, but its
+    // ISR is on this core while bus2Move runs on WIRE1_CORE, so #89's write timeouts can
+    // return. One timeout latches that module's error flag, which stops its hall-sensor
+    // feedback, and a step dropped during homing shifts its reference for later moves.
+    if (init.done) vSemaphoreDelete(init.done);
+    Serial.printf(
+        "[WARN] Wire1 init task failed; began on core %d, not %d: write timeouts possible (#89)\n",
+        (int) xPortGetCoreID(),
+        WIRE1_CORE
+    );
+    bool ok = Wire1.begin(sda, scl);
+    Wire1.setClock(400000);
+    return ok;
+}
+#endif
+
 void SplitFlapDisplay::init() {
     stepsPerRot = settings.getInt("stepsPerRot");
     displayOffset = settings.getInt("displayOffset");
@@ -50,8 +104,7 @@ void SplitFlapDisplay::init() {
     // Init Wire1 (Bus 2)
     SDA2Pin = settings.getInt("sda2Pin");
     SCL2Pin = settings.getInt("scl2Pin");
-    bool wire1Ok = Wire1.begin(SDA2Pin, SCL2Pin);
-    Wire1.setClock(400000);
+    bool wire1Ok = beginWire1OnItsCore(SDA2Pin, SCL2Pin);
     if (! wire1Ok) {
         Serial.printf("[ERROR] Wire1.begin() failed (SDA=%d, SCL=%d)\n", SDA2Pin, SCL2Pin);
     }
@@ -511,7 +564,9 @@ void SplitFlapDisplay::moveToDual(int *targetPositions, float speed, bool releas
         tasksToWait++;
     }
     if (wire1Count > 0) {
-        xTaskCreatePinnedToCore(busMovementTask, "bus2Move", 4096, &wire1Params, 1, NULL, 0);
+        // Must stay WIRE1_CORE, where Wire1's interrupt was installed (#89): change the
+        // constant, never this argument alone.
+        xTaskCreatePinnedToCore(busMovementTask, "bus2Move", 4096, &wire1Params, 1, NULL, WIRE1_CORE);
         tasksToWait++;
     }
 
