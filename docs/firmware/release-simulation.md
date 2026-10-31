@@ -6,13 +6,13 @@ all three chip builds, and release/Pages publication steps. It adds two parallel
 strict ESP32 simulations between builds and publication. No firmware runtime
 code changes.
 
-The helper is pinned to emulator release v0.1.0, commit `3ba32a9d85bdcfa655907c793e2d1c30a7859f0f`.
-[Full contract and reproduction](https://github.com/DrewFerg11/Split-Flap-Emulator/blob/3ba32a9d85bdcfa655907c793e2d1c30a7859f0f/docs/release-gate.md)
+The helper is pinned to emulator release v0.2.0, commit `be1705c89858e8ee3974aa5bda33d3c393545b99`.
+[Full contract and reproduction](https://github.com/DrewFerg11/Split-Flap-Emulator/blob/be1705c89858e8ee3974aa5bda33d3c393545b99/docs/release-gate.md)
 describes input validation, artifact layout, bounded execution, strict version
 matching, diagnostic retention and dry-run assertions.
 
-The simulator image is emulator v0.1.0, pinned in the workflow by digest:
-`ghcr.io/drewferg11/split-flap-emulator@sha256:acd9a51fe50c91530df3e1583ce070cb17e712d31d8d415654c43d97879d3935`.
+The simulator image is emulator v0.2.0, pinned in the workflow by digest:
+`ghcr.io/drewferg11/split-flap-emulator@sha256:aef570747499c185d819ce51ac9aeea37d5768584398d01b9df8c4c759866b63`.
 That is the digest the emulator's own publication run recorded. Keeping it in the
 workflow, not in a repository variable, means every change to it is reviewed. The
 helper accepts only a digest; a mutable tag or an empty value fails closed.
