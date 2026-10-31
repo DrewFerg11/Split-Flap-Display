@@ -64,7 +64,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+      - run: npm ci
       - run: npm run test:web
+      - run: npm run test:security
       - run: python -m unittest discover -s tests/python -v
 
   build:
