@@ -1,8 +1,8 @@
-name: CI / Nightly QEMU
+name: CI / Emulator (QEMU nightly)
 
 # Builds main's esp32_n4 factory image the way release.yml does and boots it in
 # the published Split-Flap-Emulator image under QEMU, for both release layouts.
-# The PR check (ci-native-emulator.yml) only builds the source natively; this is
+# The PR check (ci-emulator-native.yml) only builds the source natively; this is
 # the same real-binary check the release gate runs, done ahead of time so a
 # broken main shows up before a tag is pushed. It doesn't gate anything: the
 # release still runs its own strict simulation of the exact image it publishes.
@@ -26,7 +26,7 @@ env:
 
 jobs:
   qemu:
-    name: QEMU release smoke (esp32_n4)
+    name: Emulator (QEMU)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

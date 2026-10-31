@@ -125,21 +125,25 @@ assertions or zero discovered tests fail the unit-test job. The existing board
 builds and C++ formatting checks remain in place. Making **C++ unit tests** a
 required merge check is configured separately in GitHub's branch rules.
 
-## Native emulator check
+## Emulator checks
 
-**CI / Native emulator** builds each PR's firmware source natively inside the
+**CI / Emulator (native)** builds each PR's firmware source natively inside the
 published [Split-Flap-Emulator](https://github.com/DrewFerg11/Split-Flap-Emulator)
 container image, without network access. It then runs five scenarios in the
 same image: 8- and 16-module release smoke, MQTT/Home Assistant, time mode
 across a DST change, and date mode across New Year. The job summary lists each result. Reports, serial logs and replays are uploaded
 as the `native-emulator-evidence` artifact.
 
-The job is **not** a merge requirement. Released v1.4.1 fails it on
-[#54](https://github.com/DrewFerg11/Split-Flap-Display/issues/54): lost
-settings in the smoke scenarios, and `NOT_FOUND` errors for unset keys in the
-rest (see also [#84](https://github.com/DrewFerg11/Split-Flap-Display/issues/84)).
-A fix for those should turn the scenarios green. `FLAPSIM_IMAGE` in the
-workflow pins the emulator image as `version@digest`; bump both on purpose.
+Its **Emulator (native)** check is a merge requirement, configured in GitHub's
+branch rules. `FLAPSIM_IMAGE` in the workflow pins the emulator image as
+`version@digest`; bump both on purpose.
+
+**CI / Emulator (QEMU nightly)** builds `main`'s `esp32_n4` factory image the
+way the release does and boots it under QEMU for the 8- and 16-module release
+smoke scenarios, daily or on manual dispatch. It catches problems in the real
+binary before a tag is pushed, and gates nothing; the release still simulates
+the exact image it publishes. Evidence is uploaded as `nightly-qemu-evidence`.
+Keep its `FLAPSIM_IMAGE` in step with the native check and `release.yml`.
 
 ## A note on licensing
 
