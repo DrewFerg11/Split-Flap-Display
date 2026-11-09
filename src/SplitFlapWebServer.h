@@ -12,12 +12,16 @@
 #include <WiFi.h>
 #include <time.h>
 
+class SplitFlapDisplay;
+
 class SplitFlapWebServer {
   public:
     SplitFlapWebServer(JsonSettings &settings);
     void init();
     void setTimezone();
     void checkRebootRequired();
+    void setDiagnostics(SplitFlapDisplay *display, const char *resetReason);
+    void pollDiagnostics(bool mqttConnected);
 
     // Wifi Connectivity
     bool loadWiFiCredentials();
@@ -114,4 +118,14 @@ class SplitFlapWebServer {
     unsigned long lastCheckWifiTime;
     int wifiCheckInterval;
     AsyncWebServer server; // Declare server as a class member
+    AsyncEventSource logEvents{"/log/stream"};
+    SplitFlapDisplay *diagnosticDisplay = nullptr;
+    const char *diagnosticResetReason = "unknown";
+    bool diagnosticMqttConfigured = false;
+    bool diagnosticMqttConnected = false;
+    bool logSnapshotRequested = false;
+    unsigned long lastLogFlush = 0;
+    uint64_t logCursor = 0;
+    void sendStatus(AsyncWebServerRequest *request);
+    void sendLog(AsyncWebServerRequest *request);
 };
